@@ -4,7 +4,7 @@ struct RangePicker: View {
     @Binding var selection: TimeRangePreset
 
     var body: some View {
-        Picker("Range", selection: $selection) {
+        Picker("范围", selection: $selection) {
             ForEach(TimeRangePreset.allCases, id: \.self) { range in
                 Text(range.title).tag(range)
             }

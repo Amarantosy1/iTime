@@ -8,11 +8,11 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
     var title: String {
         switch self {
         case .today:
-            "Today"
+            "今天"
         case .week:
-            "Week"
+            "本周"
         case .month:
-            "Month"
+            "本月"
         }
     }
 }

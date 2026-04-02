@@ -28,6 +28,7 @@
 		A00000000000000000000113 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* Color+Hex.swift */; };
 		A00000000000000000000114 /* LiquidGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* LiquidGlassCard.swift */; };
 		A00000000000000000000115 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* UserPreferences.swift */; };
+		A00000000000000000000116 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* SettingsView.swift */; };
 		A00000000000000000000121 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* AppModelTests.swift */; };
 		A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */; };
 		A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */; };
@@ -71,6 +72,7 @@
 		A00000000000000000000022 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		A00000000000000000000023 /* LiquidGlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassCard.swift; sourceTree = "<group>"; };
 		A0000000000000000000002A /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		A0000000000000000000002B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A00000000000000000000024 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarStatisticsAggregatorTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitCalendarAccessServiceTests.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 				A0000000000000000000006A /* Components */,
 				A0000000000000000000006B /* MenuBar */,
 				A0000000000000000000006C /* Overview */,
+				A0000000000000000000006E /* Settings */,
 				A0000000000000000000006D /* Theme */,
 			);
 			path = UI;
@@ -233,6 +236,14 @@
 				A00000000000000000000023 /* LiquidGlassCard.swift */,
 			);
 			path = Theme;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006E /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000002B /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000070 /* Tests */ = {
@@ -372,6 +383,7 @@
 				A00000000000000000000111 /* OverviewChartView.swift in Sources */,
 				A00000000000000000000112 /* OverviewWindowView.swift in Sources */,
 				A0000000000000000000010F /* RangePicker.swift in Sources */,
+				A00000000000000000000116 /* SettingsView.swift in Sources */,
 				A0000000000000000000010B /* StatisticsAggregating.swift in Sources */,
 				A0000000000000000000010C /* TimeInterval+Formatting.swift in Sources */,
 				A00000000000000000000105 /* TimeBucketSummary.swift in Sources */,

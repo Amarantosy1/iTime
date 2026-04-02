@@ -41,3 +41,43 @@ private struct StubCalendarAccessService: CalendarAccessServing {
     #expect(model.availableCalendars.count == 1)
     #expect(model.overview?.totalDuration == 3600)
 }
+
+@MainActor
+@Test func refreshSelectsAllCalendarsByDefaultWhenNoStoredSelectionExists() async {
+    let service = StubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: false),
+            CalendarSource(id: "life", name: "生活", colorHex: "#50E3C2", isSelected: false),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.refresh()
+
+    #expect(Set(model.availableCalendars.map(\.id)) == ["work", "life"])
+    #expect(Set(preferences.selectedCalendarIDs) == ["work", "life"])
+    #expect(model.availableCalendars.allSatisfy { $0.isSelected })
+}
+
+@MainActor
+@Test func togglingCalendarSelectionUpdatesStoredSelection() async {
+    let service = StubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: false),
+            CalendarSource(id: "life", name: "生活", colorHex: "#50E3C2", isSelected: false),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.refresh()
+    await model.toggleCalendarSelection(id: "life")
+
+    #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isSelected == false)
+    #expect(Set(preferences.selectedCalendarIDs) == ["work"])
+}

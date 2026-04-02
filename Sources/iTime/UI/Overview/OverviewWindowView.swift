@@ -37,9 +37,9 @@ struct OverviewWindowView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Where is my time?")
+            Text("我的时间去哪了？")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
-            Text("A calendar-based breakdown of your scheduled time.")
+            Text("基于日历事件统计你的时间分布。")
                 .foregroundStyle(.secondary)
         }
     }
@@ -69,7 +69,7 @@ struct OverviewWindowView: View {
             }
         } else {
             LiquidGlassCard {
-                Text("No events available for this time range.")
+                Text("当前时间范围内没有可统计的日程。")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

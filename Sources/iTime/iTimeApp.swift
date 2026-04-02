@@ -13,10 +13,14 @@ struct iTimeApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("Overview", id: "overview") {
+        Window("概览", id: "overview") {
             OverviewWindowView(model: model)
                 .frame(minWidth: 760, minHeight: 560)
         }
         .windowResizability(.contentSize)
+
+        Settings {
+            SettingsView(model: model)
+        }
     }
 }

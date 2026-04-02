@@ -7,14 +7,14 @@ struct AuthorizationStateView: View {
     var body: some View {
         LiquidGlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Calendar access")
+                Text("日历权限")
                     .font(.headline)
 
                 Text(message)
                     .foregroundStyle(.secondary)
 
                 if state == .notDetermined {
-                    Button("Allow Calendar Access", action: requestAccess)
+                    Button("允许访问日历", action: requestAccess)
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -25,11 +25,11 @@ struct AuthorizationStateView: View {
     private var message: String {
         switch state {
         case .notDetermined:
-            "Grant calendar access so iTime can analyze how your scheduled time is distributed."
+            "请授予日历访问权限，以便 iTime 统计你的时间分布。"
         case .restricted:
-            "Calendar access is restricted by system policy."
+            "系统策略限制了日历访问。"
         case .denied:
-            "Calendar access is denied. Enable it again in System Settings."
+            "日历访问已被拒绝，请到系统设置中重新开启。"
         case .authorized:
             ""
         }

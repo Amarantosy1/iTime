@@ -20,10 +20,21 @@ struct MenuBarContentView: View {
                 }
             }
 
-            Button("Open Details") {
-                openWindow(id: "overview")
+            HStack(spacing: 10) {
+                SettingsLink {
+                    Label("设置", systemImage: "gearshape")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    openWindow(id: "overview")
+                } label: {
+                    Label("查看详情", systemImage: "chart.bar.xaxis")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .buttonStyle(.borderedProminent)
         }
         .padding(16)
         .frame(width: 340)
@@ -36,7 +47,7 @@ struct MenuBarContentView: View {
     private var authorizedContent: some View {
         LiquidGlassCard {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Tracked time")
+                Text("已追踪时间")
                     .font(.headline)
 
                 Text(model.overview?.totalDuration.formattedDuration ?? "0m")
@@ -55,7 +66,7 @@ struct MenuBarContentView: View {
                         }
                     }
                 } else {
-                    Text("No events in this range.")
+                    Text("当前范围内没有日程。")
                         .foregroundStyle(.secondary)
                 }
             }
