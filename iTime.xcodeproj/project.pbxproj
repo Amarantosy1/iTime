@@ -1,0 +1,578 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000101 /* iTimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* iTimeApp.swift */; };
+		A00000000000000000000102 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* AppModel.swift */; };
+		A00000000000000000000103 /* CalendarEventRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* CalendarEventRecord.swift */; };
+		A00000000000000000000104 /* CalendarSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* CalendarSource.swift */; };
+		A00000000000000000000105 /* TimeBucketSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* TimeBucketSummary.swift */; };
+		A00000000000000000000106 /* TimeOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* TimeOverview.swift */; };
+		A00000000000000000000107 /* TimeRangePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* TimeRangePreset.swift */; };
+		A00000000000000000000108 /* CalendarAccessServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* CalendarAccessServing.swift */; };
+		A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* CalendarStatisticsAggregator.swift */; };
+		A0000000000000000000010A /* EventKitCalendarAccessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* EventKitCalendarAccessService.swift */; };
+		A0000000000000000000010B /* StatisticsAggregating.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* StatisticsAggregating.swift */; };
+		A0000000000000000000010C /* TimeInterval+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* TimeInterval+Formatting.swift */; };
+		A0000000000000000000010D /* CGColor+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* CGColor+Hex.swift */; };
+		A0000000000000000000010E /* AuthorizationStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* AuthorizationStateView.swift */; };
+		A0000000000000000000010F /* RangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* RangePicker.swift */; };
+		A00000000000000000000110 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001F /* MenuBarContentView.swift */; };
+		A00000000000000000000111 /* OverviewChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000020 /* OverviewChartView.swift */; };
+		A00000000000000000000112 /* OverviewWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* OverviewWindowView.swift */; };
+		A00000000000000000000113 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* Color+Hex.swift */; };
+		A00000000000000000000114 /* LiquidGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* LiquidGlassCard.swift */; };
+		A00000000000000000000115 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* UserPreferences.swift */; };
+		A00000000000000000000121 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* AppModelTests.swift */; };
+		A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */; };
+		A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */; };
+		A00000000000000000000124 /* PresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000027 /* PresentationTests.swift */; };
+		A00000000000000000000125 /* TimeOverviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* TimeOverviewTests.swift */; };
+		A00000000000000000000126 /* UserPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000029 /* UserPreferencesTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000130 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000032;
+			remoteInfo = iTime;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000002 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A00000000000000000000003 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		A00000000000000000000004 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		A00000000000000000000010 /* iTimeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iTimeApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000011 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000012 /* CalendarEventRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventRecord.swift; sourceTree = "<group>"; };
+		A00000000000000000000013 /* CalendarSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSource.swift; sourceTree = "<group>"; };
+		A00000000000000000000014 /* TimeBucketSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBucketSummary.swift; sourceTree = "<group>"; };
+		A00000000000000000000015 /* TimeOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOverview.swift; sourceTree = "<group>"; };
+		A00000000000000000000016 /* TimeRangePreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRangePreset.swift; sourceTree = "<group>"; };
+		A00000000000000000000017 /* CalendarAccessServing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarAccessServing.swift; sourceTree = "<group>"; };
+		A00000000000000000000018 /* CalendarStatisticsAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarStatisticsAggregator.swift; sourceTree = "<group>"; };
+		A00000000000000000000019 /* EventKitCalendarAccessService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitCalendarAccessService.swift; sourceTree = "<group>"; };
+		A0000000000000000000001A /* StatisticsAggregating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsAggregating.swift; sourceTree = "<group>"; };
+		A0000000000000000000001B /* TimeInterval+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TimeInterval+Formatting.swift"; sourceTree = "<group>"; };
+		A0000000000000000000001C /* CGColor+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+Hex.swift"; sourceTree = "<group>"; };
+		A0000000000000000000001D /* AuthorizationStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationStateView.swift; sourceTree = "<group>"; };
+		A0000000000000000000001E /* RangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangePicker.swift; sourceTree = "<group>"; };
+		A0000000000000000000001F /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
+		A00000000000000000000020 /* OverviewChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewChartView.swift; sourceTree = "<group>"; };
+		A00000000000000000000021 /* OverviewWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewWindowView.swift; sourceTree = "<group>"; };
+		A00000000000000000000022 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		A00000000000000000000023 /* LiquidGlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassCard.swift; sourceTree = "<group>"; };
+		A0000000000000000000002A /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		A00000000000000000000024 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarStatisticsAggregatorTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitCalendarAccessServiceTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000027 /* PresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000028 /* TimeOverviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeOverviewTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000029 /* UserPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000040 /* iTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000041 /* iTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000050 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000051 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000060 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000002 /* README.md */,
+				A00000000000000000000003 /* Package.swift */,
+				A00000000000000000000004 /* .gitignore */,
+				A00000000000000000000061 /* Sources */,
+				A00000000000000000000070 /* Tests */,
+				A00000000000000000000080 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000061 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000062 /* iTime */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000062 /* iTime */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000010 /* iTimeApp.swift */,
+				A00000000000000000000063 /* App */,
+				A00000000000000000000064 /* Domain */,
+				A00000000000000000000065 /* Services */,
+				A00000000000000000000066 /* Support */,
+				A00000000000000000000069 /* UI */,
+			);
+			path = iTime;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000063 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000011 /* AppModel.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000064 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000012 /* CalendarEventRecord.swift */,
+				A00000000000000000000013 /* CalendarSource.swift */,
+				A00000000000000000000014 /* TimeBucketSummary.swift */,
+				A00000000000000000000015 /* TimeOverview.swift */,
+				A00000000000000000000016 /* TimeRangePreset.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000065 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000017 /* CalendarAccessServing.swift */,
+				A00000000000000000000018 /* CalendarStatisticsAggregator.swift */,
+				A00000000000000000000019 /* EventKitCalendarAccessService.swift */,
+				A0000000000000000000001A /* StatisticsAggregating.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000066 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000067 /* Persistence */,
+				A00000000000000000000068 /* Formatting */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000067 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000002A /* UserPreferences.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000068 /* Formatting */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001B /* TimeInterval+Formatting.swift */,
+				A0000000000000000000001C /* CGColor+Hex.swift */,
+			);
+			path = Formatting;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000069 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000006A /* Components */,
+				A0000000000000000000006B /* MenuBar */,
+				A0000000000000000000006C /* Overview */,
+				A0000000000000000000006D /* Theme */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006A /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001D /* AuthorizationStateView.swift */,
+				A0000000000000000000001E /* RangePicker.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006B /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001F /* MenuBarContentView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006C /* Overview */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000020 /* OverviewChartView.swift */,
+				A00000000000000000000021 /* OverviewWindowView.swift */,
+			);
+			path = Overview;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006D /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000022 /* Color+Hex.swift */,
+				A00000000000000000000023 /* LiquidGlassCard.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000070 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000071 /* iTimeTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000071 /* iTimeTests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000024 /* AppModelTests.swift */,
+				A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */,
+				A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */,
+				A00000000000000000000027 /* PresentationTests.swift */,
+				A00000000000000000000028 /* TimeOverviewTests.swift */,
+				A00000000000000000000029 /* UserPreferencesTests.swift */,
+			);
+			path = iTimeTests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000080 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000040 /* iTime.app */,
+				A00000000000000000000041 /* iTimeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000032 /* iTime */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A000000000000000000000A0 /* Build configuration list for PBXNativeTarget "iTime" */;
+			buildPhases = (
+				A00000000000000000000050 /* Frameworks */,
+				A00000000000000000000090 /* Sources */,
+				A00000000000000000000092 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = iTime;
+			productName = iTime;
+			productReference = A00000000000000000000040 /* iTime.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000033 /* iTimeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A000000000000000000000A1 /* Build configuration list for PBXNativeTarget "iTimeTests" */;
+			buildPhases = (
+				A00000000000000000000051 /* Frameworks */,
+				A00000000000000000000091 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000131 /* PBXTargetDependency */,
+			);
+			name = iTimeTests;
+			productName = iTimeTests;
+			productReference = A00000000000000000000041 /* iTimeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2604;
+				LastUpgradeCheck = 2604;
+				TargetAttributes = {
+					A00000000000000000000032 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					A00000000000000000000033 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = A00000000000000000000032;
+					};
+				};
+			};
+			buildConfigurationList = A000000000000000000000A2 /* Build configuration list for PBXProject "iTime" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000060;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A00000000000000000000080 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000032 /* iTime */,
+				A00000000000000000000033 /* iTimeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000092 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000090 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000102 /* AppModel.swift in Sources */,
+				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
+				A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */,
+				A00000000000000000000103 /* CalendarEventRecord.swift in Sources */,
+				A00000000000000000000104 /* CalendarSource.swift in Sources */,
+				A0000000000000000000010D /* CGColor+Hex.swift in Sources */,
+				A0000000000000000000010A /* EventKitCalendarAccessService.swift in Sources */,
+				A0000000000000000000010E /* AuthorizationStateView.swift in Sources */,
+				A00000000000000000000113 /* Color+Hex.swift in Sources */,
+				A00000000000000000000101 /* iTimeApp.swift in Sources */,
+				A00000000000000000000114 /* LiquidGlassCard.swift in Sources */,
+				A00000000000000000000110 /* MenuBarContentView.swift in Sources */,
+				A00000000000000000000111 /* OverviewChartView.swift in Sources */,
+				A00000000000000000000112 /* OverviewWindowView.swift in Sources */,
+				A0000000000000000000010F /* RangePicker.swift in Sources */,
+				A0000000000000000000010B /* StatisticsAggregating.swift in Sources */,
+				A0000000000000000000010C /* TimeInterval+Formatting.swift in Sources */,
+				A00000000000000000000105 /* TimeBucketSummary.swift in Sources */,
+				A00000000000000000000106 /* TimeOverview.swift in Sources */,
+				A00000000000000000000107 /* TimeRangePreset.swift in Sources */,
+				A00000000000000000000115 /* UserPreferences.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000091 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000121 /* AppModelTests.swift in Sources */,
+				A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */,
+				A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */,
+				A00000000000000000000124 /* PresentationTests.swift in Sources */,
+				A00000000000000000000125 /* TimeOverviewTests.swift in Sources */,
+				A00000000000000000000126 /* UserPreferencesTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000131 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000032 /* iTime */;
+			targetProxy = A00000000000000000000130 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A000000000000000000000B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A000000000000000000000B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A000000000000000000000B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = iTime;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime needs calendar access to analyze where your scheduled time goes.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A000000000000000000000B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = iTime;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime needs calendar access to analyze where your scheduled time goes.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A000000000000000000000B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = iTime;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTime.app/Contents/MacOS/iTime";
+			};
+			name = Debug;
+		};
+		A000000000000000000000B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTimeTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = iTime;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iTime.app/Contents/MacOS/iTime";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A000000000000000000000A0 /* Build configuration list for PBXNativeTarget "iTime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A000000000000000000000B2 /* Debug */,
+				A000000000000000000000B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A000000000000000000000A1 /* Build configuration list for PBXNativeTarget "iTimeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A000000000000000000000B4 /* Debug */,
+				A000000000000000000000B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A000000000000000000000A2 /* Build configuration list for PBXProject "iTime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A000000000000000000000B0 /* Debug */,
+				A000000000000000000000B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
+}

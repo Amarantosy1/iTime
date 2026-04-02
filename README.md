@@ -1,30 +1,102 @@
-# Itime
-## 核心理念
-搞清楚 Where is my time
+# iTime
 
-## 交互方式
-以menu bar为核心
+`iTime` 是一个原生 macOS 菜单栏应用，用来回答一个很直接的问题：`Where is my time?`
 
-## 使用平台
-Macos
+当前版本聚焦第一阶段最小闭环：
+- 从系统日历读取事件
+- 按日历分类聚合时长
+- 在菜单栏显示速览
+- 在详情窗口用 Apple 风格图表展示时间分布
 
-## 软件构建
-使用vibe coding
+## 当前构建状态
 
-## 界面设计
- 1、macOS26 Liquid Glass
- 2、低版本使用传统设计
- 设计参考GitHub项目：github.com/rdev/liquid-glass-react?tab=readme-ov-file
+当前项目路径：
+- `/Users/amarantos/Project/iTime`
 
-## 功能设计初步想法
-1、能够从日历中读取不同类别等日历
-GitHub项目参考:
+当前已完成内容：
+- 原生 `SwiftUI` 菜单栏应用入口
+- `EventKit` 日历权限与事件读取
+- `今天 / 本周 / 本月` 时间范围切换
+- 按日历分组的聚合统计
+- 详情窗口图表展示
+- 基于 `Swift Testing` 的核心逻辑测试
+- 原生 `iTime.xcodeproj` 工程整理
 
-2、能够从我的iPhone上获取睡眠数据
-GitHub参考项目：
+已验证状态：
+- `swift build` 通过
+- `swift test` 通过，8 个测试全部通过
 
-3、能够使用Apple风格的图表可视化统计我的时间去哪了
-GitHub参考项目：
+## 项目结构
 
-4、能够接入AI（Chat GPT/ Gemini /deepseek）的API，让AI定时评估我的时间管理，可以手动设置封装提示词、回答长度、模型温度等配置，可以设置 AI发送评估通知的，可以为不同的API取名字，让它们分别给我评估，我能单独设置每个AI助手的启动与否，AI在引入时应该创建Memory.md，作为下次使用的上下文，每次使用结束应该凭本次的评估与memory.md形成新的memory.md，
-GitHub参考项目：
+```text
+iTime.xcodeproj/                Xcode 工程
+Sources/iTime/                  应用源码
+  App/                          应用状态
+  Domain/                       核心数据模型
+  Services/                     EventKit 与聚合逻辑
+  Support/                      持久化与格式化
+  UI/                           菜单栏、详情页、主题
+Tests/iTimeTests/               Swift Testing 测试
+Package.swift                   SwiftPM 入口，便于命令行构建
+```
+
+## Xcode 打开方式
+
+1. 打开 Xcode。
+2. 选择 `File > Open...`
+3. 选择项目里的 `iTime.xcodeproj`
+4. 在左上角 Scheme 选择 `iTime`
+5. 运行目标选择 `My Mac`
+6. 按 `Cmd + R` 运行应用
+
+这个工程默认关闭了代码签名要求，本地运行通常不需要额外配置 Team。
+
+## 第一次运行需要的配置
+
+第一次运行时，应用会请求日历权限。
+
+如果你之前拒绝过：
+1. 打开 `System Settings`
+2. 进入 `Privacy & Security > Calendars`
+3. 找到 `iTime`
+4. 重新打开权限
+
+## Xcode 常用操作
+
+运行应用：
+
+```bash
+Cmd + R
+```
+
+运行测试：
+
+```bash
+Cmd + U
+```
+
+只从命令行构建：
+
+```bash
+swift build
+```
+
+只从命令行跑测试：
+
+```bash
+swift test
+```
+
+## 说明
+
+第一版只实现“日历 + 图表”闭环，下面这些能力还没有进入当前工程：
+- 睡眠数据读取
+- AI 时间管理评估
+- 自定义分类规则
+- 旧版 macOS 兼容 UI
+
+后续如果继续推进，建议顺序是：
+1. 增加日历选择与持久化 UI
+2. 增加更多统计维度
+3. 接入睡眠数据
+4. 再接 AI 分析层

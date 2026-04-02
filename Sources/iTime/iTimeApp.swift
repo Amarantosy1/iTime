@@ -1,0 +1,22 @@
+import SwiftUI
+
+@main
+struct iTimeApp: App {
+    @State private var model = AppModel(
+        service: EventKitCalendarAccessService(),
+        preferences: UserPreferences(storage: .standard)
+    )
+
+    var body: some Scene {
+        MenuBarExtra("iTime", systemImage: "clock.badge.checkmark") {
+            MenuBarContentView(model: model)
+        }
+        .menuBarExtraStyle(.window)
+
+        Window("Overview", id: "overview") {
+            OverviewWindowView(model: model)
+                .frame(minWidth: 760, minHeight: 560)
+        }
+        .windowResizability(.contentSize)
+    }
+}
