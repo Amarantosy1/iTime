@@ -4,6 +4,7 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
     case today
     case week
     case month
+    case custom
 
     var title: String {
         switch self {
@@ -13,6 +14,8 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
             "本周"
         case .month:
             "本月"
+        case .custom:
+            "自定义"
         }
     }
 }

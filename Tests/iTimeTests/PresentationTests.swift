@@ -4,13 +4,14 @@ import Testing
 @testable import iTime
 
 @Test func allRangesAreVisibleInOrder() {
-    #expect(TimeRangePreset.allCases == [.today, .week, .month])
+    #expect(TimeRangePreset.allCases == [.today, .week, .month, .custom])
 }
 
 @Test func rangeTitlesUseChineseStrings() {
     #expect(TimeRangePreset.today.title == "今天")
     #expect(TimeRangePreset.week.title == "本周")
     #expect(TimeRangePreset.month.title == "本月")
+    #expect(TimeRangePreset.custom.title == "自定义")
 }
 
 @Test func durationFormattingRendersHoursAndMinutes() {
