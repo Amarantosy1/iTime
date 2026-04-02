@@ -9,6 +9,7 @@
 - 在详情窗口用 Apple 风格图表展示时间分布
 - 在原生设置窗口中选择参与统计的日历
 - 提供中文界面文案
+- 自动跟随系统浅色 / 深色外观
 
 ## 当前构建状态
 
@@ -24,12 +25,13 @@
 - 日历选择与持久化
 - 详情窗口图表展示
 - 菜单栏、详情页、授权提示中文化
+- 菜单栏、设置页、详情窗口跟随系统暗黑模式
 - 基于 `Swift Testing` 的核心逻辑测试
 - 原生 `iTime.xcodeproj` 工程整理
 
 已验证状态：
 - `swift build` 通过
-- `swift test` 通过，11 个测试全部通过
+- `swift test` 通过，14 个测试全部通过
 - `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' build` 通过
 - `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test` 通过
 
@@ -53,6 +55,7 @@ Package.swift                   SwiftPM 入口，便于命令行构建
 - 点击“查看详情”可打开概览窗口查看图表和按日历拆分的时长
 - 点击“设置”可打开原生设置窗口，勾选要纳入统计的日历
 - 第一次授权后默认选中全部日历，后续选择会持久化保存
+- 应用界面固定跟随系统外观，浅色 / 深色模式会自动切换
 
 ## Xcode 打开方式
 
