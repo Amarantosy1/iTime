@@ -47,3 +47,12 @@ import Testing
     #expect(darkGradient.palette == AppTheme.BackgroundPalette(startHex: "#111827", endHex: "#1F2937"))
     #expect(lightGradient.palette == AppTheme.BackgroundPalette(startHex: "#F2F7FF", endHex: "#E6F0FA"))
 }
+
+@Test func overviewLegendStyleUsesSemanticTextRoles() {
+    let legendStyle = AppTheme.overviewLegendStyle(for: "#4A90E2")
+
+    #expect(legendStyle.swatchHex == "#4A90E2")
+    #expect(legendStyle.titleRole == .primary)
+    #expect(legendStyle.shareRole == .primary)
+    #expect(legendStyle.durationRole == .secondary)
+}

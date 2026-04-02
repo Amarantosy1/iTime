@@ -1,9 +1,30 @@
 import SwiftUI
 
 enum AppTheme {
+    enum ForegroundRole: Equatable {
+        case primary
+        case secondary
+
+        var color: Color {
+            switch self {
+            case .primary:
+                .primary
+            case .secondary:
+                .secondary
+            }
+        }
+    }
+
     struct BackgroundPalette: Equatable {
         let startHex: String
         let endHex: String
+    }
+
+    struct OverviewLegendStyle: Equatable {
+        let swatchHex: String
+        let titleRole: ForegroundRole
+        let shareRole: ForegroundRole
+        let durationRole: ForegroundRole
     }
 
     struct BackgroundGradient: Equatable {
@@ -29,5 +50,14 @@ enum AppTheme {
 
     static func overviewBackgroundGradient(for colorScheme: ColorScheme) -> BackgroundGradient {
         BackgroundGradient(palette: overviewBackgroundPalette(for: colorScheme))
+    }
+
+    static func overviewLegendStyle(for accentHex: String) -> OverviewLegendStyle {
+        OverviewLegendStyle(
+            swatchHex: accentHex,
+            titleRole: .primary,
+            shareRole: .primary,
+            durationRole: .secondary
+        )
     }
 }

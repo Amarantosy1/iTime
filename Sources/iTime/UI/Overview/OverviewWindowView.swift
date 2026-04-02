@@ -5,26 +5,31 @@ struct OverviewWindowView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
+        ZStack {
+            AppTheme.overviewBackgroundGradient(for: colorScheme)
+                .linearGradient
+                .ignoresSafeArea()
 
-                RangePicker(selection: $model.preferences.selectedRange)
-                    .onChange(of: model.preferences.selectedRange) { _, newValue in
-                        Task { await model.setRange(newValue) }
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
 
-                if model.authorizationState == .authorized {
-                    overviewContent
-                } else {
-                    AuthorizationStateView(state: model.authorizationState) {
-                        Task { await model.requestAccessIfNeeded() }
+                    RangePicker(selection: $model.preferences.selectedRange)
+                        .onChange(of: model.preferences.selectedRange) { _, newValue in
+                            Task { await model.setRange(newValue) }
+                        }
+
+                    if model.authorizationState == .authorized {
+                        overviewContent
+                    } else {
+                        AuthorizationStateView(state: model.authorizationState) {
+                            Task { await model.requestAccessIfNeeded() }
+                        }
                     }
                 }
+                .padding(24)
             }
-            .padding(24)
         }
-        .background(AppTheme.overviewBackgroundGradient(for: colorScheme).linearGradient)
         .task {
             await model.refresh()
         }
@@ -50,14 +55,20 @@ struct OverviewWindowView: View {
                     OverviewChartView(overview: overview)
 
                     ForEach(overview.buckets) { bucket in
-                        HStack {
-                            Label(bucket.name, systemImage: "circle.fill")
-                                .foregroundStyle(Color(hex: bucket.colorHex))
+                        let style = AppTheme.overviewLegendStyle(for: bucket.colorHex)
+
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(Color(hex: style.swatchHex))
+                                .frame(width: 8, height: 8)
+                            Text(bucket.name)
+                                .foregroundStyle(style.titleRole.color)
                             Spacer()
                             Text(bucket.shareText)
                                 .fontWeight(.semibold)
+                                .foregroundStyle(style.shareRole.color)
                             Text(bucket.totalDuration.formattedDuration)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(style.durationRole.color)
                         }
                     }
                 }
