@@ -1,12 +1,14 @@
 # iTime
 
-`iTime` 是一个原生 macOS 菜单栏应用，用来回答一个很直接的问题：`Where is my time?`
+`iTime` 是一个原生 macOS 菜单栏应用，用来回答一个很直接的问题：`我的时间去哪了？`
 
 当前版本聚焦第一阶段最小闭环：
 - 从系统日历读取事件
 - 按日历分类聚合时长
 - 在菜单栏显示速览
 - 在详情窗口用 Apple 风格图表展示时间分布
+- 在原生设置窗口中选择参与统计的日历
+- 提供中文界面文案
 
 ## 当前构建状态
 
@@ -18,13 +20,18 @@
 - `EventKit` 日历权限与事件读取
 - `今天 / 本周 / 本月` 时间范围切换
 - 按日历分组的聚合统计
+- 原生 `Settings` 设置窗口
+- 日历选择与持久化
 - 详情窗口图表展示
+- 菜单栏、详情页、授权提示中文化
 - 基于 `Swift Testing` 的核心逻辑测试
 - 原生 `iTime.xcodeproj` 工程整理
 
 已验证状态：
 - `swift build` 通过
-- `swift test` 通过，8 个测试全部通过
+- `swift test` 通过，11 个测试全部通过
+- `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' build` 通过
+- `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test` 通过
 
 ## 项目结构
 
@@ -35,10 +42,17 @@ Sources/iTime/                  应用源码
   Domain/                       核心数据模型
   Services/                     EventKit 与聚合逻辑
   Support/                      持久化与格式化
-  UI/                           菜单栏、详情页、主题
+  UI/                           菜单栏、设置页、详情页、主题
 Tests/iTimeTests/               Swift Testing 测试
 Package.swift                   SwiftPM 入口，便于命令行构建
 ```
+
+## 当前交互
+
+- 菜单栏主界面支持切换 `今天 / 本周 / 本月`
+- 点击“查看详情”可打开概览窗口查看图表和按日历拆分的时长
+- 点击“设置”可打开原生设置窗口，勾选要纳入统计的日历
+- 第一次授权后默认选中全部日历，后续选择会持久化保存
 
 ## Xcode 打开方式
 
@@ -89,14 +103,13 @@ swift test
 
 ## 说明
 
-第一版只实现“日历 + 图表”闭环，下面这些能力还没有进入当前工程：
+当前版本仍然只实现“日历 + 图表”闭环，下面这些能力还没有进入工程：
 - 睡眠数据读取
 - AI 时间管理评估
 - 自定义分类规则
 - 旧版 macOS 兼容 UI
 
 后续如果继续推进，建议顺序是：
-1. 增加日历选择与持久化 UI
-2. 增加更多统计维度
-3. 接入睡眠数据
-4. 再接 AI 分析层
+1. 增加更多统计维度
+2. 接入睡眠数据
+3. 再接 AI 分析层
