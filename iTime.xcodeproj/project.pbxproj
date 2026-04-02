@@ -29,6 +29,7 @@
 		A00000000000000000000114 /* LiquidGlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* LiquidGlassCard.swift */; };
 		A00000000000000000000115 /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* UserPreferences.swift */; };
 		A00000000000000000000116 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* SettingsView.swift */; };
+		A00000000000000000000117 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002C /* AppTheme.swift */; };
 		A00000000000000000000121 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* AppModelTests.swift */; };
 		A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */; };
 		A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */; };
@@ -79,6 +80,7 @@
 		A00000000000000000000029 /* UserPreferencesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferencesTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000002A /* UserPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
 		A0000000000000000000002B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A0000000000000000000002C /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		A00000000000000000000040 /* iTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000041 /* iTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -232,6 +234,7 @@
 		A0000000000000000000006D /* Theme */ = {
 			isa = PBXGroup;
 			children = (
+				A0000000000000000000002C /* AppTheme.swift */,
 				A00000000000000000000022 /* Color+Hex.swift */,
 				A00000000000000000000023 /* LiquidGlassCard.swift */,
 			);
@@ -375,6 +378,7 @@
 				A0000000000000000000010D /* CGColor+Hex.swift in Sources */,
 				A0000000000000000000010A /* EventKitCalendarAccessService.swift in Sources */,
 				A0000000000000000000010E /* AuthorizationStateView.swift in Sources */,
+				A00000000000000000000117 /* AppTheme.swift in Sources */,
 				A00000000000000000000113 /* Color+Hex.swift in Sources */,
 				A00000000000000000000101 /* iTimeApp.swift in Sources */,
 				A00000000000000000000114 /* LiquidGlassCard.swift in Sources */,

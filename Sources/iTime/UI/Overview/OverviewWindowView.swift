@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OverviewWindowView: View {
     @Bindable var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ScrollView {
@@ -23,13 +24,7 @@ struct OverviewWindowView: View {
             }
             .padding(24)
         }
-        .background(
-            LinearGradient(
-                colors: [Color(red: 0.95, green: 0.97, blue: 1.0), Color(red: 0.9, green: 0.94, blue: 0.98)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(AppTheme.overviewBackgroundGradient(for: colorScheme).linearGradient)
         .task {
             await model.refresh()
         }

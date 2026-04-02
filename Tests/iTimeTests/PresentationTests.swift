@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import iTime
 
@@ -27,4 +28,22 @@ import Testing
     )
 
     #expect(bucket.shareText == "25%")
+}
+
+@Test func overviewBackgroundPaletteChangesWithColorScheme() {
+    let lightPalette = AppTheme.overviewBackgroundPalette(for: .light)
+    let darkPalette = AppTheme.overviewBackgroundPalette(for: .dark)
+
+    #expect(lightPalette.startHex == "#F2F7FF")
+    #expect(lightPalette.endHex == "#E6F0FA")
+    #expect(darkPalette.startHex == "#111827")
+    #expect(darkPalette.endHex == "#1F2937")
+}
+
+@Test func overviewBackgroundGradientUsesPaletteColors() {
+    let darkGradient = AppTheme.overviewBackgroundGradient(for: .dark)
+    let lightGradient = AppTheme.overviewBackgroundGradient(for: .light)
+
+    #expect(darkGradient.palette == AppTheme.BackgroundPalette(startHex: "#111827", endHex: "#1F2937"))
+    #expect(lightGradient.palette == AppTheme.BackgroundPalette(startHex: "#F2F7FF", endHex: "#E6F0FA"))
 }
