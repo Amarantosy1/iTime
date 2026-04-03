@@ -12,7 +12,8 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "iTime"
+            name: "iTime",
+            exclude: ["Resources"]
         ),
         .testTarget(
             name: "iTimeTests",
