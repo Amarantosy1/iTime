@@ -11,7 +11,8 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
     }
 
     public func makeOverview(range: TimeRangePreset, interval: DateInterval, events: [CalendarEventRecord]) -> TimeOverview {
-        let grouped = Dictionary(grouping: events, by: \.calendarID)
+        let timedEvents = events.filter { !$0.isAllDay }
+        let grouped = Dictionary(grouping: timedEvents, by: \.calendarID)
 
         let buckets = grouped.compactMap { calendarID, records -> TimeBucketSummary? in
             guard let source = calendarLookup[calendarID] else { return nil }
@@ -39,11 +40,11 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         return TimeOverview(
             range: range,
             interval: interval,
-            dailyDurations: makeDailyDurations(in: interval, events: events),
+            dailyDurations: makeDailyDurations(in: interval, events: timedEvents),
             stackedBucketResolution: resolution,
             stackedBuckets: makeStackedBuckets(
                 in: interval,
-                events: events,
+                events: timedEvents,
                 orderedBuckets: buckets,
                 resolution: resolution
             ),

@@ -226,3 +226,47 @@ private func makeUTCGregorianCalendar() -> Calendar {
     #expect(overview.stackedBuckets[23].segments.first?.calendarName == "Life")
     #expect(overview.stackedBuckets[0].totalDuration == 0)
 }
+
+@Test func aggregateExcludesAllDayEventsFromOverviewStatistics() {
+    let calendar = makeUTCGregorianCalendar()
+    let aggregator = CalendarStatisticsAggregator(
+        calendarLookup: [
+            "work": CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+            "life": CalendarSource(id: "life", name: "Life", colorHex: "#50E3C2", isSelected: true),
+        ],
+        calendar: calendar
+    )
+    let interval = DateInterval(
+        start: Date(timeIntervalSince1970: 0),
+        end: Date(timeIntervalSince1970: 86_400)
+    )
+
+    let overview = aggregator.makeOverview(
+        range: .today,
+        interval: interval,
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "All-day holiday",
+                calendarID: "life",
+                startDate: interval.start,
+                endDate: interval.end,
+                isAllDay: true
+            ),
+            CalendarEventRecord(
+                id: "2",
+                title: "Focus block",
+                calendarID: "work",
+                startDate: interval.start.addingTimeInterval(9 * 3_600),
+                endDate: interval.start.addingTimeInterval(10 * 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+
+    #expect(overview.totalDuration == 3_600)
+    #expect(overview.totalEventCount == 1)
+    #expect(overview.buckets.map(\.name) == ["Work"])
+    #expect(overview.dailyDurations.map(\.totalDuration) == [3_600])
+    #expect(overview.stackedBuckets[9].totalDuration == 3_600)
+}
