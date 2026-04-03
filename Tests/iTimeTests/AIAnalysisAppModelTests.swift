@@ -46,18 +46,18 @@ private final class RecordingAIAnalysisService: @unchecked Sendable, AIAnalysisS
 }
 
 private final class InMemoryAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
-    var values: [AIProviderKind: String]
+    var values: [UUID: String]
 
     init(value: String = "") {
-        self.values = [.openAI: value]
+        self.values = [AIProviderKind.openAI.builtInMountID: value]
     }
 
-    func loadAPIKey(for provider: AIProviderKind) throws -> String {
-        values[provider] ?? ""
+    func loadAPIKey(for mountID: UUID) throws -> String {
+        values[mountID] ?? ""
     }
 
-    func saveAPIKey(_ apiKey: String, for provider: AIProviderKind) throws {
-        values[provider] = apiKey
+    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws {
+        values[mountID] = apiKey
     }
 }
 

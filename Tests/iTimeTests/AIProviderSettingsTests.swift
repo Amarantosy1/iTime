@@ -3,19 +3,19 @@ import Testing
 @testable import iTime
 
 private final class InMemoryScopedAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
-    private var values: [AIProviderKind: String] = [:]
+    private var values: [UUID: String] = [:]
 
-    func loadAPIKey(for provider: AIProviderKind) throws -> String {
-        values[provider] ?? ""
+    func loadAPIKey(for mountID: UUID) throws -> String {
+        values[mountID] ?? ""
     }
 
-    func saveAPIKey(_ apiKey: String, for provider: AIProviderKind) throws {
-        values[provider] = apiKey
+    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws {
+        values[mountID] = apiKey
     }
 }
 
-@Test func aiProviderPreferencesPersistSeparately() {
-    let suite = "iTime.tests.ai-provider-preferences"
+@Test func aiProviderMountsMigrateFromLegacyProviderPreferences() {
+    let suite = "iTime.tests.ai-provider-mounts"
     let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
 
     first.defaultAIProvider = .anthropic
@@ -28,19 +28,42 @@ private final class InMemoryScopedAIKeyStore: @unchecked Sendable, AIAPIKeyStori
 
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
 
-    #expect(second.defaultAIProvider == .anthropic)
-    #expect(second.aiProviderConfiguration(for: .openAI).model == "gpt-5")
-    #expect(second.aiProviderConfiguration(for: .anthropic).model == "claude-sonnet-4-5")
-    #expect(second.aiProviderConfiguration(for: .gemini).isEnabled == false)
+    let mounts = second.aiProviderMounts
+    #expect(mounts.count == 4)
+    #expect(mounts.first(where: { $0.providerType == .openAI })?.defaultModel == "gpt-5")
+    #expect(mounts.first(where: { $0.providerType == .anthropic })?.isEnabled == true)
+    #expect(second.defaultAIMount?.providerType == .anthropic)
 }
 
-@Test func aiAPIKeyStoreReadsAndWritesKeysPerProvider() throws {
+@Test func aiProviderMountsAllowAddingAndDeletingCustomMounts() {
+    let preferences = UserPreferences(storage: .inMemory)
+    let mount = AIProviderMount.custom(
+        displayName: "OpenAI Proxy",
+        providerType: .openAI,
+        baseURL: "https://proxy.example.com/v1",
+        models: ["gpt-5", "gpt-5-mini"],
+        defaultModel: "gpt-5-mini"
+    )
+
+    preferences.saveAIMount(mount)
+    #expect(preferences.aiProviderMounts.contains(where: { $0.id == mount.id }))
+
+    preferences.setDefaultAIMountID(mount.id)
+    #expect(preferences.defaultAIMountID == mount.id)
+
+    preferences.deleteAIMount(id: mount.id)
+    #expect(preferences.aiProviderMounts.contains(where: { $0.id == mount.id }) == false)
+}
+
+@Test func aiAPIKeyStoreReadsAndWritesKeysPerMount() throws {
     let store = InMemoryScopedAIKeyStore()
+    let openAIMountID = UUID()
+    let anthropicMountID = UUID()
 
-    try store.saveAPIKey("openai-key", for: .openAI)
-    try store.saveAPIKey("anthropic-key", for: .anthropic)
+    try store.saveAPIKey("openai-key", for: openAIMountID)
+    try store.saveAPIKey("anthropic-key", for: anthropicMountID)
 
-    #expect(try store.loadAPIKey(for: .openAI) == "openai-key")
-    #expect(try store.loadAPIKey(for: .anthropic) == "anthropic-key")
-    #expect(try store.loadAPIKey(for: .gemini).isEmpty)
+    #expect(try store.loadAPIKey(for: openAIMountID) == "openai-key")
+    #expect(try store.loadAPIKey(for: anthropicMountID) == "anthropic-key")
+    #expect(try store.loadAPIKey(for: UUID()).isEmpty)
 }

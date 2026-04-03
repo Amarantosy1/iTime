@@ -16,14 +16,14 @@ private struct ConversationStubCalendarAccessService: CalendarAccessServing {
 }
 
 private final class ConversationInMemoryAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
-    var values: [AIProviderKind: String]
+    var values: [UUID: String]
 
     init(value: String = "") {
-        self.values = [.openAI: value]
+        self.values = [AIProviderKind.openAI.builtInMountID: value]
     }
 
-    func loadAPIKey(for provider: AIProviderKind) throws -> String { values[provider] ?? "" }
-    func saveAPIKey(_ apiKey: String, for provider: AIProviderKind) throws { values[provider] = apiKey }
+    func loadAPIKey(for mountID: UUID) throws -> String { values[mountID] ?? "" }
+    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws { values[mountID] = apiKey }
 }
 
 private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIConversationArchiveStoring {
@@ -210,7 +210,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[.anthropic] = "anthropic-key"
+    keyStore.values[AIProviderKind.anthropic.builtInMountID] = "anthropic-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
     preferences.defaultAIProvider = .anthropic
@@ -365,8 +365,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[.anthropic] = "anthropic-key"
-    keyStore.values[.openAI] = "openai-key"
+    keyStore.values[AIProviderKind.anthropic.builtInMountID] = "anthropic-key"
+    keyStore.values[AIProviderKind.openAI.builtInMountID] = "openai-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
     preferences.defaultAIProvider = .anthropic

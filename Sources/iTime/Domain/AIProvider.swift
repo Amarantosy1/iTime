@@ -31,6 +31,19 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
             "https://api.deepseek.com/v1"
         }
     }
+
+    public var builtInMountID: UUID {
+        switch self {
+        case .openAI:
+            UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
+        case .anthropic:
+            UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
+        case .gemini:
+            UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+        case .deepSeek:
+            UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+        }
+    }
 }
 
 public struct AIProviderConfiguration: Equatable, Codable, Sendable {
