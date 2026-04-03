@@ -10,7 +10,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     public func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationMessage {
         let content = try await sendRequest(
             systemPrompt: Self.questionSystemPrompt,
@@ -32,7 +32,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     public func summarizeConversation(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationSummaryDraft {
         let content = try await sendRequest(
             systemPrompt: Self.summarySystemPrompt,
@@ -54,9 +54,9 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     private func sendRequest(
         systemPrompt: String,
         userPrompt: String,
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> String {
-        guard configuration.isComplete, let url = configuration.chatCompletionsURL else {
+        guard configuration.isComplete, let url = configuration.openAICompatibleChatCompletionsURL else {
             throw AIAnalysisServiceError.invalidConfiguration
         }
 
@@ -106,14 +106,14 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         }
     }
 
-    private static let questionSystemPrompt = """
+    static let questionSystemPrompt = """
     你是一个中文时间复盘助手。你会先阅读统计摘要、具体日程标题和历史 memory，然后提出一个最值得继续追问的问题。
     问题必须具体，尽量引用某个日程标题或一段明显值得澄清的安排。
     你必须只返回 JSON，不要输出 Markdown 或额外解释。
     返回格式固定为：{"question":"..."}
     """
 
-    private static let summarySystemPrompt = """
+    static let summarySystemPrompt = """
     你是一个中文时间复盘助手。你会基于统计摘要、具体日程、对话记录和历史 memory 生成一份结构化总结。
     你必须只返回 JSON，不要输出 Markdown 或额外解释。
     返回格式固定为：
@@ -121,7 +121,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     findings 和 suggestions 各返回 1 到 3 条。
     """
 
-    private static func questionUserPrompt(
+    static func questionUserPrompt(
         for context: AIConversationContext,
         history: [AIConversationMessage]
     ) -> String {
@@ -138,7 +138,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         """
     }
 
-    private static func summaryUserPrompt(
+    static func summaryUserPrompt(
         for context: AIConversationContext,
         history: [AIConversationMessage]
     ) -> String {
@@ -155,14 +155,14 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         """
     }
 
-    private static func eventLines(for events: [AIEventContext]) -> String {
+    static func eventLines(for events: [AIEventContext]) -> String {
         guard !events.isEmpty else { return "- 无事件" }
         return events.map {
             "- [\($0.calendarName)] \($0.title)，时长 \($0.durationText)"
         }.joined(separator: "\n")
     }
 
-    private static func historyLines(for history: [AIConversationMessage]) -> String {
+    static func historyLines(for history: [AIConversationMessage]) -> String {
         guard !history.isEmpty else { return "- 无" }
         return history.map {
             let role = $0.role == .assistant ? "AI" : "用户"

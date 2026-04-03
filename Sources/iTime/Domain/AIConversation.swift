@@ -24,6 +24,7 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
 
 public struct AIConversationSession: Equatable, Codable, Sendable {
     public let id: UUID
+    public let provider: AIProviderKind
     public let range: TimeRangePreset
     public let startDate: Date
     public let endDate: Date
@@ -35,6 +36,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
 
     public init(
         id: UUID,
+        provider: AIProviderKind,
         range: TimeRangePreset,
         startDate: Date,
         endDate: Date,
@@ -45,6 +47,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         messages: [AIConversationMessage]
     ) {
         self.id = id
+        self.provider = provider
         self.range = range
         self.startDate = startDate
         self.endDate = endDate
@@ -53,6 +56,47 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         self.status = status
         self.overviewSnapshot = overviewSnapshot
         self.messages = messages
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case provider
+        case range
+        case startDate
+        case endDate
+        case startedAt
+        case completedAt
+        case status
+        case overviewSnapshot
+        case messages
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        provider = try container.decodeIfPresent(AIProviderKind.self, forKey: .provider) ?? .openAI
+        range = try container.decode(TimeRangePreset.self, forKey: .range)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decode(Date.self, forKey: .endDate)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        status = try container.decode(AIConversationStatus.self, forKey: .status)
+        overviewSnapshot = try container.decode(AIOverviewSnapshot.self, forKey: .overviewSnapshot)
+        messages = try container.decode([AIConversationMessage].self, forKey: .messages)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(provider, forKey: .provider)
+        try container.encode(range, forKey: .range)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encode(endDate, forKey: .endDate)
+        try container.encode(startedAt, forKey: .startedAt)
+        try container.encodeIfPresent(completedAt, forKey: .completedAt)
+        try container.encode(status, forKey: .status)
+        try container.encode(overviewSnapshot, forKey: .overviewSnapshot)
+        try container.encode(messages, forKey: .messages)
     }
 }
 
@@ -89,6 +133,7 @@ public enum AIConversationMessageRole: String, Equatable, Codable, Sendable {
 public struct AIConversationSummary: Equatable, Codable, Sendable {
     public let id: UUID
     public let sessionID: UUID
+    public let provider: AIProviderKind
     public let range: TimeRangePreset
     public let startDate: Date
     public let endDate: Date
@@ -102,6 +147,7 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
     public init(
         id: UUID,
         sessionID: UUID,
+        provider: AIProviderKind,
         range: TimeRangePreset,
         startDate: Date,
         endDate: Date,
@@ -114,6 +160,7 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
     ) {
         self.id = id
         self.sessionID = sessionID
+        self.provider = provider
         self.range = range
         self.startDate = startDate
         self.endDate = endDate
@@ -123,6 +170,53 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
         self.findings = findings
         self.suggestions = suggestions
         self.overviewSnapshot = overviewSnapshot
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case sessionID
+        case provider
+        case range
+        case startDate
+        case endDate
+        case createdAt
+        case headline
+        case summary
+        case findings
+        case suggestions
+        case overviewSnapshot
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        sessionID = try container.decode(UUID.self, forKey: .sessionID)
+        provider = try container.decodeIfPresent(AIProviderKind.self, forKey: .provider) ?? .openAI
+        range = try container.decode(TimeRangePreset.self, forKey: .range)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decode(Date.self, forKey: .endDate)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        headline = try container.decode(String.self, forKey: .headline)
+        summary = try container.decode(String.self, forKey: .summary)
+        findings = try container.decode([String].self, forKey: .findings)
+        suggestions = try container.decode([String].self, forKey: .suggestions)
+        overviewSnapshot = try container.decode(AIOverviewSnapshot.self, forKey: .overviewSnapshot)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(sessionID, forKey: .sessionID)
+        try container.encode(provider, forKey: .provider)
+        try container.encode(range, forKey: .range)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encode(endDate, forKey: .endDate)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(headline, forKey: .headline)
+        try container.encode(summary, forKey: .summary)
+        try container.encode(findings, forKey: .findings)
+        try container.encode(suggestions, forKey: .suggestions)
+        try container.encode(overviewSnapshot, forKey: .overviewSnapshot)
     }
 }
 

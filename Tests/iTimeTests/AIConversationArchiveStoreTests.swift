@@ -25,6 +25,7 @@ import Testing
         sessions: [
             AIConversationSession(
                 id: sessionID,
+                provider: .openAI,
                 range: .week,
                 startDate: startDate,
                 endDate: endDate,
@@ -57,6 +58,7 @@ import Testing
             AIConversationSummary(
                 id: summaryID,
                 sessionID: sessionID,
+                provider: .openAI,
                 range: .week,
                 startDate: startDate,
                 endDate: endDate,

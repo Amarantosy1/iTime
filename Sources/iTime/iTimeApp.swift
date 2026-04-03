@@ -19,6 +19,12 @@ struct iTimeApp: App {
         }
         .windowResizability(.contentSize)
 
+        Window(AIConversationWindowCopy.title, id: AIConversationWindowView.windowID) {
+            AIConversationWindowView(model: model)
+                .frame(minWidth: 620, minHeight: 540)
+        }
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView(model: model)
         }

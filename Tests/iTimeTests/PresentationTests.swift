@@ -202,9 +202,16 @@ import Testing
 
 @Test func aiAnalysisCopyUsesChineseStrings() {
     #expect(AIAnalysisCopy.sectionTitle == "AI 时间评估")
-    #expect(AIAnalysisCopy.startConversationAction == "开始复盘对话")
-    #expect(AIAnalysisCopy.sendReplyAction == "发送")
-    #expect(AIAnalysisCopy.finishConversationAction == "结束复盘")
+    #expect(AIAnalysisCopy.openConversationWindowAction == "打开 AI 复盘")
+    #expect(AIAnalysisCopy.historyAction == "查看历史总结")
+    #expect(AIAnalysisCopy.latestSummaryTitle == "最近一次总结")
+    #expect(AIConversationWindowCopy.title == "AI 复盘")
+    #expect(AIConversationWindowCopy.newConversationAction == "开始新复盘")
+    #expect(AIConversationWindowCopy.historyAction == "历史总结")
+    #expect(AIConversationWindowCopy.sendReplyAction == "发送")
+    #expect(AIConversationWindowCopy.finishConversationAction == "结束复盘")
+    #expect(AISettingsCopy.defaultProviderTitle == "默认 AI")
+    #expect(AISettingsCopy.providerSectionTitle(for: .anthropic) == "Anthropic")
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
 }

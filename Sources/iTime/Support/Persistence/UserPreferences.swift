@@ -113,7 +113,8 @@ public final class UserPreferences {
                 ?? (provider == .openAI ? aiBaseURL : provider.defaultBaseURL),
             model: defaults.string(forKey: Keys.providerModel(provider))
                 ?? (provider == .openAI ? aiModel : ""),
-            isEnabled: defaults.object(forKey: Keys.providerEnabled(provider)) as? Bool ?? false
+            isEnabled: defaults.object(forKey: Keys.providerEnabled(provider)) as? Bool
+                ?? (provider == .openAI ? aiAnalysisEnabled : false)
         )
     }
 

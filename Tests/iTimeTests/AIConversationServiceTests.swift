@@ -78,7 +78,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let reply = try await service.askQuestion(
         context: context,
         history: [],
-        configuration: AIAnalysisConfiguration(
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .openAI,
             baseURL: "https://example.com/v1",
             model: "gpt-5-mini",
             apiKey: "secret-key",
@@ -154,7 +155,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
                 createdAt: Date(timeIntervalSince1970: 1_700_010_100)
             ),
         ],
-        configuration: AIAnalysisConfiguration(
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .openAI,
             baseURL: "https://example.com/v1",
             model: "gpt-5-mini",
             apiKey: "secret-key",

@@ -60,6 +60,16 @@
 		A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000052 /* AIConversationAppModelTests.swift */; };
 		A0000000000000000000013A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* AIProvider.swift */; };
 		A0000000000000000000013B /* AIProviderSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AIProviderSettingsTests.swift */; };
+		A0000000000000000000013C /* AIConversationRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* AIConversationRoutingService.swift */; };
+		A0000000000000000000013D /* AnthropicConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000056 /* AnthropicConversationService.swift */; };
+		A0000000000000000000013E /* DeepSeekConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000057 /* DeepSeekConversationService.swift */; };
+		A0000000000000000000013F /* GeminiConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* GeminiConversationService.swift */; };
+		A00000000000000000000140 /* OpenAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* OpenAIConversationService.swift */; };
+		A00000000000000000000141 /* AIConversationWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005A /* AIConversationWindowView.swift */; };
+		A00000000000000000000142 /* AIConversationMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005B /* AIConversationMessagesView.swift */; };
+		A00000000000000000000143 /* AIConversationComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005C /* AIConversationComposerView.swift */; };
+		A00000000000000000000144 /* AIConversationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005D /* AIConversationHistoryView.swift */; };
+		A00000000000000000000145 /* AIConversationRoutingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,6 +141,16 @@
 		A00000000000000000000052 /* AIConversationAppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationAppModelTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000053 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		A00000000000000000000054 /* AIProviderSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000055 /* AIConversationRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationRoutingService.swift; sourceTree = "<group>"; };
+		A00000000000000000000056 /* AnthropicConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicConversationService.swift; sourceTree = "<group>"; };
+		A00000000000000000000057 /* DeepSeekConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekConversationService.swift; sourceTree = "<group>"; };
+		A00000000000000000000058 /* GeminiConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiConversationService.swift; sourceTree = "<group>"; };
+		A00000000000000000000059 /* OpenAIConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConversationService.swift; sourceTree = "<group>"; };
+		A0000000000000000000005A /* AIConversationWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationWindowView.swift; sourceTree = "<group>"; };
+		A0000000000000000000005B /* AIConversationMessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationMessagesView.swift; sourceTree = "<group>"; };
+		A0000000000000000000005C /* AIConversationComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationComposerView.swift; sourceTree = "<group>"; };
+		A0000000000000000000005D /* AIConversationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationHistoryView.swift; sourceTree = "<group>"; };
+		A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationRoutingServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,10 +235,15 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000043 /* AIAnalysisServing.swift */,
+				A00000000000000000000055 /* AIConversationRoutingService.swift */,
 				A0000000000000000000004D /* AIConversationServing.swift */,
+				A00000000000000000000056 /* AnthropicConversationService.swift */,
 				A00000000000000000000017 /* CalendarAccessServing.swift */,
 				A00000000000000000000018 /* CalendarStatisticsAggregator.swift */,
+				A00000000000000000000057 /* DeepSeekConversationService.swift */,
 				A00000000000000000000019 /* EventKitCalendarAccessService.swift */,
+				A00000000000000000000058 /* GeminiConversationService.swift */,
+				A00000000000000000000059 /* OpenAIConversationService.swift */,
 				A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */,
 				A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */,
 				A0000000000000000000001A /* StatisticsAggregating.swift */,
@@ -265,6 +290,7 @@
 		A00000000000000000000069 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				A0000000000000000000006F /* AIConversation */,
 				A0000000000000000000006A /* Components */,
 				A0000000000000000000006B /* MenuBar */,
 				A0000000000000000000006C /* Overview */,
@@ -281,6 +307,17 @@
 				A0000000000000000000001E /* RangePicker.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		A0000000000000000000006F /* AIConversation */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000005C /* AIConversationComposerView.swift */,
+				A0000000000000000000005D /* AIConversationHistoryView.swift */,
+				A0000000000000000000005B /* AIConversationMessagesView.swift */,
+				A0000000000000000000005A /* AIConversationWindowView.swift */,
+			);
+			path = AIConversation;
 			sourceTree = "<group>";
 		};
 		A0000000000000000000006B /* MenuBar */ = {
@@ -338,6 +375,7 @@
 				A0000000000000000000004B /* AIConversationArchiveStoreTests.swift */,
 				A00000000000000000000052 /* AIConversationAppModelTests.swift */,
 				A0000000000000000000004C /* AIConversationContextTests.swift */,
+				A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */,
 				A0000000000000000000004F /* AIConversationServiceTests.swift */,
 				A00000000000000000000054 /* AIProviderSettingsTests.swift */,
 				A00000000000000000000024 /* AppModelTests.swift */,
@@ -455,7 +493,13 @@
 				A0000000000000000000012A /* AIAPIKeyStoring.swift in Sources */,
 				A00000000000000000000128 /* AIAnalysisServing.swift in Sources */,
 				A00000000000000000000132 /* AIConversation.swift in Sources */,
+				A00000000000000000000144 /* AIConversationHistoryView.swift in Sources */,
+				A00000000000000000000142 /* AIConversationMessagesView.swift in Sources */,
+				A0000000000000000000013C /* AIConversationRoutingService.swift in Sources */,
 				A00000000000000000000136 /* AIConversationServing.swift in Sources */,
+				A00000000000000000000143 /* AIConversationComposerView.swift in Sources */,
+				A00000000000000000000141 /* AIConversationWindowView.swift in Sources */,
+				A0000000000000000000013D /* AnthropicConversationService.swift in Sources */,
 				A0000000000000000000013A /* AIProvider.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,
 				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
@@ -463,14 +507,17 @@
 				A00000000000000000000103 /* CalendarEventRecord.swift in Sources */,
 				A00000000000000000000104 /* CalendarSource.swift in Sources */,
 				A0000000000000000000010D /* CGColor+Hex.swift in Sources */,
+				A0000000000000000000013E /* DeepSeekConversationService.swift in Sources */,
 				A0000000000000000000010A /* EventKitCalendarAccessService.swift in Sources */,
 				A00000000000000000000133 /* FileAIConversationArchiveStore.swift in Sources */,
+				A0000000000000000000013F /* GeminiConversationService.swift in Sources */,
 				A0000000000000000000010E /* AuthorizationStateView.swift in Sources */,
 				A00000000000000000000117 /* AppTheme.swift in Sources */,
 				A00000000000000000000113 /* Color+Hex.swift in Sources */,
 				A00000000000000000000101 /* iTimeApp.swift in Sources */,
 				A00000000000000000000114 /* LiquidGlassCard.swift in Sources */,
 				A00000000000000000000110 /* MenuBarContentView.swift in Sources */,
+				A00000000000000000000140 /* OpenAIConversationService.swift in Sources */,
 				A00000000000000000000129 /* OpenAICompatibleAIAnalysisService.swift in Sources */,
 				A00000000000000000000137 /* OpenAICompatibleAIConversationService.swift in Sources */,
 				A0000000000000000000012B /* OverviewAIAnalysisSection.swift in Sources */,
@@ -502,6 +549,7 @@
 				A00000000000000000000134 /* AIConversationArchiveStoreTests.swift in Sources */,
 				A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */,
 				A00000000000000000000135 /* AIConversationContextTests.swift in Sources */,
+				A00000000000000000000145 /* AIConversationRoutingServiceTests.swift in Sources */,
 				A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */,
 				A0000000000000000000013B /* AIProviderSettingsTests.swift in Sources */,
 				A00000000000000000000121 /* AppModelTests.swift in Sources */,

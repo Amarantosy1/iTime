@@ -28,7 +28,14 @@ public final class AppModel {
         service: CalendarAccessServing,
         preferences: UserPreferences,
         aiService: AIAnalysisServing = OpenAICompatibleAIAnalysisService(),
-        aiConversationService: AIConversationServing = OpenAICompatibleAIConversationService(),
+        aiConversationService: AIConversationServing = AIConversationRoutingService(
+            services: [
+                .openAI: OpenAIConversationService(),
+                .anthropic: AnthropicConversationService(),
+                .gemini: GeminiConversationService(),
+                .deepSeek: DeepSeekConversationService(),
+            ]
+        ),
         aiKeyStore: AIAPIKeyStoring = KeychainAIAPIKeyStore(),
         aiConversationArchiveStore: AIConversationArchiveStoring = FileAIConversationArchiveStore(
             directoryURL: FileAIConversationArchiveStore.defaultDirectoryURL
@@ -58,6 +65,10 @@ public final class AppModel {
 
     public var liveSelectedRange: TimeRangePreset {
         preferences.selectedRange.isRuntimeSelectable ? preferences.selectedRange : .today
+    }
+
+    public var latestAIConversationSummary: AIConversationSummary? {
+        aiConversationHistory.first
     }
 
     private var activeRange: TimeRangePreset {
@@ -203,6 +214,10 @@ public final class AppModel {
         guard let context = currentAIConversationContext() else {
             return
         }
+        let configuration = currentAIConversationConfiguration()
+        guard configuration.isEnabled, configuration.isComplete else {
+            return
+        }
 
         aiConversationState = .asking
 
@@ -210,10 +225,11 @@ public final class AppModel {
             let assistantMessage = try await aiConversationService.askQuestion(
                 context: context,
                 history: [],
-                configuration: currentAIConfiguration()
+                configuration: configuration
             )
             let session = AIConversationSession(
                 id: UUID(),
+                provider: configuration.provider,
                 range: context.range,
                 startDate: context.startDate,
                 endDate: context.endDate,
@@ -236,6 +252,8 @@ public final class AppModel {
         guard case .waitingForUser(let session) = aiConversationState else { return }
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedContent.isEmpty, let context = currentAIConversationContext() else { return }
+        let configuration = resolvedAIConversationConfiguration(for: session.provider)
+        guard configuration.isEnabled, configuration.isComplete else { return }
 
         let userMessage = AIConversationMessage(
             id: UUID(),
@@ -250,10 +268,11 @@ public final class AppModel {
             let assistantMessage = try await aiConversationService.askQuestion(
                 context: context,
                 history: historyWithReply,
-                configuration: currentAIConfiguration()
+                configuration: configuration
             )
             let updatedSession = AIConversationSession(
                 id: session.id,
+                provider: session.provider,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -276,6 +295,8 @@ public final class AppModel {
         guard case .waitingForUser(let session) = aiConversationState, let context = currentAIConversationContext() else {
             return
         }
+        let configuration = resolvedAIConversationConfiguration(for: session.provider)
+        guard configuration.isEnabled, configuration.isComplete else { return }
 
         aiConversationState = .summarizing(session)
 
@@ -283,11 +304,12 @@ public final class AppModel {
             let draft = try await aiConversationService.summarizeConversation(
                 context: context,
                 history: session.messages,
-                configuration: currentAIConfiguration()
+                configuration: configuration
             )
             let completedAt = now()
             let completedSession = AIConversationSession(
                 id: session.id,
+                provider: session.provider,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -300,6 +322,7 @@ public final class AppModel {
             let summary = AIConversationSummary(
                 id: UUID(),
                 sessionID: session.id,
+                provider: session.provider,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -322,29 +345,65 @@ public final class AppModel {
     public func updateAIAnalysisEnabled(_ isEnabled: Bool) {
         preferences.aiAnalysisEnabled = isEnabled
         resetAIAnalysisState()
-        resetAIConversationState()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func updateDefaultAIProvider(_ provider: AIProviderKind) {
+        preferences.defaultAIProvider = provider
+        resetAIAnalysisState()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func aiProviderConfiguration(for provider: AIProviderKind) -> AIProviderConfiguration {
+        preferences.aiProviderConfiguration(for: provider)
+    }
+
+    public func updateAIProviderEnabled(_ isEnabled: Bool, for provider: AIProviderKind) {
+        preferences.setAIProviderEnabled(isEnabled, for: provider)
+        resetAIAnalysisState()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func updateAIProviderBaseURL(_ baseURL: String, for provider: AIProviderKind) {
+        preferences.setAIProviderBaseURL(baseURL, for: provider)
+        resetAIAnalysisState()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func updateAIProviderModel(_ model: String, for provider: AIProviderKind) {
+        preferences.setAIProviderModel(model, for: provider)
+        resetAIAnalysisState()
+        resetAIConversationStateIfSafe()
     }
 
     public func updateAIBaseURL(_ baseURL: String) {
         preferences.aiBaseURL = baseURL
         resetAIAnalysisState()
-        resetAIConversationState()
+        resetAIConversationStateIfSafe()
     }
 
     public func updateAIModel(_ model: String) {
         preferences.aiModel = model
         resetAIAnalysisState()
-        resetAIConversationState()
+        resetAIConversationStateIfSafe()
     }
 
     public func loadAIAPIKey() -> String {
-        (try? aiKeyStore.loadAPIKey()) ?? ""
+        loadAIAPIKey(for: .openAI)
+    }
+
+    public func loadAIAPIKey(for provider: AIProviderKind) -> String {
+        (try? aiKeyStore.loadAPIKey(for: provider)) ?? ""
     }
 
     public func updateAIAPIKey(_ apiKey: String) {
-        try? aiKeyStore.saveAPIKey(apiKey)
+        updateAIAPIKey(apiKey, for: .openAI)
+    }
+
+    public func updateAIAPIKey(_ apiKey: String, for provider: AIProviderKind) {
+        try? aiKeyStore.saveAPIKey(apiKey, for: provider)
         resetAIAnalysisState()
-        resetAIConversationState()
+        resetAIConversationStateIfSafe()
     }
 
     private func currentAIConfiguration() -> AIAnalysisConfiguration {
@@ -353,6 +412,21 @@ public final class AppModel {
             model: preferences.aiModel,
             apiKey: loadAIAPIKey(),
             isEnabled: preferences.aiAnalysisEnabled
+        )
+    }
+
+    private func currentAIConversationConfiguration() -> ResolvedAIProviderConfiguration {
+        resolvedAIConversationConfiguration(for: preferences.defaultAIProvider)
+    }
+
+    private func resolvedAIConversationConfiguration(for provider: AIProviderKind) -> ResolvedAIProviderConfiguration {
+        let configuration = preferences.aiProviderConfiguration(for: provider)
+        return ResolvedAIProviderConfiguration(
+            provider: provider,
+            baseURL: configuration.baseURL,
+            model: configuration.model,
+            apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
+            isEnabled: preferences.aiAnalysisEnabled && configuration.isEnabled
         )
     }
 
@@ -378,7 +452,7 @@ public final class AppModel {
             return
         }
 
-        let configuration = currentAIConfiguration()
+        let configuration = currentAIConversationConfiguration()
         if !configuration.isEnabled {
             aiConversationState = .unavailable(.disabled)
         } else if !configuration.isComplete {
@@ -388,13 +462,22 @@ public final class AppModel {
         }
     }
 
+    private func resetAIConversationStateIfSafe() {
+        switch aiConversationState {
+        case .asking, .waitingForUser, .summarizing:
+            return
+        case .unavailable, .idle, .completed, .failed:
+            resetAIConversationState()
+        }
+    }
+
     private func currentAIConversationContext() -> AIConversationContext? {
         guard let overview, !overview.buckets.isEmpty else {
             aiConversationState = .unavailable(.noData)
             return nil
         }
 
-        let configuration = currentAIConfiguration()
+        let configuration = currentAIConversationConfiguration()
         if !configuration.isEnabled {
             aiConversationState = .unavailable(.disabled)
             return nil

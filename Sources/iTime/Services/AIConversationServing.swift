@@ -4,13 +4,13 @@ public protocol AIConversationServing: Sendable {
     func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationMessage
 
     func summarizeConversation(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationSummaryDraft
 }
 

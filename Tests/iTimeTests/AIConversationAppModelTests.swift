@@ -49,8 +49,10 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     var summaryDraft: AIConversationSummaryDraft
     private(set) var askedContexts: [AIConversationContext] = []
     private(set) var askedHistories: [[AIConversationMessage]] = []
+    private(set) var askedConfigurations: [ResolvedAIProviderConfiguration] = []
     private(set) var summarizedContexts: [AIConversationContext] = []
     private(set) var summarizedHistories: [[AIConversationMessage]] = []
+    private(set) var summarizedConfigurations: [ResolvedAIProviderConfiguration] = []
 
     init(
         nextQuestion: String = "这个日程主要做了什么？",
@@ -68,10 +70,11 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationMessage {
         askedContexts.append(context)
         askedHistories.append(history)
+        askedConfigurations.append(configuration)
         return AIConversationMessage(
             id: UUID(),
             role: .assistant,
@@ -83,10 +86,11 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     func summarizeConversation(
         context: AIConversationContext,
         history: [AIConversationMessage],
-        configuration: AIAnalysisConfiguration
+        configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationSummaryDraft {
         summarizedContexts.append(context)
         summarizedHistories.append(history)
+        summarizedConfigurations.append(configuration)
         return summaryDraft
     }
 }
@@ -144,11 +148,60 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         return
     }
     #expect(session.messages.count == 1)
+    #expect(session.provider == .openAI)
     #expect(session.messages.first?.role == AIConversationMessageRole.assistant)
     #expect(session.messages.first?.content == "需求评审主要讨论了什么？")
     #expect(conversationService.askedContexts.first?.events.map(\.title) == ["需求评审"])
     #expect(conversationService.askedContexts.first?.latestMemorySummary == "过去几轮复盘都显示会议偏多。")
+    #expect(conversationService.askedConfigurations.first?.provider == .openAI)
     #expect(archiveStore.archive.sessions.count == 1)
+}
+
+@MainActor
+@Test func startAIConversationBindsSessionToSelectedProvider() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: CalendarAuthorizationState.authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "路线评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[.anthropic] = "anthropic-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.defaultAIProvider = .anthropic
+    preferences.setAIProviderEnabled(true, for: .anthropic)
+    preferences.setAIProviderBaseURL("https://api.anthropic.com/v1", for: .anthropic)
+    preferences.setAIProviderModel("claude-sonnet-4-5", for: .anthropic)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    guard case .waitingForUser(let session) = model.aiConversationState else {
+        Issue.record("Expected waitingForUser state")
+        return
+    }
+    #expect(session.provider == .anthropic)
+    #expect(conversationService.askedConfigurations.first?.provider == .anthropic)
+    #expect(conversationService.askedConfigurations.first?.model == "claude-sonnet-4-5")
 }
 
 @MainActor
@@ -200,6 +253,55 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func continuingConversationKeepsOriginalProviderAfterDefaultProviderChanges() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: CalendarAuthorizationState.authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[.anthropic] = "anthropic-key"
+    keyStore.values[.openAI] = "openai-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.defaultAIProvider = .anthropic
+    preferences.setAIProviderEnabled(true, for: .anthropic)
+    preferences.setAIProviderBaseURL("https://api.anthropic.com/v1", for: .anthropic)
+    preferences.setAIProviderModel("claude-sonnet-4-5", for: .anthropic)
+    preferences.setAIProviderEnabled(true, for: .openAI)
+    preferences.setAIProviderBaseURL("https://api.openai.com/v1", for: .openAI)
+    preferences.setAIProviderModel("gpt-5-mini", for: .openAI)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    model.updateDefaultAIProvider(.openAI)
+    await model.sendAIConversationReply("已经产出结论了。")
+
+    #expect(conversationService.askedConfigurations.count == 2)
+    #expect(conversationService.askedConfigurations[0].provider == .anthropic)
+    #expect(conversationService.askedConfigurations[1].provider == .anthropic)
+}
+
+@MainActor
 @Test func finishAIConversationArchivesSummaryAndLoadsHistory() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: CalendarAuthorizationState.authorized,
@@ -240,6 +342,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         Issue.record("Expected completed state")
         return
     }
+    #expect(summary.provider == .openAI)
     #expect(summary.headline == "本周安排偏向沟通")
     #expect(model.aiConversationHistory.count == 1)
     #expect(model.aiConversationHistory.first?.headline == "本周安排偏向沟通")
