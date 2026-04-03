@@ -35,12 +35,12 @@ struct OverviewTrendChartView: View {
     let overview: TimeOverview
 
     private let legendColumns = [
-        GridItem(.adaptive(minimum: 120), alignment: .leading),
+        GridItem(.adaptive(minimum: 140), spacing: 12, alignment: .leading),
     ]
 
     var body: some View {
         LiquidGlassCard {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 Text(OverviewTrendChartCopy.title(for: overview.stackedBucketResolution))
                     .font(.headline)
 
@@ -60,21 +60,28 @@ struct OverviewTrendChartView: View {
                                 y: .value("时长", segment.duration / 3600)
                             )
                             .foregroundStyle(Color(hex: segment.calendarColorHex))
-                            .cornerRadius(6)
                         }
                     }
                 }
                 .chartXScale(domain: OverviewTrendChartCopy.xDomainLabels(for: overview.stackedBuckets))
                 .chartLegend(.hidden)
-                .frame(height: 260)
+                .frame(height: 280)
 
                 if let summary = busiestBucketSummary {
-                    Text(summary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(.yellow)
+                        
+                        Text(summary)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(4)
+                    }
+                    .padding(14)
+                    .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
 
-                LazyVGrid(columns: legendColumns, alignment: .leading, spacing: 10) {
+                LazyVGrid(columns: legendColumns, alignment: .leading, spacing: 12) {
                     ForEach(overview.buckets) { bucket in
                         HStack(spacing: 8) {
                             Circle()
@@ -82,7 +89,7 @@ struct OverviewTrendChartView: View {
                                 .frame(width: 8, height: 8)
 
                             Text(bucket.name)
-                                .font(.subheadline)
+                                .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
                         }

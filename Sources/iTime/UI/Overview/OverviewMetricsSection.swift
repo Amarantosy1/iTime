@@ -24,15 +24,17 @@ struct OverviewMetricsSection: View {
     let overview: TimeOverview
 
     var body: some View {
-        LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [.init(.flexible(), spacing: 16), .init(.flexible(), spacing: 16)], spacing: 16) {
             ForEach(OverviewMetricKind.allCases, id: \.self) { metric in
                 LiquidGlassCard {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(metric.title)
-                            .font(.subheadline)
+                            .font(.subheadline.weight(.medium))
                             .foregroundStyle(.secondary)
+                        
                         Text(value(for: metric))
-                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

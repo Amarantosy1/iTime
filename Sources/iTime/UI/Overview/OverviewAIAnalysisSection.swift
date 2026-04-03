@@ -74,26 +74,33 @@ struct OverviewAIAnalysisSection: View {
     @ViewBuilder
     private var latestSummaryCard: some View {
         if let summary = model.latestAIConversationSummary {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(AIAnalysisCopy.latestSummaryTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(AIAnalysisCopy.latestSummaryTitle)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .textCase(.uppercase)
+
+                    Spacer()
+
+                    Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Text(summary.headline)
-                    .font(.title3.weight(.semibold))
-
-                Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
 
                 Text(summary.summary)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(4)
+                    .lineSpacing(4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color.secondary.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(16)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 }

@@ -84,42 +84,59 @@ struct AIConversationWindowView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(AIConversationWindowCopy.title)
-                    .font(.title2.weight(.semibold))
-                Text("\(providerTitle) · \(periodTitle)")
-                    .foregroundStyle(.secondary)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
+                
+                HStack(spacing: 8) {
+                    Label(providerTitle, systemImage: "sparkles")
+                    Text("·")
+                    Label(periodTitle, systemImage: "calendar")
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 if !model.aiConversationHistory.isEmpty {
-                    Button(AIConversationWindowCopy.historyAction) {
+                    Button {
                         showsHistory = true
+                    } label: {
+                        Label(AIConversationWindowCopy.historyAction, systemImage: "clock.arrow.circlepath")
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(.large)
                 }
 
                 if canStartNewConversation {
-                    Button(AIConversationWindowCopy.newConversationAction) {
+                    Button {
                         Task { await model.startAIConversation() }
+                    } label: {
+                        Label(AIConversationWindowCopy.newConversationAction, systemImage: "plus.circle.fill")
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .disabled(!canStartConversationNow)
                 }
             }
         }
-        .padding(20)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 20)
+        .background(.ultraThinMaterial)
     }
 
     private var preflightOptionsView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AIConversationWindowCopy.serviceSelectionTitle)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .textCase(.uppercase)
 
                     Picker(
                         AIConversationWindowCopy.serviceSelectionTitle,
@@ -139,10 +156,13 @@ struct AIConversationWindowView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AIConversationWindowCopy.modelSelectionTitle)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .textCase(.uppercase)
 
                     if selectedServiceModels.isEmpty {
                         Text(AIConversationWindowCopy.missingModelText)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else {
                         Picker(
@@ -163,9 +183,9 @@ struct AIConversationWindowView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color.secondary.opacity(0.06))
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(Color.secondary.opacity(0.04))
     }
 
     @ViewBuilder
@@ -338,36 +358,59 @@ struct AIConversationWindowView: View {
 
     private func summaryView(_ summary: AIConversationSummary) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(summary.headline)
-                    .font(.title3.weight(.semibold))
+            VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(summary.headline)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
 
-                Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text(summary.summary)
-                    .foregroundStyle(.secondary)
+                    Text(summary.summary)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(6)
+                }
 
                 if !summary.findings.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AIConversationWindowCopy.findingsTitle)
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(summary.findings, id: \.self) { finding in
-                            Text("• \(finding)")
-                                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label(AIConversationWindowCopy.findingsTitle, systemImage: "lightbulb.fill")
+                            .font(.headline)
+                            .foregroundStyle(.yellow)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(summary.findings, id: \.self) { finding in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("•")
+                                        .foregroundStyle(.tertiary)
+                                    Text(finding)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.04), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
 
                 if !summary.suggestions.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AIConversationWindowCopy.suggestionsTitle)
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(summary.suggestions, id: \.self) { suggestion in
-                            Text("• \(suggestion)")
-                                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label(AIConversationWindowCopy.suggestionsTitle, systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.green)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(summary.suggestions, id: \.self) { suggestion in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("•")
+                                        .foregroundStyle(.tertiary)
+                                    Text(suggestion)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.04), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
 

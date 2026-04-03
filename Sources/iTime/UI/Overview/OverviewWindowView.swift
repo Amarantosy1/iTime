@@ -7,11 +7,9 @@ struct OverviewWindowView: View {
     var body: some View {
         ZStack {
             AppTheme.overviewBackgroundGradient(for: colorScheme)
-                .linearGradient
-                .ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 28) {
                     header
 
                     RangePicker(
@@ -23,6 +21,7 @@ struct OverviewWindowView: View {
                         ),
                         ranges: TimeRangePreset.overviewCases
                     )
+                    .frame(maxWidth: .infinity, alignment: .center)
 
                     if model.preferences.selectedRange == .custom {
                         customDateRangeControls
@@ -36,7 +35,7 @@ struct OverviewWindowView: View {
                         }
                     }
                 }
-                .padding(24)
+                .padding(32)
             }
         }
         .task {
@@ -45,8 +44,14 @@ struct OverviewWindowView: View {
     }
 
     private var header: some View {
-        GlassHeadlineText(text: "我的时间去哪了？")
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 8) {
+            GlassHeadlineText(text: "我的时间去哪了？")
+            
+            Text("基于日历数据的个人时间深度复盘")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var customDateRangeControls: some View {
@@ -119,32 +124,34 @@ private struct GlassHeadlineText: View {
     let text: String
 
     var body: some View {
-        ZStack {
-            titleText
-                .foregroundStyle(.white.opacity(0.2))
-                .blur(radius: 0.8)
-
-            if #available(macOS 26, *) {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .mask(titleText)
-            } else {
-                titleText
-                    .foregroundStyle(.clear)
-                    .background(.ultraThinMaterial)
-                    .mask(titleText)
+        titleText
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [.primary, .primary.opacity(0.8)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background {
+                if #available(macOS 26, *) {
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
             }
-
-            titleText
-                .foregroundStyle(.white.opacity(0.28))
-        }
-        .padding(.vertical, 6)
+            .overlay {
+                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                    .stroke(.white.opacity(0.1), lineWidth: 0.5)
+            }
     }
 
     private var titleText: some View {
         Text(text)
             .font(.system(size: 34, weight: .bold, design: .rounded))
-            .multilineTextAlignment(.center)
     }
 }

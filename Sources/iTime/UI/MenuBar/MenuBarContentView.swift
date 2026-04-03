@@ -34,7 +34,7 @@ struct MenuBarContentView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             RangePicker(
                 selection: Binding(
                     get: { model.liveSelectedRange },
@@ -53,12 +53,13 @@ struct MenuBarContentView: View {
                 }
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 SettingsLink {
                     Label("设置", systemImage: "gearshape")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.large)
 
                 Button {
                     openWindow(id: "overview")
@@ -67,9 +68,10 @@ struct MenuBarContentView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
         }
-        .padding(16)
+        .padding(20)
         .frame(width: 340)
         .task {
             await model.refresh()
@@ -79,48 +81,60 @@ struct MenuBarContentView: View {
     @ViewBuilder
     private var authorizedContent: some View {
         LiquidGlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("已追踪时间")
-                    .font(.headline)
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("已追踪时间")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
 
-                Text(model.overview?.totalDuration.formattedDuration ?? "0m")
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    Text(model.overview?.totalDuration.formattedDuration ?? "0m")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                }
 
                 if let overview = model.overview, !overview.buckets.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 14) {
                         Text(MenuBarBucketChartCopy.sectionTitle)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                            .textCase(.uppercase)
 
                         ForEach(MenuBarBucketChartRow.makeRows(from: overview.buckets)) { row in
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 8) {
                                     Circle()
                                         .fill(Color(hex: row.colorHex))
                                         .frame(width: 8, height: 8)
 
                                     Text(row.name)
-                                        .font(.subheadline)
+                                        .font(.subheadline.weight(.medium))
                                         .lineLimit(1)
 
                                     Spacer(minLength: 8)
 
                                     Text(row.shareText)
-                                        .font(.caption.weight(.semibold))
+                                        .font(.caption.weight(.bold))
                                         .foregroundStyle(.secondary)
                                 }
 
                                 GeometryReader { proxy in
                                     ZStack(alignment: .leading) {
                                         Capsule()
-                                            .fill(.quaternary)
+                                            .fill(.quaternary.opacity(0.5))
 
                                         Capsule()
-                                            .fill(Color(hex: row.colorHex))
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color(hex: row.colorHex), Color(hex: row.colorHex).opacity(0.8)],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
                                             .frame(width: max(proxy.size.width * row.fillRatio, row.fillRatio > 0 ? 10 : 0))
+                                            .shadow(color: Color(hex: row.colorHex).opacity(0.3), radius: 4, x: 0, y: 2)
                                     }
                                 }
-                                .frame(height: 8)
+                                .frame(height: 6)
 
                                 Text(row.durationText)
                                     .font(.caption)
@@ -130,7 +144,10 @@ struct MenuBarContentView: View {
                     }
                 } else {
                     Text("当前范围内没有日程。")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 20)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
