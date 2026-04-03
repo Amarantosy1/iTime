@@ -62,7 +62,8 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
         let content = try await sendRequest(
             userPrompt: OpenAICompatibleAIConversationService.longFormUserPrompt(for: session, summary: summary),
             systemPrompt: OpenAICompatibleAIConversationService.longFormSystemPrompt,
-            configuration: configuration
+            configuration: configuration,
+            maxTokens: 4096
         )
         let payload = try decodePayload(AnthropicLongFormPayload.self, from: content)
         guard !payload.title.isEmpty, !payload.content.isEmpty else {
@@ -74,7 +75,8 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
     private func sendRequest(
         userPrompt: String,
         systemPrompt: String,
-        configuration: ResolvedAIProviderConfiguration
+        configuration: ResolvedAIProviderConfiguration,
+        maxTokens: Int = 1024
     ) async throws -> String {
         guard configuration.isComplete, let url = configuration.anthropicMessagesURL else {
             throw AIAnalysisServiceError.invalidConfiguration
@@ -87,7 +89,7 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
         request.httpBody = try JSONEncoder().encode(
             AnthropicMessagesRequest(
                 model: configuration.model,
-                maxTokens: 1024,
+                maxTokens: maxTokens,
                 system: systemPrompt,
                 messages: [.init(role: "user", content: userPrompt)]
             )
@@ -114,7 +116,8 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
     }
 
     private func decodePayload<T: Decodable>(_ type: T.Type, from content: String) throws -> T {
-        guard let data = content.data(using: .utf8) else {
+        let json = Self.extractJSON(from: content)
+        guard let data = json.data(using: .utf8) else {
             throw AIAnalysisServiceError.invalidResponse
         }
         do {
@@ -122,6 +125,18 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
         } catch {
             throw AIAnalysisServiceError.invalidResponse
         }
+    }
+
+    static func extractJSON(from content: String) -> String {
+        var s = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard s.hasPrefix("```") else { return s }
+        if let newline = s.range(of: "\n") {
+            s = String(s[newline.upperBound...])
+        }
+        if let fence = s.range(of: "```", options: .backwards) {
+            s = String(s[..<fence.lowerBound])
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 

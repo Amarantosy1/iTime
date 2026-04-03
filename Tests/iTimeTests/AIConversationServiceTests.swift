@@ -256,6 +256,142 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("周二下午的需求评审主要产出了什么？"))
     #expect(body.contains("主要在对齐需求变更和下周排期。"))
     #expect(body.contains("这段文字不该成为长文的主输入。") == false)
+    #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
     #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
     #expect(draft.content == "这是一篇正式长文复盘。")
+}
+
+@Test func openAICompatibleConversationServiceStripsMarkdownFencedJSONResponse() async throws {
+    let sender = ConversationRecordingAIHTTPSender(
+        responseData: Data(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "content": "```json\\n{\\"title\\":\\"本周复盘\\",\\"content\\":\\"这是一篇文章。\\"}\\n```"
+                  }
+                }
+              ]
+            }
+            """.utf8
+        )
+    )
+    let service = OpenAICompatibleAIConversationService(httpSender: sender)
+    let session = AIConversationSession(
+        id: UUID(), serviceID: nil, serviceDisplayName: "OpenAI", provider: .openAI,
+        model: "gpt-5-mini", range: .week,
+        startDate: Date(timeIntervalSince1970: 1_700_000_000),
+        endDate: Date(timeIntervalSince1970: 1_700_086_400),
+        startedAt: Date(timeIntervalSince1970: 1_700_000_000), completedAt: nil,
+        status: .completed,
+        overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "12h", totalEventCount: 3, topCalendarNames: []),
+        messages: []
+    )
+    let summary = AIConversationSummary(
+        id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "OpenAI",
+        provider: .openAI, model: "gpt-5-mini", range: .week,
+        startDate: session.startDate, endDate: session.endDate,
+        createdAt: session.endDate, headline: "标题",
+        summary: "摘要", findings: [], suggestions: [],
+        overviewSnapshot: session.overviewSnapshot
+    )
+
+    let draft = try await service.generateLongFormReport(
+        session: session, summary: summary,
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .openAI, baseURL: "https://example.com/v1",
+            model: "gpt-5-mini", apiKey: "key", isEnabled: true
+        )
+    )
+
+    #expect(draft.title == "本周复盘")
+    #expect(draft.content == "这是一篇文章。")
+}
+
+@Test func anthropicConversationServiceUsesHigherMaxTokensForLongFormReport() async throws {
+    let sender = ConversationRecordingAIHTTPSender(
+        responseData: Data(
+            """
+            {
+              "content": [
+                { "type": "text", "text": "{\\"title\\":\\"复盘\\",\\"content\\":\\"内容。\\"}" }
+              ]
+            }
+            """.utf8
+        )
+    )
+    let service = AnthropicConversationService(httpSender: sender)
+    let session = AIConversationSession(
+        id: UUID(), serviceID: nil, serviceDisplayName: "Anthropic", provider: .anthropic,
+        model: "claude-opus-4-6", range: .week,
+        startDate: Date(timeIntervalSince1970: 1_700_000_000),
+        endDate: Date(timeIntervalSince1970: 1_700_086_400),
+        startedAt: Date(timeIntervalSince1970: 1_700_000_000), completedAt: nil,
+        status: .completed,
+        overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "8h", totalEventCount: 4, topCalendarNames: []),
+        messages: []
+    )
+    let summary = AIConversationSummary(
+        id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "Anthropic",
+        provider: .anthropic, model: "claude-opus-4-6", range: .week,
+        startDate: session.startDate, endDate: session.endDate,
+        createdAt: session.endDate, headline: "标题",
+        summary: "摘要", findings: [], suggestions: [],
+        overviewSnapshot: session.overviewSnapshot
+    )
+
+    _ = try await service.generateLongFormReport(
+        session: session, summary: summary,
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .anthropic, baseURL: "https://api.anthropic.com",
+            model: "claude-opus-4-6", apiKey: "key", isEnabled: true
+        )
+    )
+
+    let request = try #require(sender.lastRequest)
+    let bodyData = try #require(request.httpBody)
+    let body = try #require(String(data: bodyData, encoding: .utf8))
+    #expect(body.contains("4096"))
+}
+
+@Test func geminiConversationServiceIncludesJsonMimeTypeInRequest() async throws {
+    let sender = ConversationRecordingAIHTTPSender(
+        responseData: Data(
+            """
+            {
+              "candidates": [
+                {
+                  "content": {
+                    "parts": [
+                      { "text": "{\\"question\\":\\"这周你最想改变什么？\\"}" }
+                    ]
+                  }
+                }
+              ]
+            }
+            """.utf8
+        )
+    )
+    let service = GeminiConversationService(httpSender: sender)
+    let context = AIConversationContext(
+        range: .week, rangeTitle: "本周",
+        startDate: Date(timeIntervalSince1970: 1_700_000_000),
+        endDate: Date(timeIntervalSince1970: 1_700_086_400),
+        overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "8h", totalEventCount: 2, topCalendarNames: []),
+        events: [], latestMemorySummary: nil
+    )
+
+    _ = try await service.askQuestion(
+        context: context, history: [],
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .gemini, baseURL: "https://generativelanguage.googleapis.com",
+            model: "gemini-2.0-flash", apiKey: "key", isEnabled: true
+        )
+    )
+
+    let request = try #require(sender.lastRequest)
+    let bodyData = try #require(request.httpBody)
+    let body = try #require(String(data: bodyData, encoding: .utf8))
+    #expect(body.contains("response_mime_type"))
 }

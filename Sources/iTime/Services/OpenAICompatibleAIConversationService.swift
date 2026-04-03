@@ -98,7 +98,8 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
                 messages: [
                     .init(role: "system", content: systemPrompt),
                     .init(role: "user", content: userPrompt),
-                ]
+                ],
+                responseFormat: .init(type: "json_object")
             )
         )
 
@@ -124,7 +125,8 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     }
 
     private func decodePayload<T: Decodable>(_ type: T.Type, from content: String) throws -> T {
-        guard let data = content.data(using: .utf8) else {
+        let json = Self.extractJSON(from: content)
+        guard let data = json.data(using: .utf8) else {
             throw AIAnalysisServiceError.invalidResponse
         }
         do {
@@ -132,6 +134,18 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         } catch {
             throw AIAnalysisServiceError.invalidResponse
         }
+    }
+
+    static func extractJSON(from content: String) -> String {
+        var s = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard s.hasPrefix("```") else { return s }
+        if let newline = s.range(of: "\n") {
+            s = String(s[newline.upperBound...])
+        }
+        if let fence = s.range(of: "```", options: .backwards) {
+            s = String(s[..<fence.lowerBound])
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static let questionSystemPrompt = """
@@ -230,8 +244,19 @@ private struct ConversationChatCompletionsRequest: Encodable {
         let content: String
     }
 
+    struct ResponseFormat: Encodable {
+        let type: String
+    }
+
     let model: String
     let messages: [Message]
+    let responseFormat: ResponseFormat
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case responseFormat = "response_format"
+    }
 }
 
 private struct ConversationChatCompletionsResponse: Decodable {

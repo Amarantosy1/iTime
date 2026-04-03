@@ -85,7 +85,8 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         request.httpBody = try JSONEncoder().encode(
             GeminiGenerateContentRequest(
                 systemInstruction: .init(parts: [.init(text: systemPrompt)]),
-                contents: [.init(role: "user", parts: [.init(text: userPrompt)])]
+                contents: [.init(role: "user", parts: [.init(text: userPrompt)])],
+                generationConfig: .init(responseMimeType: "application/json")
             )
         )
         let (data, response) = try await perform(request)
@@ -110,7 +111,8 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
     }
 
     private func decodePayload<T: Decodable>(_ type: T.Type, from content: String) throws -> T {
-        guard let data = content.data(using: .utf8) else {
+        let json = Self.extractJSON(from: content)
+        guard let data = json.data(using: .utf8) else {
             throw AIAnalysisServiceError.invalidResponse
         }
         do {
@@ -118,6 +120,18 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         } catch {
             throw AIAnalysisServiceError.invalidResponse
         }
+    }
+
+    static func extractJSON(from content: String) -> String {
+        var s = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard s.hasPrefix("```") else { return s }
+        if let newline = s.range(of: "\n") {
+            s = String(s[newline.upperBound...])
+        }
+        if let fence = s.range(of: "```", options: .backwards) {
+            s = String(s[..<fence.lowerBound])
+        }
+        return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
@@ -135,8 +149,16 @@ private struct GeminiGenerateContentRequest: Encodable {
         let parts: [Part]
     }
 
+    struct GenerationConfig: Encodable {
+        let responseMimeType: String
+        enum CodingKeys: String, CodingKey {
+            case responseMimeType = "response_mime_type"
+        }
+    }
+
     let systemInstruction: SystemInstruction
     let contents: [Content]
+    let generationConfig: GenerationConfig
 }
 
 private struct GeminiGenerateContentResponse: Decodable {
