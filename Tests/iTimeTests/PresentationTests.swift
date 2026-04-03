@@ -107,3 +107,38 @@ import Testing
     #expect(summary?.contains("工作") == true)
     #expect(summary?.contains("2h") == true)
 }
+
+@Test func stackedTrendChartDomainPreservesEmptyHourlyBuckets() {
+    var buckets: [OverviewStackedBucket] = []
+    for hour in 0..<24 {
+        let start = Date(timeIntervalSince1970: Double(hour * 3_600))
+        let end = Date(timeIntervalSince1970: Double((hour + 1) * 3_600))
+        let segments: [OverviewStackedSegment]
+        if hour == 9 {
+            segments = [
+                OverviewStackedSegment(
+                    calendarID: "work",
+                    calendarName: "工作",
+                    calendarColorHex: "#4A90E2",
+                    duration: 1_800
+                ),
+            ]
+        } else {
+            segments = []
+        }
+
+        buckets.append(
+            OverviewStackedBucket(
+                id: "\(hour)",
+                label: "\(hour)时",
+                interval: DateInterval(start: start, end: end),
+                totalDuration: hour == 9 ? 1_800 : 0,
+                segments: segments
+            )
+        )
+    }
+
+    #expect(OverviewTrendChartCopy.xDomainLabels(for: buckets).count == 24)
+    #expect(OverviewTrendChartCopy.xDomainLabels(for: buckets).first == "0时")
+    #expect(OverviewTrendChartCopy.xDomainLabels(for: buckets).last == "23时")
+}

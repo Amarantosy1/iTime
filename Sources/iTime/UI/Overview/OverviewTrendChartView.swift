@@ -25,6 +25,10 @@ enum OverviewTrendChartCopy {
 
         return "\(summaryPrefix)：\(bucket.label)，共 \(bucket.totalDuration.formattedDuration)，其中\(dominantSegment.calendarName) \(dominantSegment.duration.formattedDuration)。"
     }
+
+    static func xDomainLabels(for buckets: [OverviewStackedBucket]) -> [String] {
+        buckets.map(\.label)
+    }
 }
 
 struct OverviewTrendChartView: View {
@@ -42,6 +46,14 @@ struct OverviewTrendChartView: View {
 
                 Chart {
                     ForEach(overview.stackedBuckets) { bucket in
+                        BarMark(
+                            x: .value("时间", bucket.label),
+                            y: .value("时长", 0)
+                        )
+                        .opacity(0.001)
+                    }
+
+                    ForEach(overview.stackedBuckets) { bucket in
                         ForEach(bucket.segments) { segment in
                             BarMark(
                                 x: .value("时间", bucket.label),
@@ -52,6 +64,7 @@ struct OverviewTrendChartView: View {
                         }
                     }
                 }
+                .chartXScale(domain: OverviewTrendChartCopy.xDomainLabels(for: overview.stackedBuckets))
                 .chartLegend(.hidden)
                 .frame(height: 260)
 
