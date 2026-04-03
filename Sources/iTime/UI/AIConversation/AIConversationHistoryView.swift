@@ -5,6 +5,7 @@ enum AIConversationHistoryCopy {
     static let deleteAction = "删除总结"
     static let deleteConfirmationTitle = "删除这条历史总结？"
     static let deleteConfirmationMessage = "删除后会同时移除关联会话记录和依赖它的 memory。"
+    static let longFormPlaceholder = "这条历史总结还没有生成长文复盘。"
 }
 
 struct AIConversationHistoryView: View {
@@ -41,6 +42,7 @@ struct AIConversationHistoryView: View {
         } detail: {
             if let summary = selectedSummary {
                 AIConversationSummaryDetailView(
+                    model: model,
                     summary: summary,
                     onSave: { headline, summaryText, findings, suggestions in
                         model.updateAIConversationSummary(
@@ -98,6 +100,7 @@ struct AIConversationHistoryView: View {
 }
 
 private struct AIConversationSummaryDetailView: View {
+    @Bindable var model: AppModel
     let summary: AIConversationSummary
     let onSave: (_ headline: String, _ summary: String, _ findings: [String], _ suggestions: [String]) -> Void
     let onDelete: () -> Void
@@ -107,6 +110,9 @@ private struct AIConversationSummaryDetailView: View {
     @State private var summaryDraft = ""
     @State private var findingsDraft = ""
     @State private var suggestionsDraft = ""
+    @State private var isEditingLongForm = false
+    @State private var longFormTitleDraft = ""
+    @State private var longFormContentDraft = ""
 
     var body: some View {
         ScrollView {
@@ -172,6 +178,8 @@ private struct AIConversationSummaryDetailView: View {
                     draftText: $suggestionsDraft,
                     isEditing: isEditing
                 )
+
+                longFormSection
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
@@ -179,6 +187,7 @@ private struct AIConversationSummaryDetailView: View {
         .onAppear(perform: synchronizeDrafts)
         .onChange(of: summary.id) { _, _ in
             isEditing = false
+            isEditingLongForm = false
             synchronizeDrafts()
         }
     }
@@ -188,6 +197,13 @@ private struct AIConversationSummaryDetailView: View {
         summaryDraft = summary.summary
         findingsDraft = summary.findings.joined(separator: "\n")
         suggestionsDraft = summary.suggestions.joined(separator: "\n")
+        if let report = model.longFormReport(for: summary.id) {
+            longFormTitleDraft = report.title
+            longFormContentDraft = report.content
+        } else {
+            longFormTitleDraft = ""
+            longFormContentDraft = ""
+        }
     }
 
     @ViewBuilder
@@ -237,5 +253,82 @@ private struct AIConversationSummaryDetailView: View {
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
+    }
+
+    @ViewBuilder
+    private var longFormSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(AIConversationWindowCopy.longFormTitle)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+
+                if let report = model.longFormReport(for: summary.id) {
+                    if isEditingLongForm {
+                        Button("取消") {
+                            synchronizeDrafts()
+                            isEditingLongForm = false
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(AIConversationWindowCopy.longFormSaveAction) {
+                            model.updateLongFormReport(
+                                id: report.id,
+                                title: longFormTitleDraft,
+                                content: longFormContentDraft
+                            )
+                            isEditingLongForm = false
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button(AIConversationWindowCopy.editSummaryAction) {
+                            isEditingLongForm = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Button(AIConversationWindowCopy.regenerateLongFormAction) {
+                        Task { await model.generateLongFormReport(for: summary.id) }
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Button(AIConversationWindowCopy.generateLongFormAction) {
+                        Task { await model.generateLongFormReport(for: summary.id) }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            if let report = model.longFormReport(for: summary.id) {
+                if isEditingLongForm {
+                    TextField("长文标题", text: $longFormTitleDraft)
+                        .textFieldStyle(.roundedBorder)
+
+                    TextEditor(text: $longFormContentDraft)
+                        .frame(minHeight: 220)
+                        .padding(10)
+                        .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                } else {
+                    Text(report.title)
+                        .font(.headline)
+
+                    Text(report.content)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text(AIConversationHistoryCopy.longFormPlaceholder)
+                    .foregroundStyle(.secondary)
+            }
+
+            switch model.aiLongFormState {
+            case .generating(let summaryID) where summaryID == summary.id:
+                ProgressView(AIConversationWindowCopy.longFormGeneratingText)
+            case .failed(let summaryID, let message) where summaryID == summary.id:
+                Text(message)
+                    .foregroundStyle(.red)
+            default:
+                EmptyView()
+            }
+        }
     }
 }

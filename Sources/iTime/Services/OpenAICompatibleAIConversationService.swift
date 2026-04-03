@@ -59,6 +59,26 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         )
     }
 
+    public func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        let content = try await sendRequest(
+            systemPrompt: Self.longFormSystemPrompt,
+            userPrompt: Self.longFormUserPrompt(for: session, summary: summary),
+            configuration: configuration
+        )
+        let payload = try decodePayload(LongFormPayload.self, from: content)
+        guard !payload.title.isEmpty, !payload.content.isEmpty else {
+            throw AIAnalysisServiceError.invalidResponse
+        }
+        return AIConversationLongFormReportDraft(
+            title: payload.title,
+            content: payload.content
+        )
+    }
+
     private func sendRequest(
         systemPrompt: String,
         userPrompt: String,
@@ -129,6 +149,15 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     findings 和 suggestions 各返回 1 到 3 条。
     """
 
+    static let longFormSystemPrompt = """
+    你是一个中文时间复盘助手。你会基于原始多轮对话、统计快照和时间范围，生成一篇正式的长文复盘。
+    文章必须做抽象整理，不要把聊天记录逐条改写成流水账，只允许少量提及关键日程标题。
+    你必须只返回 JSON，不要输出 Markdown 包裹或额外解释。
+    返回格式固定为：
+    {"title":"...","content":"..."}
+    content 必须是一篇结构完整的中文复盘文章，包含：复盘范围、时间投入与关注重点、关键模式与主要问题、深层原因分析、改进行动建议、下一阶段关注点。
+    """
+
     static func questionUserPrompt(
         for context: AIConversationContext,
         history: [AIConversationMessage]
@@ -160,6 +189,22 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         对话记录：
         \(historyLines(for: history))
         请给出结构化总结。
+        """
+    }
+
+    static func longFormUserPrompt(
+        for session: AIConversationSession,
+        summary: AIConversationSummary
+    ) -> String {
+        """
+        复盘范围：\(session.displayPeriodText)
+        统计摘要：\(session.overviewSnapshot.totalDurationText)，共 \(session.overviewSnapshot.totalEventCount) 个事件。
+        主要日历：\(session.overviewSnapshot.topCalendarNames.joined(separator: "、"))
+        当前短总结标题：\(summary.headline)
+        对话记录：
+        \(historyLines(for: session.messages))
+        请基于这些原始对话内容和统计快照，输出一篇正式复盘文章。
+        注意：默认做抽象整理，不要把短总结当成主输入来源，不要逐条转写聊天。
         """
     }
 
@@ -210,4 +255,9 @@ private struct SummaryPayload: Decodable {
     let summary: String
     let findings: [String]
     let suggestions: [String]
+}
+
+private struct LongFormPayload: Decodable {
+    let title: String
+    let content: String
 }

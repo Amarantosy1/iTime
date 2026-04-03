@@ -215,6 +215,10 @@ import Testing
     #expect(AIConversationWindowCopy.editSummaryAction == "编辑总结")
     #expect(AIConversationWindowCopy.discardConversationAccessibilityLabel == "退出本轮复盘")
     #expect(AIConversationWindowCopy.discardConfirmationTitle == "放弃这轮复盘？")
+    #expect(AIConversationWindowCopy.longFormTitle == "长文复盘")
+    #expect(AIConversationWindowCopy.generateLongFormAction == "生成长文复盘")
+    #expect(AIConversationWindowCopy.regenerateLongFormAction == "重新生成长文")
+    #expect(AIConversationWindowCopy.longFormSaveAction == "保存长文")
     #expect(AISettingsCopy.sectionTitle == "AI 服务")
     #expect(AISettingsCopy.addCustomServiceAction == "新增自定义服务")
     #expect(AISettingsCopy.testConnectionAction == "测试连接")
@@ -225,6 +229,7 @@ import Testing
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
     #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 服务。")
     #expect(AIConversationHistoryCopy.deleteAction == "删除总结")
+    #expect(AIConversationHistoryCopy.longFormPlaceholder == "这条历史总结还没有生成长文复盘。")
 }
 
 @Test func settingsNavigationUsesClassicSidebarSections() {

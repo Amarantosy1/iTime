@@ -38,6 +38,18 @@ private final class RecordingProviderConversationService: @unchecked Sendable, A
             suggestions: []
         )
     }
+
+    func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        lastConfiguration = configuration
+        return AIConversationLongFormReportDraft(
+            title: "长文标题",
+            content: "长文内容"
+        )
+    }
 }
 
 private final class RecordingProviderHTTPSender: @unchecked Sendable, AIAnalysisHTTPSending {

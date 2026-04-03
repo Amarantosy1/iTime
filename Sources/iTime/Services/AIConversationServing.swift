@@ -14,6 +14,12 @@ public protocol AIConversationServing: Sendable {
         history: [AIConversationMessage],
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationSummaryDraft
+
+    func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft
 }
 
 public struct AIConversationSummaryDraft: Equatable, Sendable {
@@ -32,5 +38,15 @@ public struct AIConversationSummaryDraft: Equatable, Sendable {
         self.summary = summary
         self.findings = findings
         self.suggestions = suggestions
+    }
+}
+
+public struct AIConversationLongFormReportDraft: Equatable, Sendable {
+    public let title: String
+    public let content: String
+
+    public init(title: String, content: String) {
+        self.title = title
+        self.content = content
     }
 }

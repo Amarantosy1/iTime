@@ -47,6 +47,7 @@ private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIC
 private final class RecordingAIConversationService: @unchecked Sendable, AIConversationServing {
     var nextQuestion: String
     var summaryDraft: AIConversationSummaryDraft
+    var longFormDraft: AIConversationLongFormReportDraft
     var shouldSuspendNextQuestion = false
     var validateShouldFail = false
     private(set) var validatedConfigurations: [ResolvedAIProviderConfiguration] = []
@@ -56,6 +57,9 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     private(set) var summarizedContexts: [AIConversationContext] = []
     private(set) var summarizedHistories: [[AIConversationMessage]] = []
     private(set) var summarizedConfigurations: [ResolvedAIProviderConfiguration] = []
+    private(set) var generatedLongFormSessions: [AIConversationSession] = []
+    private(set) var generatedLongFormSummaries: [AIConversationSummary] = []
+    private(set) var generatedLongFormConfigurations: [ResolvedAIProviderConfiguration] = []
     private var suspendedQuestionContinuation: CheckedContinuation<AIConversationMessage, Never>?
     private var suspensionReadyContinuation: CheckedContinuation<Void, Never>?
 
@@ -66,10 +70,15 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
             summary: "你本周大部分时间花在沟通同步上。",
             findings: ["会议密度偏高"],
             suggestions: ["给深度工作预留固定时段"]
+        ),
+        longFormDraft: AIConversationLongFormReportDraft = AIConversationLongFormReportDraft(
+            title: "本周长文复盘",
+            content: "这是一篇基于原始对话生成的长文复盘。"
         )
     ) {
         self.nextQuestion = nextQuestion
         self.summaryDraft = summaryDraft
+        self.longFormDraft = longFormDraft
     }
 
     func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
@@ -112,6 +121,17 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         summarizedHistories.append(history)
         summarizedConfigurations.append(configuration)
         return summaryDraft
+    }
+
+    func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        generatedLongFormSessions.append(session)
+        generatedLongFormSummaries.append(summary)
+        generatedLongFormConfigurations.append(configuration)
+        return longFormDraft
     }
 
     func resumeSuspendedQuestion() {
@@ -167,7 +187,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
                     sourceSummaryIDs: [],
                     summary: "过去几轮复盘都显示会议偏多。"
                 ),
-            ]
+            ],
+            longFormReports: []
         )
     )
     let preferences = UserPreferences(storage: .inMemory)
@@ -637,6 +658,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     let conversationService = RecordingAIConversationService()
     let summaryID = UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!
     let sessionID = UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!
+    let reportID = UUID(uuidString: "dddddddd-dddd-dddd-dddd-dddddddddddd")!
     let archiveStore = InMemoryAIConversationArchiveStore(
         archive: AIConversationArchive(
             sessions: [
@@ -692,6 +714,17 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
                     sourceSummaryIDs: [summaryID],
                     summary: "最近几轮复盘都显示沟通偏多。"
                 ),
+            ],
+            longFormReports: [
+                AIConversationLongFormReport(
+                    id: reportID,
+                    sessionID: sessionID,
+                    summaryID: summaryID,
+                    createdAt: .init(timeIntervalSince1970: 8_100),
+                    updatedAt: .init(timeIntervalSince1970: 8_100),
+                    title: "今天复盘长文",
+                    content: "这是一篇长文复盘。"
+                ),
             ]
         )
     )
@@ -715,6 +748,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(archiveStore.archive.summaries.isEmpty)
     #expect(archiveStore.archive.sessions.isEmpty)
     #expect(archiveStore.archive.memorySnapshots.isEmpty)
+    #expect(archiveStore.archive.longFormReports.isEmpty)
 }
 
 @MainActor
@@ -763,7 +797,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         archive: AIConversationArchive(
             sessions: [],
             summaries: [originalSummary],
-            memorySnapshots: []
+            memorySnapshots: [],
+            longFormReports: []
         )
     )
     let preferences = UserPreferences(storage: .inMemory)
@@ -790,6 +825,159 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(editedSummary.findings == ["连续会议过多", "执行时间不足"])
     #expect(editedSummary.suggestions == ["明天预留 2 小时深度工作"])
     #expect(archiveStore.archive.summaries.first?.headline == "今天的时间被会议切碎了")
+}
+
+@MainActor
+@Test func generatingLongFormReportPersistsReportFromConversationSession() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(
+        longFormDraft: AIConversationLongFormReportDraft(
+            title: "本周复盘长文",
+            content: "这是一篇基于原始对话生成的长文复盘。"
+        )
+    )
+    let sessionID = UUID(uuidString: "11111111-aaaa-bbbb-cccc-111111111111")!
+    let summaryID = UUID(uuidString: "22222222-aaaa-bbbb-cccc-222222222222")!
+    let session = AIConversationSession(
+        id: sessionID,
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .week,
+        startDate: .init(timeIntervalSince1970: 0),
+        endDate: .init(timeIntervalSince1970: 86_400),
+        startedAt: .init(timeIntervalSince1970: 0),
+        completedAt: .init(timeIntervalSince1970: 7_200),
+        status: .completed,
+        overviewSnapshot: AIOverviewSnapshot(
+            rangeTitle: "本周",
+            totalDurationText: "5小时",
+            totalEventCount: 2,
+            topCalendarNames: ["工作"]
+        ),
+        messages: [
+            AIConversationMessage(
+                id: UUID(),
+                role: .assistant,
+                content: "这次需求评审主要产出了什么？",
+                createdAt: .init(timeIntervalSince1970: 100)
+            ),
+            AIConversationMessage(
+                id: UUID(),
+                role: .user,
+                content: "主要在对齐需求变更和下周排期。",
+                createdAt: .init(timeIntervalSince1970: 200)
+            ),
+        ]
+    )
+    let summary = AIConversationSummary(
+        id: summaryID,
+        sessionID: sessionID,
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .week,
+        startDate: .init(timeIntervalSince1970: 0),
+        endDate: .init(timeIntervalSince1970: 86_400),
+        createdAt: .init(timeIntervalSince1970: 7_200),
+        headline: "本周工作会议偏多",
+        summary: "短总结不是长文主输入。",
+        findings: ["会议偏多"],
+        suggestions: ["预留整块时间"],
+        overviewSnapshot: session.overviewSnapshot
+    )
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [session],
+            summaries: [summary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.setAIProviderEnabled(true, for: .openAI)
+    preferences.setAIProviderBaseURL("https://example.com/v1", for: .openAI)
+    preferences.setAIProviderModel("gpt-5-mini", for: .openAI)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.generateLongFormReport(for: summaryID)
+
+    let report = try #require(model.longFormReport(for: summaryID))
+    #expect(report.title == "本周复盘长文")
+    #expect(report.content == "这是一篇基于原始对话生成的长文复盘。")
+    #expect(conversationService.generatedLongFormSessions.first?.id == sessionID)
+    #expect(conversationService.generatedLongFormSummaries.first?.id == summaryID)
+    #expect(conversationService.generatedLongFormConfigurations.first?.provider == .openAI)
+}
+
+@MainActor
+@Test func updatingLongFormReportPersistsEditedContent() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let reportID = UUID(uuidString: "33333333-aaaa-bbbb-cccc-333333333333")!
+    let summaryID = UUID(uuidString: "44444444-aaaa-bbbb-cccc-444444444444")!
+    let sessionID = UUID(uuidString: "55555555-aaaa-bbbb-cccc-555555555555")!
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [],
+            memorySnapshots: [],
+            longFormReports: [
+                AIConversationLongFormReport(
+                    id: reportID,
+                    sessionID: sessionID,
+                    summaryID: summaryID,
+                    createdAt: .init(timeIntervalSince1970: 100),
+                    updatedAt: .init(timeIntervalSince1970: 100),
+                    title: "旧标题",
+                    content: "旧内容"
+                ),
+            ]
+        )
+    )
+    let model = AppModel(
+        service: calendarService,
+        preferences: UserPreferences(storage: .inMemory),
+        aiConversationService: RecordingAIConversationService(),
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    model.updateLongFormReport(id: reportID, title: "新标题", content: "新的长文内容")
+
+    let report = try #require(model.longFormReport(for: summaryID))
+    #expect(report.title == "新标题")
+    #expect(report.content == "新的长文内容")
 }
 
 @MainActor

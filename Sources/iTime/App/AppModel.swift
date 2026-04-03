@@ -10,6 +10,7 @@ public final class AppModel {
     public private(set) var overview: TimeOverview?
     public private(set) var aiAnalysisState: AIAnalysisState
     public private(set) var aiConversationState: AIConversationState
+    public private(set) var aiLongFormState: AIConversationLongFormState
     public private(set) var aiConversationHistory: [AIConversationSummary]
     public private(set) var latestAIMemorySnapshot: AIMemorySnapshot?
     public private(set) var aiServiceConnectionStates: [UUID: AIServiceConnectionState]
@@ -28,6 +29,7 @@ public final class AppModel {
     private var currentEvents: [CalendarEventRecord]
     private var aiConversationArchive: AIConversationArchive
     private var aiConversationOperationID: UUID
+    private var aiLongFormOperationID: UUID
 
     public init(
         service: CalendarAccessServing,
@@ -64,6 +66,7 @@ public final class AppModel {
         self.availableAIServices = preferences.aiServiceEndpoints
         self.aiAnalysisState = .unavailable(.noData)
         self.aiConversationState = .unavailable(.noData)
+        self.aiLongFormState = .idle
         self.aiConversationHistory = archive.summaries.sorted(by: { $0.createdAt > $1.createdAt })
         self.latestAIMemorySnapshot = archive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
         self.aiServiceConnectionStates = [:]
@@ -72,6 +75,7 @@ public final class AppModel {
         self.currentEvents = []
         self.aiConversationArchive = archive
         self.aiConversationOperationID = UUID()
+        self.aiLongFormOperationID = UUID()
         synchronizeConversationSelection()
     }
 
@@ -85,6 +89,10 @@ public final class AppModel {
 
     public var defaultAIServiceID: UUID? {
         preferences.defaultAIServiceID
+    }
+
+    public func longFormReport(for summaryID: UUID) -> AIConversationLongFormReport? {
+        aiConversationArchive.longFormReports.first(where: { $0.summaryID == summaryID })
     }
 
     public var currentConversationSession: AIConversationSession? {
@@ -135,6 +143,8 @@ public final class AppModel {
             overview = nil
             currentEvents = []
             invalidateAIConversationOperations()
+            invalidateAILongFormOperations()
+            aiLongFormState = .idle
             resetAIAnalysisState()
             resetAIConversationState()
             return
@@ -174,6 +184,8 @@ public final class AppModel {
         )
         overview = aggregator.makeOverview(range: range, interval: activeInterval, events: events)
         invalidateAIConversationOperations()
+        invalidateAILongFormOperations()
+        aiLongFormState = .idle
         resetAIAnalysisState()
         resetAIConversationState()
     }
@@ -600,12 +612,16 @@ public final class AppModel {
             summaries: aiConversationArchive.summaries.filter { !removedSummaryIDs.contains($0.id) },
             memorySnapshots: aiConversationArchive.memorySnapshots.filter { snapshot in
                 removedSummaryIDs.isDisjoint(with: snapshot.sourceSummaryIDs)
-            }
+            },
+            longFormReports: aiConversationArchive.longFormReports.filter { !removedSummaryIDs.contains($0.summaryID) }
         )
 
         try? persistConversationArchive(updatedArchive)
         if case .completed(let summary) = aiConversationState, removedSummaryIDs.contains(summary.id) {
             resetAIConversationState()
+        }
+        if case .loaded(let report) = aiLongFormState, removedSummaryIDs.contains(report.summaryID) {
+            aiLongFormState = .idle
         }
     }
 
@@ -630,7 +646,8 @@ public final class AppModel {
             summaries: aiConversationArchive.summaries
                 .map { $0.id == id ? updatedSummary : $0 }
                 .sorted(by: { $0.createdAt > $1.createdAt }),
-            memorySnapshots: aiConversationArchive.memorySnapshots
+            memorySnapshots: aiConversationArchive.memorySnapshots,
+            longFormReports: aiConversationArchive.longFormReports
         )
 
         try? persistConversationArchive(updatedArchive)
@@ -653,12 +670,89 @@ public final class AppModel {
             let updatedArchive = AIConversationArchive(
                 sessions: aiConversationArchive.sessions.filter { $0.id != removableSessionID },
                 summaries: aiConversationArchive.summaries,
-                memorySnapshots: aiConversationArchive.memorySnapshots
+                memorySnapshots: aiConversationArchive.memorySnapshots,
+                longFormReports: aiConversationArchive.longFormReports
             )
             try? persistConversationArchive(updatedArchive)
         }
 
         resetAIConversationState()
+    }
+
+    public func generateLongFormReport(for summaryID: UUID) async {
+        guard let summary = aiConversationArchive.summaries.first(where: { $0.id == summaryID }) else { return }
+        guard let session = aiConversationArchive.sessions.first(where: { $0.id == summary.sessionID }) else {
+            aiLongFormState = .failed(summaryID: summaryID, message: "找不到原始复盘会话。")
+            return
+        }
+
+        let configuration = resolvedAIConversationConfiguration(
+            serviceID: summary.serviceID,
+            provider: summary.provider,
+            model: summary.model
+        )
+        guard configuration.isEnabled, configuration.isComplete else {
+            aiLongFormState = .failed(summaryID: summaryID, message: "请先在设置中启用并配置对应 AI 服务。")
+            return
+        }
+
+        let operationID = UUID()
+        aiLongFormOperationID = operationID
+        aiLongFormState = .generating(summaryID: summaryID)
+
+        do {
+            let draft = try await aiConversationService.generateLongFormReport(
+                session: session,
+                summary: summary,
+                configuration: configuration
+            )
+            guard aiLongFormOperationID == operationID else { return }
+            let nowDate = now()
+            let existingID = aiConversationArchive.longFormReports.first(where: { $0.summaryID == summaryID })?.id ?? UUID()
+            let createdAt = aiConversationArchive.longFormReports.first(where: { $0.summaryID == summaryID })?.createdAt ?? nowDate
+            let report = AIConversationLongFormReport(
+                id: existingID,
+                sessionID: summary.sessionID,
+                summaryID: summaryID,
+                createdAt: createdAt,
+                updatedAt: nowDate,
+                title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                content: draft.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            let updatedArchive = AIConversationArchive(
+                sessions: aiConversationArchive.sessions,
+                summaries: aiConversationArchive.summaries,
+                memorySnapshots: aiConversationArchive.memorySnapshots,
+                longFormReports: aiConversationArchive.longFormReports
+                    .filter { $0.summaryID != summaryID } + [report]
+            )
+            try persistConversationArchive(updatedArchive)
+            aiLongFormState = .loaded(report)
+        } catch let error as AIAnalysisServiceError {
+            aiLongFormState = .failed(summaryID: summaryID, message: error.userMessage)
+        } catch {
+            aiLongFormState = .failed(summaryID: summaryID, message: "长文复盘生成失败，请稍后重试。")
+        }
+    }
+
+    public func updateLongFormReport(id: UUID, title: String, content: String) {
+        guard let existingReport = aiConversationArchive.longFormReports.first(where: { $0.id == id }) else { return }
+
+        let updatedReport = existingReport.updating(
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            content: content.trimmingCharacters(in: .whitespacesAndNewlines),
+            updatedAt: now()
+        )
+
+        let updatedArchive = AIConversationArchive(
+            sessions: aiConversationArchive.sessions,
+            summaries: aiConversationArchive.summaries,
+            memorySnapshots: aiConversationArchive.memorySnapshots,
+            longFormReports: aiConversationArchive.longFormReports.map { $0.id == id ? updatedReport : $0 }
+        )
+
+        try? persistConversationArchive(updatedArchive)
+        aiLongFormState = .loaded(updatedReport)
     }
 
     private func currentAIConfiguration() -> AIAnalysisConfiguration {
@@ -838,7 +932,8 @@ public final class AppModel {
         let updatedArchive = AIConversationArchive(
             sessions: sessions,
             summaries: summaries,
-            memorySnapshots: aiConversationArchive.memorySnapshots
+            memorySnapshots: aiConversationArchive.memorySnapshots,
+            longFormReports: aiConversationArchive.longFormReports
         )
         try persistConversationArchive(updatedArchive)
     }
@@ -852,5 +947,9 @@ public final class AppModel {
 
     private func invalidateAIConversationOperations() {
         aiConversationOperationID = UUID()
+    }
+
+    private func invalidateAILongFormOperations() {
+        aiLongFormOperationID = UUID()
     }
 }

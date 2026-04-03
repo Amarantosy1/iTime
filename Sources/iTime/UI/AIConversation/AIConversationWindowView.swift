@@ -21,6 +21,11 @@ enum AIConversationWindowCopy {
     static let discardConfirmationMessage = "退出后不会生成报告，这一轮未完成对话也不会进入历史。"
     static let editSummaryAction = "编辑总结"
     static let saveEditsAction = "保存修改"
+    static let longFormTitle = "长文复盘"
+    static let generateLongFormAction = "生成长文复盘"
+    static let regenerateLongFormAction = "重新生成长文"
+    static let longFormGeneratingText = "AI 正在撰写长文复盘…"
+    static let longFormSaveAction = "保存长文"
 }
 
 struct AIConversationWindowView: View {
@@ -365,9 +370,51 @@ struct AIConversationWindowView: View {
                         }
                     }
                 }
+
+                longFormSection(summaryID: summary.id)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
+        }
+    }
+
+    @ViewBuilder
+    private func longFormSection(summaryID: UUID) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(AIConversationWindowCopy.longFormTitle)
+                .font(.subheadline.weight(.semibold))
+
+            if let report = model.longFormReport(for: summaryID) {
+                Text(report.title)
+                    .font(.headline)
+
+                ScrollView {
+                    Text(report.content)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minHeight: 180, maxHeight: 280)
+
+                Button(AIConversationWindowCopy.regenerateLongFormAction) {
+                    Task { await model.generateLongFormReport(for: summaryID) }
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Button(AIConversationWindowCopy.generateLongFormAction) {
+                    Task { await model.generateLongFormReport(for: summaryID) }
+                }
+                .buttonStyle(.bordered)
+            }
+
+            switch model.aiLongFormState {
+            case .generating(let currentSummaryID) where currentSummaryID == summaryID:
+                ProgressView(AIConversationWindowCopy.longFormGeneratingText)
+            case .failed(let currentSummaryID, let message) where currentSummaryID == summaryID:
+                Text(message)
+                    .foregroundStyle(.red)
+            default:
+                EmptyView()
+            }
         }
     }
 }

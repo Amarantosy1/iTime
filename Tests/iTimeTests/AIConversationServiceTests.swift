@@ -169,3 +169,93 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(draft.findings == ["会议集中在周二和周三"])
     #expect(draft.suggestions == ["给深度工作预留不可打断时段"])
 }
+
+@Test func openAICompatibleConversationServiceBuildsLongFormRequestUsingConversationMessages() async throws {
+    let sender = ConversationRecordingAIHTTPSender(
+        responseData: Data(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "content": "{\\"title\\":\\"本周复盘：沟通任务挤压深度工作\\",\\"content\\":\\"这是一篇正式长文复盘。\\"}"
+                  }
+                }
+              ]
+            }
+            """.utf8
+        )
+    )
+    let service = OpenAICompatibleAIConversationService(httpSender: sender)
+    let session = AIConversationSession(
+        id: UUID(),
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .week,
+        startDate: Date(timeIntervalSince1970: 1_700_000_000),
+        endDate: Date(timeIntervalSince1970: 1_700_086_400),
+        startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+        completedAt: Date(timeIntervalSince1970: 1_700_086_400),
+        status: .completed,
+        overviewSnapshot: AIOverviewSnapshot(
+            rangeTitle: "本周",
+            totalDurationText: "12h",
+            totalEventCount: 6,
+            topCalendarNames: ["工作", "学习"]
+        ),
+        messages: [
+            AIConversationMessage(
+                id: UUID(),
+                role: .assistant,
+                content: "周二下午的需求评审主要产出了什么？",
+                createdAt: Date(timeIntervalSince1970: 1_700_010_000)
+            ),
+            AIConversationMessage(
+                id: UUID(),
+                role: .user,
+                content: "主要在对齐需求变更和下周排期。",
+                createdAt: Date(timeIntervalSince1970: 1_700_010_100)
+            ),
+        ]
+    )
+    let summary = AIConversationSummary(
+        id: UUID(),
+        sessionID: session.id,
+        serviceID: session.serviceID,
+        serviceDisplayName: session.serviceDisplayName,
+        provider: session.provider,
+        model: session.model,
+        range: session.range,
+        startDate: session.startDate,
+        endDate: session.endDate,
+        createdAt: session.endDate,
+        headline: "本周工作会议偏多",
+        summary: "这段文字不该成为长文的主输入。",
+        findings: ["会议密度偏高"],
+        suggestions: ["预留深度工作时间"],
+        overviewSnapshot: session.overviewSnapshot
+    )
+
+    let draft = try await service.generateLongFormReport(
+        session: session,
+        summary: summary,
+        configuration: ResolvedAIProviderConfiguration(
+            provider: .openAI,
+            baseURL: "https://example.com/v1",
+            model: "gpt-5-mini",
+            apiKey: "secret-key",
+            isEnabled: true
+        )
+    )
+
+    let request = try #require(sender.lastRequest)
+    let bodyData = try #require(request.httpBody)
+    let body = try #require(String(data: bodyData, encoding: .utf8))
+    #expect(body.contains("周二下午的需求评审主要产出了什么？"))
+    #expect(body.contains("主要在对齐需求变更和下周排期。"))
+    #expect(body.contains("这段文字不该成为长文的主输入。") == false)
+    #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
+    #expect(draft.content == "这是一篇正式长文复盘。")
+}

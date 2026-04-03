@@ -19,6 +19,7 @@ import Testing
     let sessionID = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
     let summaryID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
     let memoryID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
+    let reportID = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
     let startDate = Date(timeIntervalSince1970: 1_700_000_000)
     let endDate = Date(timeIntervalSince1970: 1_700_086_400)
     let archive = AIConversationArchive(
@@ -87,6 +88,17 @@ import Testing
                 createdAt: endDate.addingTimeInterval(600),
                 sourceSummaryIDs: [summaryID],
                 summary: "最近几轮复盘都显示会议偏多，深度工作容易被切碎。"
+            ),
+        ],
+        longFormReports: [
+            AIConversationLongFormReport(
+                id: reportID,
+                sessionID: sessionID,
+                summaryID: summaryID,
+                createdAt: endDate.addingTimeInterval(900),
+                updatedAt: endDate.addingTimeInterval(900),
+                title: "本周时间复盘长文",
+                content: "这是一篇基于原始对话生成的长文复盘。"
             ),
         ]
     )

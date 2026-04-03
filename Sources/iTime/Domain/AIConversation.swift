@@ -4,21 +4,48 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
     public static let empty = AIConversationArchive(
         sessions: [],
         summaries: [],
-        memorySnapshots: []
+        memorySnapshots: [],
+        longFormReports: []
     )
 
     public let sessions: [AIConversationSession]
     public let summaries: [AIConversationSummary]
     public let memorySnapshots: [AIMemorySnapshot]
+    public let longFormReports: [AIConversationLongFormReport]
 
     public init(
         sessions: [AIConversationSession],
         summaries: [AIConversationSummary],
-        memorySnapshots: [AIMemorySnapshot]
+        memorySnapshots: [AIMemorySnapshot],
+        longFormReports: [AIConversationLongFormReport]
     ) {
         self.sessions = sessions
         self.summaries = summaries
         self.memorySnapshots = memorySnapshots
+        self.longFormReports = longFormReports
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case sessions
+        case summaries
+        case memorySnapshots
+        case longFormReports
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        sessions = try container.decodeIfPresent([AIConversationSession].self, forKey: .sessions) ?? []
+        summaries = try container.decodeIfPresent([AIConversationSummary].self, forKey: .summaries) ?? []
+        memorySnapshots = try container.decodeIfPresent([AIMemorySnapshot].self, forKey: .memorySnapshots) ?? []
+        longFormReports = try container.decodeIfPresent([AIConversationLongFormReport].self, forKey: .longFormReports) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(sessions, forKey: .sessions)
+        try container.encode(summaries, forKey: .summaries)
+        try container.encode(memorySnapshots, forKey: .memorySnapshots)
+        try container.encode(longFormReports, forKey: .longFormReports)
     }
 }
 
@@ -318,6 +345,46 @@ public struct AIMemorySnapshot: Equatable, Codable, Sendable {
     }
 }
 
+public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identifiable {
+    public let id: UUID
+    public let sessionID: UUID
+    public let summaryID: UUID
+    public let createdAt: Date
+    public let updatedAt: Date
+    public let title: String
+    public let content: String
+
+    public init(
+        id: UUID,
+        sessionID: UUID,
+        summaryID: UUID,
+        createdAt: Date,
+        updatedAt: Date,
+        title: String,
+        content: String
+    ) {
+        self.id = id
+        self.sessionID = sessionID
+        self.summaryID = summaryID
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.title = title
+        self.content = content
+    }
+
+    public func updating(title: String, content: String, updatedAt: Date) -> AIConversationLongFormReport {
+        AIConversationLongFormReport(
+            id: id,
+            sessionID: sessionID,
+            summaryID: summaryID,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            title: title,
+            content: content,
+        )
+    }
+}
+
 public struct AIOverviewSnapshot: Equatable, Codable, Sendable {
     public let rangeTitle: String
     public let totalDurationText: String
@@ -374,6 +441,13 @@ public enum AIConversationState: Equatable, Sendable {
     case summarizing(AIConversationSession)
     case completed(AIConversationSummary)
     case failed(String)
+}
+
+public enum AIConversationLongFormState: Equatable, Sendable {
+    case idle
+    case generating(summaryID: UUID)
+    case loaded(AIConversationLongFormReport)
+    case failed(summaryID: UUID, message: String)
 }
 
 public enum AIConversationPeriodFormatter {

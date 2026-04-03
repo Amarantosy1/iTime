@@ -54,6 +54,23 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         )
     }
 
+    public func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        let content = try await sendRequest(
+            userPrompt: OpenAICompatibleAIConversationService.longFormUserPrompt(for: session, summary: summary),
+            systemPrompt: OpenAICompatibleAIConversationService.longFormSystemPrompt,
+            configuration: configuration
+        )
+        let payload = try decodePayload(GeminiLongFormPayload.self, from: content)
+        guard !payload.title.isEmpty, !payload.content.isEmpty else {
+            throw AIAnalysisServiceError.invalidResponse
+        }
+        return AIConversationLongFormReportDraft(title: payload.title, content: payload.content)
+    }
+
     private func sendRequest(
         userPrompt: String,
         systemPrompt: String,
@@ -147,4 +164,9 @@ private struct GeminiSummaryPayload: Decodable {
     let summary: String
     let findings: [String]
     let suggestions: [String]
+}
+
+private struct GeminiLongFormPayload: Decodable {
+    let title: String
+    let content: String
 }

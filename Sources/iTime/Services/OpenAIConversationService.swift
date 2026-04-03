@@ -34,4 +34,16 @@ public struct OpenAIConversationService: AIConversationServing, Sendable {
             configuration: configuration
         )
     }
+
+    public func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        try await implementation.generateLongFormReport(
+            session: session,
+            summary: summary,
+            configuration: configuration
+        )
+    }
 }

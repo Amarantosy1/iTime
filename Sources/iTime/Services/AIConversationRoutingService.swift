@@ -43,4 +43,19 @@ public struct AIConversationRoutingService: AIConversationServing, Sendable {
             configuration: configuration
         )
     }
+
+    public func generateLongFormReport(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> AIConversationLongFormReportDraft {
+        guard let service = services[configuration.provider] else {
+            throw AIAnalysisServiceError.invalidConfiguration
+        }
+        return try await service.generateLongFormReport(
+            session: session,
+            summary: summary,
+            configuration: configuration
+        )
+    }
 }
