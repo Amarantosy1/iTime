@@ -5,7 +5,7 @@ struct RangePicker: View {
 
     var body: some View {
         Picker("范围", selection: $selection) {
-            ForEach(TimeRangePreset.allCases, id: \.self) { range in
+            ForEach(TimeRangePreset.runtimeCases, id: \.self) { range in
                 Text(range.title).tag(range)
             }
         }

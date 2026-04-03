@@ -75,7 +75,7 @@ public final class EventKitCalendarAccessService: CalendarAccessServing {
         case .month:
             calendar.dateInterval(of: .month, for: referenceDate) ?? DateInterval(start: referenceDate, duration: 2_592_000)
         case .custom:
-            calendar.dateInterval(of: .day, for: referenceDate) ?? DateInterval(start: referenceDate, duration: 86_400)
+            preconditionFailure("Custom range fetching is not implemented yet")
         }
     }
 }

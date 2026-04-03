@@ -6,6 +6,12 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
     case month
     case custom
 
+    static var runtimeCases: [Self] { [.today, .week, .month] }
+
+    var isRuntimeSelectable: Bool {
+        Self.runtimeCases.contains(self)
+    }
+
     var title: String {
         switch self {
         case .today:
