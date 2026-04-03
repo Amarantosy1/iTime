@@ -69,3 +69,40 @@ import Testing
     #expect(legendStyle.shareRole == .primary)
     #expect(legendStyle.durationRole == .secondary)
 }
+
+@Test func stackedTrendSectionUsesChineseStrings() {
+    #expect(OverviewTrendChartCopy.title(for: .day) == "每日分布")
+    #expect(OverviewTrendChartCopy.title(for: .week) == "每周分布")
+    #expect(OverviewTrendChartCopy.summaryPrefix == "最忙时段")
+}
+
+@Test func stackedTrendSummaryHighlightsLargestCalendar() {
+    let bucket = OverviewStackedBucket(
+        id: "1970-01-01",
+        label: "1日",
+        interval: DateInterval(
+            start: .init(timeIntervalSince1970: 0),
+            end: .init(timeIntervalSince1970: 86_400)
+        ),
+        totalDuration: 7_200,
+        segments: [
+            OverviewStackedSegment(
+                calendarID: "work",
+                calendarName: "工作",
+                calendarColorHex: "#4A90E2",
+                duration: 5_400
+            ),
+            OverviewStackedSegment(
+                calendarID: "life",
+                calendarName: "生活",
+                calendarColorHex: "#50E3C2",
+                duration: 1_800
+            ),
+        ]
+    )
+
+    let summary = OverviewTrendChartCopy.summary(for: bucket)
+
+    #expect(summary?.contains("工作") == true)
+    #expect(summary?.contains("2h") == true)
+}
