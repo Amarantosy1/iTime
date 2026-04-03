@@ -71,6 +71,7 @@ import Testing
 }
 
 @Test func stackedTrendSectionUsesChineseStrings() {
+    #expect(OverviewTrendChartCopy.title(for: .hour) == "今日分布")
     #expect(OverviewTrendChartCopy.title(for: .day) == "每日分布")
     #expect(OverviewTrendChartCopy.title(for: .week) == "每周分布")
     #expect(OverviewTrendChartCopy.summaryPrefix == "最忙时段")

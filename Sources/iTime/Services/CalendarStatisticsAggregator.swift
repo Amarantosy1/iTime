@@ -34,7 +34,7 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
             return lhs.totalDuration > rhs.totalDuration
         }
 
-        let resolution = makeBucketResolution(for: interval)
+        let resolution = makeBucketResolution(for: range, interval: interval)
 
         return TimeOverview(
             range: range,
@@ -71,7 +71,14 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         return summaries
     }
 
-    private func makeBucketResolution(for interval: DateInterval) -> OverviewStackedBucketResolution {
+    private func makeBucketResolution(
+        for range: TimeRangePreset,
+        interval: DateInterval
+    ) -> OverviewStackedBucketResolution {
+        if range == .today {
+            return .hour
+        }
+
         let dayCount = calendar.dateComponents(
             [.day],
             from: calendar.startOfDay(for: interval.start),
@@ -90,14 +97,10 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         let bucketIntervals = makeBucketIntervals(in: interval, resolution: resolution)
 
         return bucketIntervals.map { bucketInterval in
-            let grouped = Dictionary(
-                grouping: events.filter { contains($0.startDate, in: bucketInterval) },
-                by: \.calendarID
-            )
-
             let segments = orderedBuckets.compactMap { bucket -> OverviewStackedSegment? in
-                let duration = grouped[bucket.id, default: []].reduce(0) { partial, record in
-                    partial + max(0, record.endDate.timeIntervalSince(record.startDate))
+                let duration = events.reduce(0) { partial, record in
+                    guard record.calendarID == bucket.id else { return partial }
+                    return partial + overlappingDuration(of: record, within: bucketInterval)
                 }
 
                 guard duration > 0 else { return nil }
@@ -125,12 +128,11 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         resolution: OverviewStackedBucketResolution
     ) -> [DateInterval] {
         var intervals: [DateInterval] = []
-        var cursor = calendar.startOfDay(for: interval.start)
-        let finalDay = calendar.startOfDay(for: interval.end.addingTimeInterval(-1))
+        var cursor = resolution == .hour ? interval.start : calendar.startOfDay(for: interval.start)
 
-        while cursor <= finalDay {
+        while cursor < interval.end {
             let nextCursor = bucketEnd(after: cursor, resolution: resolution)
-            intervals.append(DateInterval(start: cursor, end: nextCursor))
+            intervals.append(DateInterval(start: cursor, end: min(nextCursor, interval.end)))
             cursor = nextCursor
         }
 
@@ -142,6 +144,8 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         resolution: OverviewStackedBucketResolution
     ) -> Date {
         switch resolution {
+        case .hour:
+            return calendar.date(byAdding: .hour, value: 1, to: start) ?? start
         case .day:
             return calendar.date(byAdding: .day, value: 1, to: start) ?? start
         case .week:
@@ -154,6 +158,8 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         resolution: OverviewStackedBucketResolution
     ) -> String {
         switch resolution {
+        case .hour:
+            return interval.start.ISO8601Format(.iso8601.year().month().day().time(includingFractionalSeconds: false))
         case .day:
             return interval.start.ISO8601Format(.iso8601.year().month().day())
         case .week:
@@ -166,6 +172,9 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         resolution: OverviewStackedBucketResolution
     ) -> String {
         switch resolution {
+        case .hour:
+            let hour = calendar.component(.hour, from: interval.start)
+            return "\(hour)时"
         case .day:
             let day = calendar.component(.day, from: interval.start)
             return "\(day)日"
@@ -176,7 +185,12 @@ public struct CalendarStatisticsAggregator: StatisticsAggregating, Sendable {
         }
     }
 
-    private func contains(_ date: Date, in interval: DateInterval) -> Bool {
-        date >= interval.start && date < interval.end
+    private func overlappingDuration(
+        of record: CalendarEventRecord,
+        within interval: DateInterval
+    ) -> TimeInterval {
+        let overlapStart = max(record.startDate, interval.start)
+        let overlapEnd = min(record.endDate, interval.end)
+        return max(0, overlapEnd.timeIntervalSince(overlapStart))
     }
 }

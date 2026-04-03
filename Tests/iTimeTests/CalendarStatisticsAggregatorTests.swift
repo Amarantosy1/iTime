@@ -178,3 +178,51 @@ private func makeUTCGregorianCalendar() -> Calendar {
     #expect(overview.stackedBuckets.count < 20)
     #expect(overview.stackedBuckets.first?.totalDuration == 3_600)
 }
+
+@Test func aggregateBuildsTwentyFourHourlyBucketsForTodayAndSplitsEventsAcrossHours() {
+    let calendar = makeUTCGregorianCalendar()
+    let aggregator = CalendarStatisticsAggregator(
+        calendarLookup: [
+            "work": CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+            "life": CalendarSource(id: "life", name: "Life", colorHex: "#50E3C2", isSelected: true),
+        ],
+        calendar: calendar
+    )
+    let interval = DateInterval(
+        start: Date(timeIntervalSince1970: 0),
+        end: Date(timeIntervalSince1970: 86_400)
+    )
+
+    let overview = aggregator.makeOverview(
+        range: .today,
+        interval: interval,
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "Morning work",
+                calendarID: "work",
+                startDate: interval.start.addingTimeInterval(9 * 3_600 + 30 * 60),
+                endDate: interval.start.addingTimeInterval(11 * 3_600),
+                isAllDay: false
+            ),
+            CalendarEventRecord(
+                id: "2",
+                title: "Late night life",
+                calendarID: "life",
+                startDate: interval.start.addingTimeInterval(23 * 3_600 + 30 * 60),
+                endDate: interval.end.addingTimeInterval(30 * 60),
+                isAllDay: false
+            ),
+        ]
+    )
+
+    #expect(overview.stackedBucketResolution == .hour)
+    #expect(overview.stackedBuckets.count == 24)
+    #expect(overview.stackedBuckets[9].label == "9时")
+    #expect(overview.stackedBuckets[9].totalDuration == 1_800)
+    #expect(overview.stackedBuckets[10].totalDuration == 3_600)
+    #expect(overview.stackedBuckets[11].totalDuration == 0)
+    #expect(overview.stackedBuckets[23].totalDuration == 1_800)
+    #expect(overview.stackedBuckets[23].segments.first?.calendarName == "Life")
+    #expect(overview.stackedBuckets[0].totalDuration == 0)
+}

@@ -1,6 +1,7 @@
 import Foundation
 
 public enum OverviewStackedBucketResolution: String, Equatable, Sendable {
+    case hour
     case day
     case week
 }

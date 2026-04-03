@@ -6,6 +6,8 @@ enum OverviewTrendChartCopy {
 
     static func title(for resolution: OverviewStackedBucketResolution) -> String {
         switch resolution {
+        case .hour:
+            return "今日分布"
         case .day:
             return "每日分布"
         case .week:
