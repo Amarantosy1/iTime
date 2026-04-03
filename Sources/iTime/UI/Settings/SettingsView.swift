@@ -5,12 +5,12 @@ enum SettingsCopy {
     static let calendarSectionTitle = "统计日历"
     static let calendarSectionDescription = "选择要纳入统计的日历。"
     static let noCalendarsText = "当前没有可用日历。"
-    static let aiMountSectionTitle = "AI 挂载"
+    static let aiServicesSectionTitle = "AI 服务"
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
     case calendars
-    case aiMounts
+    case aiServices
 
     var id: String { rawValue }
 
@@ -18,8 +18,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .calendars:
             SettingsCopy.calendarSectionTitle
-        case .aiMounts:
-            SettingsCopy.aiMountSectionTitle
+        case .aiServices:
+            SettingsCopy.aiServicesSectionTitle
         }
     }
 
@@ -27,22 +27,22 @@ enum SettingsSection: String, CaseIterable, Identifiable {
         switch self {
         case .calendars:
             "calendar"
-        case .aiMounts:
+        case .aiServices:
             "sparkles.rectangle.stack"
         }
     }
 }
 
 enum AISettingsCopy {
-    static let sectionTitle = SettingsCopy.aiMountSectionTitle
-    static let helperText = "参考 Cherry Studio 的挂载方式：为每个挂载单独保存 Base URL、模型列表和 API Key，并选择默认挂载。"
-    static let addCustomMountAction = "新增挂载"
-    static let defaultMountBadge = "默认"
+    static let sectionTitle = SettingsCopy.aiServicesSectionTitle
+    static let helperText = "内置服务保留官方协议，自定义服务仅支持 OpenAI-compatible。"
+    static let addCustomServiceAction = "新增自定义服务"
+    static let defaultServiceBadge = "默认"
     static let builtInBadge = "内置"
     static let customBadge = "自定义"
-    static let mountEnabledTitle = "启用此挂载"
-    static let setDefaultMountAction = "设为默认挂载"
-    static let deleteMountAction = "删除挂载"
+    static let serviceEnabledTitle = "启用此服务"
+    static let setDefaultServiceAction = "设为默认服务"
+    static let deleteServiceAction = "删除服务"
     static let displayNameTitle = "显示名称"
     static let providerTypeTitle = "服务类型"
     static let baseURLTitle = "Base URL"
@@ -51,9 +51,12 @@ enum AISettingsCopy {
     static let modelsHint = "用英文逗号分隔多个模型。"
     static let defaultModelTitle = "默认模型"
     static let testConnectionAction = "测试连接"
-    static let mountPlaceholder = "请选择或新建一个挂载。"
+    static let servicePlaceholder = "请选择或新建一个服务。"
+    static let defaultServiceTitle = "默认服务"
+    static let builtInServicesTitle = "内置服务"
+    static let customServicesTitle = "自定义服务"
 
-    static func connectionStatusText(for state: AIMountConnectionState) -> String? {
+    static func connectionStatusText(for state: AIServiceConnectionState) -> String? {
         switch state {
         case .idle:
             return nil
@@ -68,9 +71,9 @@ enum AISettingsCopy {
 struct SettingsView: View {
     @Bindable var model: AppModel
     @State private var selectedSection: SettingsSection? = .calendars
-    @State private var selectedMountID: UUID?
-    @State private var mountAPIKeys: [UUID: String] = [:]
-    @State private var mountModelsText: [UUID: String] = [:]
+    @State private var selectedServiceID: UUID?
+    @State private var serviceAPIKeys: [UUID: String] = [:]
+    @State private var serviceModelsText: [UUID: String] = [:]
 
     var body: some View {
         NavigationSplitView {
@@ -86,14 +89,14 @@ struct SettingsView: View {
         .frame(width: 960, height: 700)
         .task {
             await model.refresh()
-            syncMountEditorState()
+            syncServiceEditorState()
             selectedSection = selectedSection ?? .calendars
-            selectedMountID = selectedMountID ?? model.defaultAIMountID ?? model.availableAIMounts.first?.id
+            selectedServiceID = selectedServiceID ?? model.defaultAIServiceID ?? model.availableAIServices.first?.id
         }
-        .onChange(of: model.availableAIMounts.map(\.id)) { _, _ in
-            syncMountEditorState()
-            if !model.availableAIMounts.contains(where: { $0.id == selectedMountID }) {
-                selectedMountID = model.defaultAIMountID ?? model.availableAIMounts.first?.id
+        .onChange(of: model.availableAIServices.map(\.id)) { _, _ in
+            syncServiceEditorState()
+            if !model.availableAIServices.contains(where: { $0.id == selectedServiceID }) {
+                selectedServiceID = model.defaultAIServiceID ?? model.availableAIServices.first?.id
             }
         }
     }
@@ -103,8 +106,8 @@ struct SettingsView: View {
         switch selectedSection ?? .calendars {
         case .calendars:
             calendarSettingsPage
-        case .aiMounts:
-            aiMountSettingsPage
+        case .aiServices:
+            aiServicesSettingsPage
         }
     }
 
@@ -144,27 +147,27 @@ struct SettingsView: View {
         }
     }
 
-    private var aiMountSettingsPage: some View {
+    private var aiServicesSettingsPage: some View {
         HSplitView {
-            mountsSidebar
+            servicesSidebar
                 .frame(minWidth: 260, idealWidth: 280, maxWidth: 320)
 
-            mountEditor
+            serviceEditor
                 .frame(minWidth: 560, maxWidth: .infinity)
         }
     }
 
-    private var mountsSidebar: some View {
+    private var servicesSidebar: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(SettingsCopy.aiMountSectionTitle)
+                Text(SettingsCopy.aiServicesSectionTitle)
                     .font(.title3.weight(.semibold))
                 Spacer()
                 Button {
-                    selectedMountID = model.createCustomAIMount()
-                    syncMountEditorState()
+                    selectedServiceID = model.createCustomAIService()
+                    syncServiceEditorState()
                 } label: {
-                    Label(AISettingsCopy.addCustomMountAction, systemImage: "plus")
+                    Label(AISettingsCopy.addCustomServiceAction, systemImage: "plus")
                 }
                 .buttonStyle(.bordered)
             }
@@ -173,27 +176,27 @@ struct SettingsView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            List(selection: $selectedMountID) {
-                ForEach(model.availableAIMounts) { mount in
+            List(selection: $selectedServiceID) {
+                ForEach(model.availableAIServices) { service in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 8) {
-                            Text(mount.displayName)
+                            Text(service.displayName)
                                 .font(.headline)
-                            if mount.id == model.defaultAIMountID {
-                                badge(AISettingsCopy.defaultMountBadge, tint: .accentColor)
+                            if service.id == model.defaultAIServiceID {
+                                badge(AISettingsCopy.defaultServiceBadge, tint: .accentColor)
                             }
                             badge(
-                                mount.isBuiltIn ? AISettingsCopy.builtInBadge : AISettingsCopy.customBadge,
+                                service.isBuiltIn ? AISettingsCopy.builtInBadge : AISettingsCopy.customBadge,
                                 tint: .secondary
                             )
                         }
 
-                        Text(mount.providerType.title)
+                        Text(service.providerKind.title)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
-                    .tag(mount.id)
+                    .tag(service.id)
                 }
             }
             .listStyle(.inset)
@@ -202,21 +205,21 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var mountEditor: some View {
-        if let mount = selectedMount {
+    private var serviceEditor: some View {
+        if let service = selectedService {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(mount.displayName)
+                            Text(service.displayName)
                                 .font(.title3.weight(.semibold))
-                            Text("\(mount.providerType.title) · \(mount.id == model.defaultAIMountID ? AISettingsCopy.defaultMountBadge : "未设为默认")")
+                            Text("\(service.providerKind.title) · \(service.id == model.defaultAIServiceID ? AISettingsCopy.defaultServiceBadge : "未设为默认")")
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        if mount.id != model.defaultAIMountID {
-                            Button(AISettingsCopy.setDefaultMountAction) {
-                                model.setDefaultAIMount(id: mount.id)
+                        if service.id != model.defaultAIServiceID {
+                            Button(AISettingsCopy.setDefaultServiceAction) {
+                                model.setDefaultAIService(id: service.id)
                             }
                             .buttonStyle(.bordered)
                         }
@@ -225,10 +228,10 @@ struct SettingsView: View {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 14) {
                             Toggle(
-                                AISettingsCopy.mountEnabledTitle,
+                                AISettingsCopy.serviceEnabledTitle,
                                 isOn: Binding(
-                                    get: { selectedMount?.isEnabled ?? false },
-                                    set: { updateSelectedMount(isEnabled: $0) }
+                                    get: { selectedService?.isEnabled ?? false },
+                                    set: { updateSelectedService(isEnabled: $0) }
                                 )
                             )
                         }
@@ -237,37 +240,27 @@ struct SettingsView: View {
 
                     GroupBox {
                         VStack(alignment: .leading, spacing: 14) {
-                            if mount.isBuiltIn {
-                                labeledValue(AISettingsCopy.displayNameTitle, value: mount.displayName)
-                                labeledValue(AISettingsCopy.providerTypeTitle, value: mount.providerType.title)
+                            if service.isBuiltIn {
+                                labeledValue(AISettingsCopy.displayNameTitle, value: service.displayName)
+                                labeledValue(AISettingsCopy.providerTypeTitle, value: service.providerKind.title)
                             } else {
                                 TextField(
                                     AISettingsCopy.displayNameTitle,
                                     text: Binding(
-                                        get: { selectedMount?.displayName ?? "" },
-                                        set: { updateSelectedMount(displayName: $0) }
+                                        get: { selectedService?.displayName ?? "" },
+                                        set: { updateSelectedService(displayName: $0) }
                                     )
                                 )
                                 .textFieldStyle(.roundedBorder)
 
-                                Picker(
-                                    AISettingsCopy.providerTypeTitle,
-                                    selection: Binding(
-                                        get: { selectedMount?.providerType ?? .openAI },
-                                        set: { updateSelectedMount(providerType: $0) }
-                                    )
-                                ) {
-                                    ForEach(AIProviderKind.allCases, id: \.self) { provider in
-                                        Text(provider.title).tag(provider)
-                                    }
-                                }
+                                labeledValue(AISettingsCopy.providerTypeTitle, value: AIProviderKind.openAICompatible.title)
                             }
 
                             TextField(
                                 AISettingsCopy.baseURLTitle,
                                 text: Binding(
-                                    get: { selectedMount?.baseURL ?? "" },
-                                    set: { updateSelectedMount(baseURL: $0) }
+                                    get: { selectedService?.baseURL ?? "" },
+                                    set: { updateSelectedService(baseURL: $0) }
                                 )
                             )
                             .textFieldStyle(.roundedBorder)
@@ -275,10 +268,10 @@ struct SettingsView: View {
                             SecureField(
                                 AISettingsCopy.apiKeyTitle,
                                 text: Binding(
-                                    get: { mountAPIKeys[mount.id] ?? "" },
+                                    get: { serviceAPIKeys[service.id] ?? "" },
                                     set: { newValue in
-                                        mountAPIKeys[mount.id] = newValue
-                                        model.updateAIAPIKey(newValue, for: mount.id)
+                                        serviceAPIKeys[service.id] = newValue
+                                        model.updateAIAPIKey(newValue, for: service.id)
                                     }
                                 )
                             )
@@ -290,10 +283,10 @@ struct SettingsView: View {
                                 TextField(
                                     AISettingsCopy.modelsTitle,
                                     text: Binding(
-                                        get: { mountModelsText[mount.id] ?? "" },
+                                        get: { serviceModelsText[service.id] ?? "" },
                                         set: { newValue in
-                                            mountModelsText[mount.id] = newValue
-                                            updateSelectedMount(models: parseModels(from: newValue))
+                                            serviceModelsText[service.id] = newValue
+                                            updateSelectedService(models: parseModels(from: newValue))
                                         }
                                     ),
                                     axis: .vertical
@@ -307,8 +300,8 @@ struct SettingsView: View {
                             TextField(
                                 AISettingsCopy.defaultModelTitle,
                                 text: Binding(
-                                    get: { selectedMount?.defaultModel ?? "" },
-                                    set: { updateSelectedMount(defaultModel: $0) }
+                                    get: { selectedService?.defaultModel ?? "" },
+                                    set: { updateSelectedService(defaultModel: $0) }
                                 )
                             )
                             .textFieldStyle(.roundedBorder)
@@ -320,25 +313,25 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 10) {
                                 Button(AISettingsCopy.testConnectionAction) {
-                                    Task { await model.testAIMountConnection(mount.id) }
+                                    Task { await model.testAIServiceConnection(service.id) }
                                 }
                                 .buttonStyle(.borderedProminent)
 
-                                if !mount.isBuiltIn {
-                                    Button(AISettingsCopy.deleteMountAction, role: .destructive) {
-                                        let deletingID = mount.id
-                                        model.deleteAIMount(id: deletingID)
-                                        selectedMountID = model.defaultAIMountID ?? model.availableAIMounts.first?.id
+                                if !service.isBuiltIn {
+                                    Button(AISettingsCopy.deleteServiceAction, role: .destructive) {
+                                        let deletingID = service.id
+                                        model.deleteAIService(id: deletingID)
+                                        selectedServiceID = model.defaultAIServiceID ?? model.availableAIServices.first?.id
                                     }
                                     .buttonStyle(.bordered)
                                 }
                             }
 
                             if let statusText = AISettingsCopy.connectionStatusText(
-                                for: model.aiMountConnectionState(for: mount.id)
+                                for: model.aiServiceConnectionState(for: service.id)
                             ) {
                                 Text(statusText)
-                                    .foregroundStyle(connectionStatusColor(for: model.aiMountConnectionState(for: mount.id)))
+                                    .foregroundStyle(connectionStatusColor(for: model.aiServiceConnectionState(for: service.id)))
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -348,15 +341,15 @@ struct SettingsView: View {
             }
         } else {
             ContentUnavailableView(
-                AISettingsCopy.mountPlaceholder,
+                AISettingsCopy.servicePlaceholder,
                 systemImage: "slider.horizontal.3"
             )
         }
     }
 
-    private var selectedMount: AIProviderMount? {
-        guard let selectedMountID else { return nil }
-        return model.availableAIMounts.first(where: { $0.id == selectedMountID })
+    private var selectedService: AIServiceEndpoint? {
+        guard let selectedServiceID else { return nil }
+        return model.availableAIServices.first(where: { $0.id == selectedServiceID })
     }
 
     private func binding(for calendar: CalendarSource) -> Binding<Bool> {
@@ -368,33 +361,32 @@ struct SettingsView: View {
         )
     }
 
-    private func syncMountEditorState() {
-        for mount in model.availableAIMounts {
-            mountAPIKeys[mount.id] = model.loadAIAPIKey(for: mount.id)
-            mountModelsText[mount.id] = mount.models.joined(separator: ", ")
+    private func syncServiceEditorState() {
+        for service in model.availableAIServices {
+            serviceAPIKeys[service.id] = model.loadAIAPIKey(for: service.id)
+            serviceModelsText[service.id] = service.models.joined(separator: ", ")
         }
     }
 
-    private func updateSelectedMount(
+    private func updateSelectedService(
         displayName: String? = nil,
-        providerType: AIProviderKind? = nil,
         baseURL: String? = nil,
         models: [String]? = nil,
         defaultModel: String? = nil,
         isEnabled: Bool? = nil
     ) {
-        guard let mount = selectedMount else { return }
-        let updatedMount = AIProviderMount(
-            id: mount.id,
-            displayName: displayName ?? mount.displayName,
-            providerType: providerType ?? mount.providerType,
-            baseURL: baseURL ?? mount.baseURL,
-            models: models ?? mount.models,
-            defaultModel: defaultModel ?? mount.defaultModel,
-            isEnabled: isEnabled ?? mount.isEnabled,
-            isBuiltIn: mount.isBuiltIn
+        guard let service = selectedService else { return }
+        let updatedService = AIServiceEndpoint(
+            id: service.id,
+            displayName: displayName ?? service.displayName,
+            providerKind: service.providerKind,
+            baseURL: baseURL ?? service.baseURL,
+            models: models ?? service.models,
+            defaultModel: defaultModel ?? service.defaultModel,
+            isEnabled: isEnabled ?? service.isEnabled,
+            isBuiltIn: service.isBuiltIn
         )
-        model.updateAIMount(updatedMount)
+        model.updateAIService(updatedService)
     }
 
     private func parseModels(from text: String) -> [String] {
@@ -404,7 +396,7 @@ struct SettingsView: View {
             .filter { !$0.isEmpty }
     }
 
-    private func connectionStatusColor(for state: AIMountConnectionState) -> Color {
+    private func connectionStatusColor(for state: AIServiceConnectionState) -> Color {
         switch state {
         case .failed:
             return .red

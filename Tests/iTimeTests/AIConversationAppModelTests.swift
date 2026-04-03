@@ -19,11 +19,11 @@ private final class ConversationInMemoryAIKeyStore: @unchecked Sendable, AIAPIKe
     var values: [UUID: String]
 
     init(value: String = "") {
-        self.values = [AIProviderKind.openAI.builtInMountID: value]
+        self.values = [AIProviderKind.openAI.builtInServiceID: value]
     }
 
-    func loadAPIKey(for mountID: UUID) throws -> String { values[mountID] ?? "" }
-    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws { values[mountID] = apiKey }
+    func loadAPIKey(for serviceID: UUID) throws -> String { values[serviceID] ?? "" }
+    func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws { values[serviceID] = apiKey }
 }
 
 private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIConversationArchiveStoring {
@@ -219,7 +219,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[AIProviderKind.anthropic.builtInMountID] = "anthropic-key"
+    keyStore.values[AIProviderKind.anthropic.builtInServiceID] = "anthropic-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
     preferences.defaultAIProvider = .anthropic
@@ -247,7 +247,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
-@Test func startAIConversationBindsSelectedMountAndModel() async {
+@Test func startAIConversationBindsSelectedServiceAndModel() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,
         calendars: [
@@ -264,9 +264,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
             ),
         ]
     )
-    let mount = AIProviderMount.custom(
+    let service = AIServiceEndpoint.customOpenAICompatible(
         displayName: "OpenAI Proxy",
-        providerType: .openAI,
         baseURL: "https://proxy.example.com/v1",
         models: ["gpt-5", "gpt-5-mini"],
         defaultModel: "gpt-5-mini",
@@ -274,11 +273,11 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[mount.id] = "proxy-key"
+    keyStore.values[service.id] = "proxy-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
-    preferences.saveAIMount(mount)
-    preferences.setDefaultAIMountID(mount.id)
+    preferences.saveAIService(service)
+    preferences.setDefaultAIServiceID(service.id)
     let model = AppModel(
         service: calendarService,
         preferences: preferences,
@@ -288,7 +287,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
 
     await model.refresh()
-    model.selectConversationMount(id: mount.id)
+    model.selectConversationService(id: service.id)
     model.selectConversationModel("gpt-5")
     await model.startAIConversation()
 
@@ -296,8 +295,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         Issue.record("Expected waitingForUser state")
         return
     }
-    #expect(session.mountID == mount.id)
-    #expect(session.mountDisplayName == "OpenAI Proxy")
+    #expect(session.serviceID == service.id)
+    #expect(session.serviceDisplayName == "OpenAI Proxy")
     #expect(session.model == "gpt-5")
     #expect(conversationService.askedConfigurations.first?.baseURL == "https://proxy.example.com/v1")
     #expect(conversationService.askedConfigurations.first?.model == "gpt-5")
@@ -431,8 +430,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[AIProviderKind.anthropic.builtInMountID] = "anthropic-key"
-    keyStore.values[AIProviderKind.openAI.builtInMountID] = "openai-key"
+    keyStore.values[AIProviderKind.anthropic.builtInServiceID] = "anthropic-key"
+    keyStore.values[AIProviderKind.openAI.builtInServiceID] = "openai-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
     preferences.defaultAIProvider = .anthropic
@@ -461,7 +460,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
-@Test func changingMountSelectionDoesNotAffectOngoingConversation() async throws {
+@Test func changingServiceSelectionDoesNotAffectOngoingConversation() async throws {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,
         calendars: [
@@ -478,17 +477,15 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
             ),
         ]
     )
-    let primaryMount = AIProviderMount.custom(
+    let primaryService = AIServiceEndpoint.customOpenAICompatible(
         displayName: "OpenAI Proxy A",
-        providerType: .openAI,
         baseURL: "https://proxy-a.example.com/v1",
         models: ["gpt-5-mini"],
         defaultModel: "gpt-5-mini",
         isEnabled: true
     )
-    let secondaryMount = AIProviderMount.custom(
+    let secondaryService = AIServiceEndpoint.customOpenAICompatible(
         displayName: "OpenAI Proxy B",
-        providerType: .openAI,
         baseURL: "https://proxy-b.example.com/v1",
         models: ["gpt-5"],
         defaultModel: "gpt-5",
@@ -496,13 +493,13 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[primaryMount.id] = "proxy-a-key"
-    keyStore.values[secondaryMount.id] = "proxy-b-key"
+    keyStore.values[primaryService.id] = "proxy-a-key"
+    keyStore.values[secondaryService.id] = "proxy-b-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
-    preferences.saveAIMount(primaryMount)
-    preferences.saveAIMount(secondaryMount)
-    preferences.setDefaultAIMountID(primaryMount.id)
+    preferences.saveAIService(primaryService)
+    preferences.saveAIService(secondaryService)
+    preferences.setDefaultAIServiceID(primaryService.id)
     let model = AppModel(
         service: calendarService,
         preferences: preferences,
@@ -512,16 +509,16 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
 
     await model.refresh()
-    model.selectConversationMount(id: primaryMount.id)
+    model.selectConversationService(id: primaryService.id)
     await model.startAIConversation()
 
     let startedSession = try #require(model.currentConversationSession)
-    model.selectConversationMount(id: secondaryMount.id)
+    model.selectConversationService(id: secondaryService.id)
     model.selectConversationModel("gpt-5")
     await model.sendAIConversationReply("已经产出结论了。")
 
     let continuedSession = try #require(model.currentConversationSession)
-    #expect(continuedSession.mountID == startedSession.mountID)
+    #expect(continuedSession.serviceID == startedSession.serviceID)
     #expect(continuedSession.model == startedSession.model)
     #expect(conversationService.askedConfigurations.count == 2)
     #expect(conversationService.askedConfigurations[0].baseURL == "https://proxy-a.example.com/v1")
@@ -645,8 +642,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
             sessions: [
                 AIConversationSession(
                     id: sessionID,
-                    mountID: AIProviderKind.openAI.builtInMountID,
-                    mountDisplayName: "OpenAI",
+                    serviceID: AIProviderKind.openAI.builtInServiceID,
+                    serviceDisplayName: "OpenAI",
                     provider: .openAI,
                     model: "gpt-5-mini",
                     range: .today,
@@ -668,8 +665,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
                 AIConversationSummary(
                     id: summaryID,
                     sessionID: sessionID,
-                    mountID: AIProviderKind.openAI.builtInMountID,
-                    mountDisplayName: "OpenAI",
+                    serviceID: AIProviderKind.openAI.builtInServiceID,
+                    serviceDisplayName: "OpenAI",
                     provider: .openAI,
                     model: "gpt-5-mini",
                     range: .today,
@@ -766,7 +763,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
-@Test func testAIMountConnectionStoresSuccessStatePerMount() async throws {
+@Test func testAIServiceConnectionStoresSuccessStatePerService() async throws {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,
         calendars: [],
@@ -787,36 +784,35 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
 
     await model.refresh()
-    let mount = try #require(model.availableAIMounts.first(where: { $0.providerType == .openAI }))
+    let service = try #require(model.availableAIServices.first(where: { $0.providerKind == .openAI }))
 
-    await model.testAIMountConnection(mount.id)
+    await model.testAIServiceConnection(service.id)
 
-    #expect(model.aiMountConnectionState(for: mount.id) == .succeeded("连接成功"))
+    #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
     #expect(conversationService.validatedConfigurations.first?.provider == .openAI)
 }
 
 @MainActor
-@Test func testAIMountConnectionDoesNotDependOnLegacyAIAnalysisToggle() async throws {
+@Test func testAIServiceConnectionDoesNotDependOnLegacyAIAnalysisToggle() async throws {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,
         calendars: [],
         events: []
     )
     let conversationService = RecordingAIConversationService()
-    let mount = AIProviderMount.custom(
+    let service = AIServiceEndpoint.customOpenAICompatible(
         displayName: "Gemini 代理",
-        providerType: .gemini,
         baseURL: "https://generativelanguage.googleapis.com/v1beta",
         models: ["gemini-2.5-flash"],
         defaultModel: "gemini-2.5-flash",
         isEnabled: true
     )
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[mount.id] = "gemini-key"
+    keyStore.values[service.id] = "gemini-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = false
-    preferences.saveAIMount(mount)
-    preferences.setDefaultAIMountID(mount.id)
+    preferences.saveAIService(service)
+    preferences.setDefaultAIServiceID(service.id)
     let model = AppModel(
         service: calendarService,
         preferences: preferences,
@@ -826,9 +822,9 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
 
     await model.refresh()
-    await model.testAIMountConnection(mount.id)
+    await model.testAIServiceConnection(service.id)
 
-    #expect(model.aiMountConnectionState(for: mount.id) == .succeeded("连接成功"))
-    #expect(conversationService.validatedConfigurations.first?.provider == .gemini)
+    #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
+    #expect(conversationService.validatedConfigurations.first?.provider == .openAICompatible)
     #expect(conversationService.validatedConfigurations.first?.isEnabled == true)
 }

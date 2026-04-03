@@ -107,7 +107,7 @@ public enum AIAnalysisAvailability: Equatable, Sendable {
     public var message: String {
         switch self {
         case .disabled:
-            "请先在设置中启用一个 AI 挂载。"
+            "请先在设置中启用一个 AI 服务。"
         case .notConfigured:
             "请先在设置中配置 AI 服务。"
         case .noData:

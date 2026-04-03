@@ -70,7 +70,7 @@
 		A00000000000000000000143 /* AIConversationComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005C /* AIConversationComposerView.swift */; };
 		A00000000000000000000144 /* AIConversationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005D /* AIConversationHistoryView.swift */; };
 		A00000000000000000000145 /* AIConversationRoutingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */; };
-		A00000000000000000000146 /* AIProviderMount.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005F /* AIProviderMount.swift */; };
+		A00000000000000000000146 /* AIServiceEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005F /* AIServiceEndpoint.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -152,7 +152,7 @@
 		A0000000000000000000005C /* AIConversationComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationComposerView.swift; sourceTree = "<group>"; };
 		A0000000000000000000005D /* AIConversationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationHistoryView.swift; sourceTree = "<group>"; };
 		A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationRoutingServiceTests.swift; sourceTree = "<group>"; };
-		A0000000000000000000005F /* AIProviderMount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderMount.swift; sourceTree = "<group>"; };
+		A0000000000000000000005F /* AIServiceEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceEndpoint.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,7 +221,7 @@
 				A00000000000000000000042 /* AIAnalysis.swift */,
 				A00000000000000000000049 /* AIConversation.swift */,
 				A00000000000000000000053 /* AIProvider.swift */,
-				A0000000000000000000005F /* AIProviderMount.swift */,
+				A0000000000000000000005F /* AIServiceEndpoint.swift */,
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
 				A0000000000000000000002E /* DailyDurationSummary.swift */,
@@ -504,7 +504,7 @@
 				A00000000000000000000141 /* AIConversationWindowView.swift in Sources */,
 				A0000000000000000000013D /* AnthropicConversationService.swift in Sources */,
 				A0000000000000000000013A /* AIProvider.swift in Sources */,
-				A00000000000000000000146 /* AIProviderMount.swift in Sources */,
+				A00000000000000000000146 /* AIServiceEndpoint.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,
 				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
 				A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */,

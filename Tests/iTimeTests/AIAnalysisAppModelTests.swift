@@ -49,15 +49,15 @@ private final class InMemoryAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
     var values: [UUID: String]
 
     init(value: String = "") {
-        self.values = [AIProviderKind.openAI.builtInMountID: value]
+        self.values = [AIProviderKind.openAI.builtInServiceID: value]
     }
 
-    func loadAPIKey(for mountID: UUID) throws -> String {
-        values[mountID] ?? ""
+    func loadAPIKey(for serviceID: UUID) throws -> String {
+        values[serviceID] ?? ""
     }
 
-    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws {
-        values[mountID] = apiKey
+    func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws {
+        values[serviceID] = apiKey
     }
 }
 

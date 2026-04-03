@@ -63,12 +63,12 @@ import Testing
     #expect(preferences.defaultAIProvider == .openAI)
 }
 
-@Test func builtInAIMountsExistByDefault() {
+@Test func builtInAIServicesExistByDefault() {
     let preferences = UserPreferences(storage: .inMemory)
 
-    let mounts = preferences.aiProviderMounts
-    #expect(mounts.count == 4)
-    #expect(mounts.map(\.providerType) == [.openAI, .anthropic, .gemini, .deepSeek])
-    #expect(mounts.allSatisfy { $0.isBuiltIn })
-    #expect(preferences.defaultAIMount?.providerType == .openAI)
+    let services = preferences.aiServiceEndpoints
+    #expect(services.count == 4)
+    #expect(services.map(\.providerKind) == [.openAI, .anthropic, .gemini, .deepSeek])
+    #expect(services.allSatisfy { $0.isBuiltIn })
+    #expect(preferences.defaultAIService?.providerKind == .openAI)
 }

@@ -88,7 +88,7 @@ struct OverviewAIAnalysisSection: View {
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
 
-                Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
+                Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

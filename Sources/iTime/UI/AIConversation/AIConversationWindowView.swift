@@ -15,9 +15,9 @@ enum AIConversationWindowCopy {
     static let composerHint = "Enter 发送，Shift+Enter 换行"
     static let findingsTitle = "主要发现"
     static let suggestionsTitle = "改进建议"
-    static let mountSelectionTitle = "挂载"
+    static let serviceSelectionTitle = "服务"
     static let modelSelectionTitle = "模型"
-    static let mountSelectionHint = "开始前可切换挂载和模型。"
+    static let serviceSelectionHint = "开始前可切换服务和模型。"
     static let missingModelText = "请先在设置里补充模型列表。"
     static let discardConversationAccessibilityLabel = "退出本轮复盘"
     static let discardConfirmationTitle = "放弃这轮复盘？"
@@ -112,24 +112,24 @@ struct AIConversationWindowView: View {
 
     private var preflightOptionsView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(AIConversationWindowCopy.mountSelectionHint)
+            Text(AIConversationWindowCopy.serviceSelectionHint)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(AIConversationWindowCopy.mountSelectionTitle)
+                    Text(AIConversationWindowCopy.serviceSelectionTitle)
                         .font(.subheadline.weight(.semibold))
 
                     Picker(
-                        AIConversationWindowCopy.mountSelectionTitle,
+                        AIConversationWindowCopy.serviceSelectionTitle,
                         selection: Binding(
-                            get: { model.selectedConversationMountID ?? UUID() },
-                            set: { model.selectConversationMount(id: $0) }
+                            get: { model.selectedConversationServiceID ?? UUID() },
+                            set: { model.selectConversationService(id: $0) }
                         )
                     ) {
-                        ForEach(model.availableAIMounts) { mount in
-                            Text(mount.displayName).tag(mount.id)
+                        ForEach(model.availableAIServices) { service in
+                            Text(service.displayName).tag(service.id)
                         }
                     }
                     .labelsHidden()
@@ -141,7 +141,7 @@ struct AIConversationWindowView: View {
                     Text(AIConversationWindowCopy.modelSelectionTitle)
                         .font(.subheadline.weight(.semibold))
 
-                    if selectedMountModels.isEmpty {
+                    if selectedServiceModels.isEmpty {
                         Text(AIConversationWindowCopy.missingModelText)
                             .foregroundStyle(.secondary)
                     } else {
@@ -152,7 +152,7 @@ struct AIConversationWindowView: View {
                                 set: { model.selectConversationModel($0) }
                             )
                         ) {
-                            ForEach(selectedMountModels, id: \.self) { modelName in
+                            ForEach(selectedServiceModels, id: \.self) { modelName in
                                 Text(modelName).tag(modelName)
                             }
                         }
@@ -223,34 +223,34 @@ struct AIConversationWindowView: View {
         }
     }
 
-    private var selectedMount: AIProviderMount? {
-        guard let selectedID = model.selectedConversationMountID else { return nil }
-        return model.availableAIMounts.first(where: { $0.id == selectedID })
+    private var selectedService: AIServiceEndpoint? {
+        guard let selectedID = model.selectedConversationServiceID else { return nil }
+        return model.availableAIServices.first(where: { $0.id == selectedID })
     }
 
-    private var selectedMountModels: [String] {
-        guard let selectedMount else { return [] }
+    private var selectedServiceModels: [String] {
+        guard let selectedService else { return [] }
         var models: [String] = []
-        if !selectedMount.defaultModel.isEmpty {
-            models.append(selectedMount.defaultModel)
+        if !selectedService.defaultModel.isEmpty {
+            models.append(selectedService.defaultModel)
         }
-        models.append(contentsOf: selectedMount.models)
+        models.append(contentsOf: selectedService.models)
         return Array(NSOrderedSet(array: models)) as? [String] ?? models
     }
 
     private var canStartConversationNow: Bool {
-        guard let selectedMount else { return false }
-        return selectedMount.isEnabled && !model.selectedConversationModel.isEmpty
+        guard let selectedService else { return false }
+        return selectedService.isEnabled && !model.selectedConversationModel.isEmpty
     }
 
     private var providerTitle: String {
         switch model.aiConversationState {
         case .responding(let session), .waitingForUser(let session), .summarizing(let session):
-            return session.mountDisplayName
+            return session.serviceDisplayName
         case .completed(let summary):
-            return summary.mountDisplayName
+            return summary.serviceDisplayName
         case .unavailable, .idle, .asking, .failed:
-            return selectedMount?.displayName ?? "未选择挂载"
+            return selectedService?.displayName ?? "未选择服务"
         }
     }
 
@@ -345,7 +345,7 @@ struct AIConversationWindowView: View {
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
 
-                Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
+                Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

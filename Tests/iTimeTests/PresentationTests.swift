@@ -213,20 +213,20 @@ import Testing
     #expect(AIConversationWindowCopy.finishConversationAction == "结束复盘")
     #expect(AIConversationWindowCopy.discardConversationAccessibilityLabel == "退出本轮复盘")
     #expect(AIConversationWindowCopy.discardConfirmationTitle == "放弃这轮复盘？")
-    #expect(AISettingsCopy.sectionTitle == "AI 挂载")
-    #expect(AISettingsCopy.addCustomMountAction == "新增挂载")
+    #expect(AISettingsCopy.sectionTitle == "AI 服务")
+    #expect(AISettingsCopy.addCustomServiceAction == "新增自定义服务")
     #expect(AISettingsCopy.testConnectionAction == "测试连接")
     #expect(AISettingsCopy.modelsTitle == "模型列表")
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
-    #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 挂载。")
+    #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 服务。")
 }
 
 @Test func settingsNavigationUsesClassicSidebarSections() {
     #expect(SettingsCopy.navigationTitle == "设置")
     #expect(SettingsCopy.calendarSectionTitle == "统计日历")
-    #expect(SettingsCopy.aiMountSectionTitle == "AI 挂载")
-    #expect(SettingsSection.allCases == [.calendars, .aiMounts])
+    #expect(SettingsCopy.aiServicesSectionTitle == "AI 服务")
+    #expect(SettingsSection.allCases == [.calendars, .aiServices])
 }
 
 @Test func aiConversationSummaryUsesConcretePeriodText() {

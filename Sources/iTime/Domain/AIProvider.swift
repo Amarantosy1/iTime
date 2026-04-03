@@ -5,6 +5,7 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
     case anthropic
     case gemini
     case deepSeek
+    case openAICompatible
 
     public var title: String {
         switch self {
@@ -16,6 +17,8 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
             "Gemini"
         case .deepSeek:
             "DeepSeek"
+        case .openAICompatible:
+            "OpenAI Compatible"
         }
     }
 
@@ -29,10 +32,12 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
             "https://generativelanguage.googleapis.com/v1beta"
         case .deepSeek:
             "https://api.deepseek.com/v1"
+        case .openAICompatible:
+            ""
         }
     }
 
-    public var builtInMountID: UUID {
+    public var builtInServiceID: UUID {
         switch self {
         case .openAI:
             UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
@@ -42,8 +47,75 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
             UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
         case .deepSeek:
             UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
+        case .openAICompatible:
+            UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
         }
     }
+}
+
+public struct AIProviderCatalogItem: Equatable, Identifiable, Sendable {
+    public let kind: AIProviderKind
+    public let title: String
+    public let defaultBaseURL: String
+    public let supportsCustomEndpoints: Bool
+    public let isBuiltIn: Bool
+
+    public var id: AIProviderKind { kind }
+
+    public init(
+        kind: AIProviderKind,
+        title: String,
+        defaultBaseURL: String,
+        supportsCustomEndpoints: Bool,
+        isBuiltIn: Bool
+    ) {
+        self.kind = kind
+        self.title = title
+        self.defaultBaseURL = defaultBaseURL
+        self.supportsCustomEndpoints = supportsCustomEndpoints
+        self.isBuiltIn = isBuiltIn
+    }
+}
+
+public enum AIProviderCatalog {
+    public static let builtInItems: [AIProviderCatalogItem] = [
+        AIProviderCatalogItem(
+            kind: .openAI,
+            title: AIProviderKind.openAI.title,
+            defaultBaseURL: AIProviderKind.openAI.defaultBaseURL,
+            supportsCustomEndpoints: false,
+            isBuiltIn: true
+        ),
+        AIProviderCatalogItem(
+            kind: .anthropic,
+            title: AIProviderKind.anthropic.title,
+            defaultBaseURL: AIProviderKind.anthropic.defaultBaseURL,
+            supportsCustomEndpoints: false,
+            isBuiltIn: true
+        ),
+        AIProviderCatalogItem(
+            kind: .gemini,
+            title: AIProviderKind.gemini.title,
+            defaultBaseURL: AIProviderKind.gemini.defaultBaseURL,
+            supportsCustomEndpoints: false,
+            isBuiltIn: true
+        ),
+        AIProviderCatalogItem(
+            kind: .deepSeek,
+            title: AIProviderKind.deepSeek.title,
+            defaultBaseURL: AIProviderKind.deepSeek.defaultBaseURL,
+            supportsCustomEndpoints: false,
+            isBuiltIn: true
+        ),
+    ]
+
+    public static let customItem = AIProviderCatalogItem(
+        kind: .openAICompatible,
+        title: "OpenAI Compatible",
+        defaultBaseURL: "",
+        supportsCustomEndpoints: true,
+        isBuiltIn: false
+    )
 }
 
 public struct AIProviderConfiguration: Equatable, Codable, Sendable {

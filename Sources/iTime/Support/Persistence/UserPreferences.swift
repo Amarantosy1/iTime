@@ -17,6 +17,8 @@ public final class UserPreferences {
         static let defaultAIProvider = "defaultAIProvider"
         static let aiBaseURL = "aiBaseURL"
         static let aiModel = "aiModel"
+        static let aiServiceEndpoints = "aiServiceEndpoints"
+        static let defaultAIServiceID = "defaultAIServiceID"
         static let aiProviderMounts = "aiProviderMounts"
         static let defaultAIMountID = "defaultAIMountID"
 
@@ -38,7 +40,7 @@ public final class UserPreferences {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let suiteName: String?
-    @ObservationIgnored private var isSynchronizingAIMountState = false
+    @ObservationIgnored private var isSynchronizingAIServiceState = false
 
     public var selectedRange: TimeRangePreset {
         didSet { defaults.set(selectedRange.rawValue, forKey: Keys.selectedRange) }
@@ -59,15 +61,17 @@ public final class UserPreferences {
     public var aiAnalysisEnabled: Bool {
         didSet {
             defaults.set(aiAnalysisEnabled, forKey: Keys.aiAnalysisEnabled)
-            synchronizeOpenAIMountFromLegacyValues()
+            synchronizeOpenAIServiceFromLegacyValues()
         }
     }
 
     public var defaultAIProvider: AIProviderKind {
         didSet {
             defaults.set(defaultAIProvider.rawValue, forKey: Keys.defaultAIProvider)
-            guard !isSynchronizingAIMountState else { return }
-            setDefaultAIMountID(defaultAIProvider.builtInMountID)
+            guard !isSynchronizingAIServiceState else { return }
+            if defaultAIProvider != .openAICompatible {
+                setDefaultAIServiceID(defaultAIProvider.builtInServiceID)
+            }
         }
     }
 
@@ -75,7 +79,7 @@ public final class UserPreferences {
         didSet {
             defaults.set(aiBaseURL, forKey: Keys.aiBaseURL)
             defaults.set(aiBaseURL, forKey: Keys.providerBaseURL(.openAI))
-            synchronizeOpenAIMountFromLegacyValues()
+            synchronizeOpenAIServiceFromLegacyValues()
         }
     }
 
@@ -83,29 +87,29 @@ public final class UserPreferences {
         didSet {
             defaults.set(aiModel, forKey: Keys.aiModel)
             defaults.set(aiModel, forKey: Keys.providerModel(.openAI))
-            synchronizeOpenAIMountFromLegacyValues()
+            synchronizeOpenAIServiceFromLegacyValues()
         }
     }
 
-    public private(set) var aiProviderMounts: [AIProviderMount] {
+    public private(set) var aiServiceEndpoints: [AIServiceEndpoint] {
         didSet {
-            persistAIMounts()
+            persistAIServiceEndpoints()
         }
     }
 
-    public private(set) var defaultAIMountID: UUID? {
+    public private(set) var defaultAIServiceID: UUID? {
         didSet {
-            defaults.set(defaultAIMountID?.uuidString.lowercased(), forKey: Keys.defaultAIMountID)
-            synchronizeLegacyProviderFromDefaultMount()
+            defaults.set(defaultAIServiceID?.uuidString.lowercased(), forKey: Keys.defaultAIServiceID)
+            synchronizeLegacyProviderFromDefaultService()
         }
     }
 
-    public var defaultAIMount: AIProviderMount? {
-        let mounts = Self.normalizedBuiltInMounts(aiProviderMounts)
-        if let defaultAIMountID {
-            return mounts.first(where: { $0.id == defaultAIMountID }) ?? mounts.first
+    public var defaultAIService: AIServiceEndpoint? {
+        let endpoints = Self.normalizedBuiltInServices(aiServiceEndpoints)
+        if let defaultAIServiceID {
+            return endpoints.first(where: { $0.id == defaultAIServiceID }) ?? endpoints.first
         }
-        return mounts.first
+        return endpoints.first
     }
 
     public var debugSuiteName: String? {
@@ -143,20 +147,22 @@ public final class UserPreferences {
         self.aiBaseURL = defaults.string(forKey: Keys.aiBaseURL) ?? AIProviderKind.openAI.defaultBaseURL
         self.aiModel = defaults.string(forKey: Keys.aiModel) ?? ""
 
-        let decodedMounts = Self.decodeAIMounts(from: defaults)
-        let startingMounts = decodedMounts.isEmpty ? Self.legacyBuiltInMounts(from: defaults) : decodedMounts
-        self.aiProviderMounts = Self.normalizedBuiltInMounts(startingMounts)
+        let decodedServices = Self.decodeAIServiceEndpoints(from: defaults)
+        let startingServices = decodedServices.isEmpty ? Self.legacyBuiltInServices(from: defaults) : decodedServices
+        self.aiServiceEndpoints = Self.normalizedBuiltInServices(startingServices)
 
-        if let storedMountIDString = defaults.string(forKey: Keys.defaultAIMountID),
-           let storedMountID = UUID(uuidString: storedMountIDString) {
-            self.defaultAIMountID = storedMountID
+        let storedServiceIDString = defaults.string(forKey: Keys.defaultAIServiceID)
+            ?? defaults.string(forKey: Keys.defaultAIMountID)
+        if let storedServiceIDString,
+           let storedServiceID = UUID(uuidString: storedServiceIDString) {
+            self.defaultAIServiceID = storedServiceID
         } else {
-            self.defaultAIMountID = self.aiProviderMounts.first(where: { $0.providerType == self.defaultAIProvider })?.id
-                ?? self.aiProviderMounts.first?.id
+            self.defaultAIServiceID = self.aiServiceEndpoints.first(where: { $0.providerKind == self.defaultAIProvider })?.id
+                ?? self.aiServiceEndpoints.first?.id
         }
 
-        persistAIMounts()
-        synchronizeLegacyProviderFromDefaultMount()
+        persistAIServiceEndpoints()
+        synchronizeLegacyProviderFromDefaultService()
     }
 
     public func replaceSelectedCalendars(with ids: [String]) {
@@ -164,21 +170,21 @@ public final class UserPreferences {
     }
 
     public func aiProviderConfiguration(for provider: AIProviderKind) -> AIProviderConfiguration {
-        let mount = aiProviderMounts.first(where: { $0.providerType == provider && $0.isBuiltIn })
-            ?? aiProviderMounts.first(where: { $0.providerType == provider })
-            ?? AIProviderMount.builtIn(providerType: provider)
+        let service = aiServiceEndpoints.first(where: { $0.providerKind == provider && $0.isBuiltIn })
+            ?? aiServiceEndpoints.first(where: { $0.providerKind == provider })
+            ?? AIServiceEndpoint.builtIn(providerKind: provider)
 
         return AIProviderConfiguration(
             provider: provider,
-            baseURL: mount.baseURL,
-            model: mount.defaultModel,
-            isEnabled: mount.isEnabled
+            baseURL: service.baseURL,
+            model: service.defaultModel,
+            isEnabled: service.isEnabled
         )
     }
 
     public func setAIProviderEnabled(_ isEnabled: Bool, for provider: AIProviderKind) {
         defaults.set(isEnabled, forKey: Keys.providerEnabled(provider))
-        updateBuiltInMount(for: provider) { $0.updating(isEnabled: isEnabled) }
+        updateBuiltInService(for: provider) { $0.updating(isEnabled: isEnabled) }
         if provider == .openAI {
             aiAnalysisEnabled = isEnabled
         }
@@ -187,7 +193,7 @@ public final class UserPreferences {
     public func setAIProviderBaseURL(_ baseURL: String, for provider: AIProviderKind) {
         let trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         defaults.set(trimmed, forKey: Keys.providerBaseURL(provider))
-        updateBuiltInMount(for: provider) { $0.updating(baseURL: trimmed) }
+        updateBuiltInService(for: provider) { $0.updating(baseURL: trimmed) }
         if provider == .openAI {
             aiBaseURL = trimmed
         }
@@ -196,7 +202,7 @@ public final class UserPreferences {
     public func setAIProviderModel(_ model: String, for provider: AIProviderKind) {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
         defaults.set(trimmed, forKey: Keys.providerModel(provider))
-        updateBuiltInMount(for: provider) {
+        updateBuiltInService(for: provider) {
             $0.updating(
                 models: trimmed.isEmpty ? [] : [trimmed],
                 defaultModel: trimmed
@@ -207,49 +213,50 @@ public final class UserPreferences {
         }
     }
 
-    public func saveAIMount(_ mount: AIProviderMount) {
-        var mounts = aiProviderMounts.filter { $0.id != mount.id }
-        mounts.append(mount)
-        aiProviderMounts = Self.normalizedBuiltInMounts(mounts)
+    public func saveAIService(_ service: AIServiceEndpoint) {
+        var endpoints = aiServiceEndpoints.filter { $0.id != service.id }
+        endpoints.append(service)
+        aiServiceEndpoints = Self.normalizedBuiltInServices(endpoints)
 
-        if defaultAIMountID == nil {
-            defaultAIMountID = mount.id
+        if defaultAIServiceID == nil {
+            defaultAIServiceID = service.id
         }
     }
 
-    public func deleteAIMount(id: UUID) {
-        let deletingDefault = defaultAIMountID == id
-        aiProviderMounts = Self.normalizedBuiltInMounts(
-            aiProviderMounts.filter { mount in
-                mount.isBuiltIn || mount.id != id
+    public func deleteAIService(id: UUID) {
+        let deletingDefault = defaultAIServiceID == id
+        aiServiceEndpoints = Self.normalizedBuiltInServices(
+            aiServiceEndpoints.filter { service in
+                service.isBuiltIn || service.id != id
             }
         )
 
-        if deletingDefault || defaultAIMountID == id {
-            defaultAIMountID = aiProviderMounts.first?.id
+        if deletingDefault || defaultAIServiceID == id {
+            defaultAIServiceID = aiServiceEndpoints.first?.id
         }
     }
 
-    public func setDefaultAIMountID(_ id: UUID?) {
-        if let id, aiProviderMounts.contains(where: { $0.id == id }) {
-            defaultAIMountID = id
+    public func setDefaultAIServiceID(_ id: UUID?) {
+        if let id, aiServiceEndpoints.contains(where: { $0.id == id }) {
+            defaultAIServiceID = id
         } else {
-            defaultAIMountID = aiProviderMounts.first?.id
+            defaultAIServiceID = aiServiceEndpoints.first?.id
         }
     }
 
-    private static func decodeAIMounts(from defaults: UserDefaults) -> [AIProviderMount] {
+    private static func decodeAIServiceEndpoints(from defaults: UserDefaults) -> [AIServiceEndpoint] {
         guard
-            let data = defaults.data(forKey: Keys.aiProviderMounts),
-            let mounts = try? JSONDecoder().decode([AIProviderMount].self, from: data)
+            let data = defaults.data(forKey: Keys.aiServiceEndpoints) ?? defaults.data(forKey: Keys.aiProviderMounts),
+            let services = try? JSONDecoder().decode([AIServiceEndpoint].self, from: data)
         else {
             return []
         }
-        return mounts
+        return services
     }
 
-    private static func legacyBuiltInMounts(from defaults: UserDefaults) -> [AIProviderMount] {
-        AIProviderKind.allCases.map { provider in
+    private static func legacyBuiltInServices(from defaults: UserDefaults) -> [AIServiceEndpoint] {
+        AIProviderCatalog.builtInItems.map { item in
+            let provider = item.kind
             let baseURL = defaults.string(forKey: Keys.providerBaseURL(provider))
                 ?? (provider == .openAI
                     ? defaults.string(forKey: Keys.aiBaseURL) ?? provider.defaultBaseURL
@@ -259,8 +266,8 @@ public final class UserPreferences {
             let isEnabled = defaults.object(forKey: Keys.providerEnabled(provider)) as? Bool
                 ?? (provider == .openAI ? (defaults.object(forKey: Keys.aiAnalysisEnabled) as? Bool ?? false) : false)
 
-            return AIProviderMount.builtIn(
-                providerType: provider,
+            return AIServiceEndpoint.builtIn(
+                providerKind: provider,
                 baseURL: baseURL,
                 models: model.isEmpty ? [] : [model],
                 defaultModel: model,
@@ -269,38 +276,38 @@ public final class UserPreferences {
         }
     }
 
-    private static func normalizedBuiltInMounts(_ mounts: [AIProviderMount]) -> [AIProviderMount] {
-        var merged = Dictionary(uniqueKeysWithValues: mounts.map { ($0.id, $0) })
+    private static func normalizedBuiltInServices(_ services: [AIServiceEndpoint]) -> [AIServiceEndpoint] {
+        var merged = Dictionary(uniqueKeysWithValues: services.map { ($0.id, $0) })
 
-        for provider in AIProviderKind.allCases {
-            let builtInID = provider.builtInMountID
+        for item in AIProviderCatalog.builtInItems {
+            let builtInID = item.kind.builtInServiceID
             if merged[builtInID] == nil {
-                merged[builtInID] = AIProviderMount.builtIn(providerType: provider)
+                merged[builtInID] = AIServiceEndpoint.builtIn(providerKind: item.kind)
             }
         }
 
-        let builtIns = AIProviderKind.allCases.compactMap { merged[$0.builtInMountID] }
-        let customs = merged.values
+        let builtIns = AIProviderCatalog.builtInItems.compactMap { merged[$0.kind.builtInServiceID] }
+        let customServices = merged.values
             .filter { !$0.isBuiltIn }
             .sorted { $0.displayName.localizedCompare($1.displayName) == .orderedAscending }
-        return builtIns + customs
+        return builtIns + customServices
     }
 
-    private func persistAIMounts() {
-        guard let data = try? JSONEncoder().encode(aiProviderMounts) else { return }
-        defaults.set(data, forKey: Keys.aiProviderMounts)
+    private func persistAIServiceEndpoints() {
+        guard let data = try? JSONEncoder().encode(aiServiceEndpoints) else { return }
+        defaults.set(data, forKey: Keys.aiServiceEndpoints)
     }
 
-    private func synchronizeLegacyProviderFromDefaultMount() {
-        guard let mount = defaultAIMount else { return }
-        isSynchronizingAIMountState = true
-        defaultAIProvider = mount.providerType
-        isSynchronizingAIMountState = false
+    private func synchronizeLegacyProviderFromDefaultService() {
+        guard let service = defaultAIService else { return }
+        isSynchronizingAIServiceState = true
+        defaultAIProvider = service.providerKind
+        isSynchronizingAIServiceState = false
     }
 
-    private func synchronizeOpenAIMountFromLegacyValues() {
-        guard !isSynchronizingAIMountState else { return }
-        updateBuiltInMount(for: .openAI) {
+    private func synchronizeOpenAIServiceFromLegacyValues() {
+        guard !isSynchronizingAIServiceState else { return }
+        updateBuiltInService(for: .openAI) {
             $0.updating(
                 baseURL: aiBaseURL,
                 models: aiModel.isEmpty ? [] : [aiModel],
@@ -310,12 +317,12 @@ public final class UserPreferences {
         }
     }
 
-    private func updateBuiltInMount(
+    private func updateBuiltInService(
         for provider: AIProviderKind,
-        transform: (AIProviderMount) -> AIProviderMount
+        transform: (AIServiceEndpoint) -> AIServiceEndpoint
     ) {
-        let current = aiProviderMounts.first(where: { $0.id == provider.builtInMountID })
-            ?? AIProviderMount.builtIn(providerType: provider)
-        saveAIMount(transform(current))
+        let current = aiServiceEndpoints.first(where: { $0.id == provider.builtInServiceID })
+            ?? AIServiceEndpoint.builtIn(providerKind: provider)
+        saveAIService(transform(current))
     }
 }

@@ -2,8 +2,8 @@ import Foundation
 import Security
 
 public protocol AIAPIKeyStoring: Sendable {
-    func loadAPIKey(for mountID: UUID) throws -> String
-    func saveAPIKey(_ apiKey: String, for mountID: UUID) throws
+    func loadAPIKey(for serviceID: UUID) throws -> String
+    func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws
 }
 
 public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
@@ -11,11 +11,11 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
 
     public init() {}
 
-    public func loadAPIKey(for mountID: UUID) throws -> String {
+    public func loadAPIKey(for serviceID: UUID) throws -> String {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account(for: mountID),
+            kSecAttrAccount as String: account(for: serviceID),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
@@ -38,12 +38,12 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
         }
     }
 
-    public func saveAPIKey(_ apiKey: String, for mountID: UUID) throws {
+    public func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws {
         let encoded = Data(apiKey.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account(for: mountID),
+            kSecAttrAccount as String: account(for: serviceID),
         ]
         let attributes: [String: Any] = [
             kSecValueData as String: encoded,
@@ -67,18 +67,18 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
         throw NSError(domain: NSOSStatusErrorDomain, code: Int(updateStatus))
     }
 
-    private func account(for mountID: UUID) -> String {
-        "compat-\(mountID.uuidString.lowercased())-api-key"
+    private func account(for serviceID: UUID) -> String {
+        "compat-\(serviceID.uuidString.lowercased())-api-key"
     }
 }
 
 public extension AIAPIKeyStoring {
     func loadAPIKey(for provider: AIProviderKind) throws -> String {
-        try loadAPIKey(for: provider.builtInMountID)
+        try loadAPIKey(for: provider.builtInServiceID)
     }
 
     func saveAPIKey(_ apiKey: String, for provider: AIProviderKind) throws {
-        try saveAPIKey(apiKey, for: provider.builtInMountID)
+        try saveAPIKey(apiKey, for: provider.builtInServiceID)
     }
 
     func loadAPIKey() throws -> String {
