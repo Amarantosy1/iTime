@@ -98,9 +98,10 @@ public final class AppModel {
             selectedCalendarIDs: selectedCalendarIDs
         )
         let aggregator = CalendarStatisticsAggregator(
-            calendarLookup: Dictionary(uniqueKeysWithValues: fetchedCalendars.map { ($0.id, $0) })
+            calendarLookup: Dictionary(uniqueKeysWithValues: fetchedCalendars.map { ($0.id, $0) }),
+            calendar: calendar
         )
-        overview = aggregator.makeOverview(range: range, events: events)
+        overview = aggregator.makeOverview(range: range, interval: activeInterval, events: events)
     }
 
     public func requestAccessIfNeeded() async {

@@ -31,6 +31,7 @@
 		A00000000000000000000116 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* SettingsView.swift */; };
 		A00000000000000000000117 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002C /* AppTheme.swift */; };
 		A00000000000000000000118 /* StatisticsDateRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002D /* StatisticsDateRange.swift */; };
+		A00000000000000000000119 /* DailyDurationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002E /* DailyDurationSummary.swift */; };
 		A00000000000000000000121 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* AppModelTests.swift */; };
 		A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */; };
 		A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */; };
@@ -83,6 +84,7 @@
 		A0000000000000000000002B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A0000000000000000000002C /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		A0000000000000000000002D /* StatisticsDateRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsDateRange.swift; sourceTree = "<group>"; };
+		A0000000000000000000002E /* DailyDurationSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyDurationSummary.swift; sourceTree = "<group>"; };
 		A00000000000000000000040 /* iTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000041 /* iTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -151,6 +153,7 @@
 			children = (
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
+				A0000000000000000000002E /* DailyDurationSummary.swift */,
 				A0000000000000000000002D /* StatisticsDateRange.swift */,
 				A00000000000000000000014 /* TimeBucketSummary.swift */,
 				A00000000000000000000015 /* TimeOverview.swift */,
@@ -390,6 +393,7 @@
 				A00000000000000000000112 /* OverviewWindowView.swift in Sources */,
 				A0000000000000000000010F /* RangePicker.swift in Sources */,
 				A00000000000000000000116 /* SettingsView.swift in Sources */,
+				A00000000000000000000119 /* DailyDurationSummary.swift in Sources */,
 				A00000000000000000000118 /* StatisticsDateRange.swift in Sources */,
 				A0000000000000000000010B /* StatisticsAggregating.swift in Sources */,
 				A0000000000000000000010C /* TimeInterval+Formatting.swift in Sources */,

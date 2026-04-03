@@ -1,5 +1,5 @@
 import Foundation
 
 public protocol StatisticsAggregating {
-    func makeOverview(range: TimeRangePreset, events: [CalendarEventRecord]) -> TimeOverview
+    func makeOverview(range: TimeRangePreset, interval: DateInterval, events: [CalendarEventRecord]) -> TimeOverview
 }
