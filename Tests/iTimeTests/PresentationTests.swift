@@ -219,6 +219,8 @@ import Testing
     #expect(AISettingsCopy.addCustomServiceAction == "新增自定义服务")
     #expect(AISettingsCopy.testConnectionAction == "测试连接")
     #expect(AISettingsCopy.modelsTitle == "模型列表")
+    #expect(AISettingsCopy.serviceListTitle == "服务列表")
+    #expect(AISettingsCopy.selectedServiceTitle == "服务详情")
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
     #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 服务。")

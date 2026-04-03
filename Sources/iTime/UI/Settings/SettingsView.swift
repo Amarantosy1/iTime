@@ -38,6 +38,7 @@ enum AISettingsCopy {
     static let defaultServiceBadge = "默认"
     static let builtInBadge = "内置"
     static let customBadge = "自定义"
+    static let serviceListTitle = "服务列表"
     static let serviceEnabledTitle = "启用此服务"
     static let setDefaultServiceAction = "设为默认服务"
     static let deleteServiceAction = "删除服务"
@@ -53,6 +54,7 @@ enum AISettingsCopy {
     static let defaultServiceTitle = "默认服务"
     static let builtInServicesTitle = "内置服务"
     static let customServicesTitle = "自定义服务"
+    static let selectedServiceTitle = "服务详情"
 
     static func connectionStatusText(for state: AIServiceConnectionState) -> String? {
         switch state {
@@ -143,65 +145,80 @@ struct SettingsView: View {
     }
 
     private var aiServicesSettingsPage: some View {
-        HSplitView {
-            servicesSidebar
-                .frame(minWidth: 260, idealWidth: 280, maxWidth: 320)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(SettingsCopy.aiServicesSectionTitle)
+                    .font(.title3.weight(.semibold))
 
-            serviceEditor
-                .frame(minWidth: 560, maxWidth: .infinity)
+                defaultServiceSection
+                serviceListSection
+                serviceEditorSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
         }
     }
 
-    private var servicesSidebar: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(SettingsCopy.aiServicesSectionTitle)
-                    .font(.title3.weight(.semibold))
-                Spacer()
-                Button {
-                    selectedServiceID = model.createCustomAIService()
-                    syncServiceEditorState()
-                } label: {
-                    Label(AISettingsCopy.addCustomServiceAction, systemImage: "plus")
-                }
-                .buttonStyle(.bordered)
-            }
+    private var defaultServiceSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(AISettingsCopy.defaultServiceTitle)
+                    .font(.headline)
 
-            List(selection: $selectedServiceID) {
-                ForEach(model.availableAIServices) { service in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            Text(service.displayName)
-                                .font(.headline)
-                            if service.id == model.defaultAIServiceID {
-                                badge(AISettingsCopy.defaultServiceBadge, tint: .accentColor)
+                Picker(AISettingsCopy.defaultServiceTitle, selection: Binding(
+                    get: { model.defaultAIServiceID ?? model.availableAIServices.first?.id },
+                    set: { id in
+                        if let id {
+                            model.setDefaultAIService(id: id)
+                            if selectedServiceID == nil {
+                                selectedServiceID = id
                             }
-                            badge(
-                                service.isBuiltIn ? AISettingsCopy.builtInBadge : AISettingsCopy.customBadge,
-                                tint: .secondary
-                            )
                         }
-
-                        Text(service.providerKind.title)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 4)
-                    .tag(service.id)
+                )) {
+                    ForEach(model.availableAIServices) { service in
+                        Text(service.displayName).tag(Optional(service.id))
+                    }
                 }
+                .pickerStyle(.menu)
+                .frame(maxWidth: 320, alignment: .leading)
             }
-            .listStyle(.inset)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(20)
+    }
+
+    private var serviceListSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(AISettingsCopy.serviceListTitle)
+                .font(.headline)
+
+            aiServiceGroup(title: AISettingsCopy.builtInServicesTitle, services: builtInServices)
+
+            aiServiceGroup(
+                title: AISettingsCopy.customServicesTitle,
+                services: customServices,
+                trailingAction: {
+                    Button {
+                        selectedServiceID = model.createCustomAIService()
+                        syncServiceEditorState()
+                    } label: {
+                        Label(AISettingsCopy.addCustomServiceAction, systemImage: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            )
+        }
     }
 
     @ViewBuilder
-    private var serviceEditor: some View {
-        if let service = selectedService {
-            ScrollView {
+    private var serviceEditorSection: some View {
+        GroupBox {
+            if let service = selectedService {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 6) {
+                            Text(AISettingsCopy.selectedServiceTitle)
+                                .font(.headline)
                             Text(service.displayName)
                                 .font(.title3.weight(.semibold))
                             Text("\(service.providerKind.title) · \(service.id == model.defaultAIServiceID ? AISettingsCopy.defaultServiceBadge : "未设为默认")")
@@ -216,125 +233,113 @@ struct SettingsView: View {
                         }
                     }
 
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Toggle(
-                                AISettingsCopy.serviceEnabledTitle,
-                                isOn: Binding(
-                                    get: { selectedService?.isEnabled ?? false },
-                                    set: { updateSelectedService(isEnabled: $0) }
-                                )
-                            )
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    Toggle(
+                        AISettingsCopy.serviceEnabledTitle,
+                        isOn: Binding(
+                            get: { selectedService?.isEnabled ?? false },
+                            set: { updateSelectedService(isEnabled: $0) }
+                        )
+                    )
 
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 14) {
-                            if service.isBuiltIn {
-                                labeledValue(AISettingsCopy.displayNameTitle, value: service.displayName)
-                                labeledValue(AISettingsCopy.providerTypeTitle, value: service.providerKind.title)
-                            } else {
-                                TextField(
-                                    AISettingsCopy.displayNameTitle,
-                                    text: Binding(
-                                        get: { selectedService?.displayName ?? "" },
-                                        set: { updateSelectedService(displayName: $0) }
-                                    )
-                                )
-                                .textFieldStyle(.roundedBorder)
-
-                                labeledValue(AISettingsCopy.providerTypeTitle, value: AIProviderKind.openAICompatible.title)
-                            }
-
+                    VStack(alignment: .leading, spacing: 14) {
+                        if service.isBuiltIn {
+                            labeledValue(AISettingsCopy.displayNameTitle, value: service.displayName)
+                            labeledValue(AISettingsCopy.providerTypeTitle, value: service.providerKind.title)
+                        } else {
                             TextField(
-                                AISettingsCopy.baseURLTitle,
+                                AISettingsCopy.displayNameTitle,
                                 text: Binding(
-                                    get: { selectedService?.baseURL ?? "" },
-                                    set: { updateSelectedService(baseURL: $0) }
+                                    get: { selectedService?.displayName ?? "" },
+                                    set: { updateSelectedService(displayName: $0) }
                                 )
                             )
                             .textFieldStyle(.roundedBorder)
 
-                            SecureField(
-                                AISettingsCopy.apiKeyTitle,
+                            labeledValue(AISettingsCopy.providerTypeTitle, value: AIProviderKind.openAICompatible.title)
+                        }
+
+                        TextField(
+                            AISettingsCopy.baseURLTitle,
+                            text: Binding(
+                                get: { selectedService?.baseURL ?? "" },
+                                set: { updateSelectedService(baseURL: $0) }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
+
+                        SecureField(
+                            AISettingsCopy.apiKeyTitle,
+                            text: Binding(
+                                get: { serviceAPIKeys[service.id] ?? "" },
+                                set: { newValue in
+                                    serviceAPIKeys[service.id] = newValue
+                                    model.updateAIAPIKey(newValue, for: service.id)
+                                }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(AISettingsCopy.modelsTitle)
+                                .font(.subheadline.weight(.semibold))
+                            TextField(
+                                AISettingsCopy.modelsTitle,
                                 text: Binding(
-                                    get: { serviceAPIKeys[service.id] ?? "" },
+                                    get: { serviceModelsText[service.id] ?? "" },
                                     set: { newValue in
-                                        serviceAPIKeys[service.id] = newValue
-                                        model.updateAIAPIKey(newValue, for: service.id)
+                                        serviceModelsText[service.id] = newValue
+                                        updateSelectedService(models: parseModels(from: newValue))
                                     }
-                                )
+                                ),
+                                axis: .vertical
                             )
                             .textFieldStyle(.roundedBorder)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(AISettingsCopy.modelsTitle)
-                                    .font(.subheadline.weight(.semibold))
-                                TextField(
-                                    AISettingsCopy.modelsTitle,
-                                    text: Binding(
-                                        get: { serviceModelsText[service.id] ?? "" },
-                                        set: { newValue in
-                                            serviceModelsText[service.id] = newValue
-                                            updateSelectedService(models: parseModels(from: newValue))
-                                        }
-                                    ),
-                                    axis: .vertical
-                                )
-                                .textFieldStyle(.roundedBorder)
-                                Text(AISettingsCopy.modelsHint)
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            TextField(
-                                AISettingsCopy.defaultModelTitle,
-                                text: Binding(
-                                    get: { selectedService?.defaultModel ?? "" },
-                                    set: { updateSelectedService(defaultModel: $0) }
-                                )
-                            )
-                            .textFieldStyle(.roundedBorder)
+                            Text(AISettingsCopy.modelsHint)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        TextField(
+                            AISettingsCopy.defaultModelTitle,
+                            text: Binding(
+                                get: { selectedService?.defaultModel ?? "" },
+                                set: { updateSelectedService(defaultModel: $0) }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
                     }
 
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 10) {
-                                Button(AISettingsCopy.testConnectionAction) {
-                                    Task { await model.testAIServiceConnection(service.id) }
-                                }
-                                .buttonStyle(.borderedProminent)
-
-                                if !service.isBuiltIn {
-                                    Button(AISettingsCopy.deleteServiceAction, role: .destructive) {
-                                        let deletingID = service.id
-                                        model.deleteAIService(id: deletingID)
-                                        selectedServiceID = model.defaultAIServiceID ?? model.availableAIServices.first?.id
-                                    }
-                                    .buttonStyle(.bordered)
-                                }
-                            }
-
-                            if let statusText = AISettingsCopy.connectionStatusText(
-                                for: model.aiServiceConnectionState(for: service.id)
-                            ) {
-                                Text(statusText)
-                                    .foregroundStyle(connectionStatusColor(for: model.aiServiceConnectionState(for: service.id)))
-                            }
+                    HStack(spacing: 10) {
+                        Button(AISettingsCopy.testConnectionAction) {
+                            Task { await model.testAIServiceConnection(service.id) }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .buttonStyle(.borderedProminent)
+
+                        if !service.isBuiltIn {
+                            Button(AISettingsCopy.deleteServiceAction, role: .destructive) {
+                                let deletingID = service.id
+                                model.deleteAIService(id: deletingID)
+                                selectedServiceID = model.defaultAIServiceID ?? model.availableAIServices.first?.id
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    if let statusText = AISettingsCopy.connectionStatusText(
+                        for: model.aiServiceConnectionState(for: service.id)
+                    ) {
+                        Text(statusText)
+                            .foregroundStyle(connectionStatusColor(for: model.aiServiceConnectionState(for: service.id)))
                     }
                 }
-                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ContentUnavailableView(
+                    AISettingsCopy.servicePlaceholder,
+                    systemImage: "slider.horizontal.3"
+                )
+                .frame(maxWidth: .infinity, minHeight: 280)
             }
-        } else {
-            ContentUnavailableView(
-                AISettingsCopy.servicePlaceholder,
-                systemImage: "slider.horizontal.3"
-            )
         }
     }
 
@@ -415,5 +420,83 @@ struct SettingsView: View {
             Text(value)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private var builtInServices: [AIServiceEndpoint] {
+        model.availableAIServices.filter(\.isBuiltIn)
+    }
+
+    private var customServices: [AIServiceEndpoint] {
+        model.availableAIServices.filter { !$0.isBuiltIn }
+    }
+
+    @ViewBuilder
+    private func aiServiceGroup(
+        title: String,
+        services: [AIServiceEndpoint],
+        @ViewBuilder trailingAction: () -> some View = { EmptyView() }
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                trailingAction()
+            }
+
+            if services.isEmpty {
+                Text(AISettingsCopy.servicePlaceholder)
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(services) { service in
+                        serviceRow(service)
+                    }
+                }
+            }
+        }
+    }
+
+    private func serviceRow(_ service: AIServiceEndpoint) -> some View {
+        Button {
+            selectedServiceID = service.id
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Text(service.displayName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        if service.id == model.defaultAIServiceID {
+                            badge(AISettingsCopy.defaultServiceBadge, tint: .accentColor)
+                        }
+                        badge(
+                            service.isBuiltIn ? AISettingsCopy.builtInBadge : AISettingsCopy.customBadge,
+                            tint: .secondary
+                        )
+                    }
+
+                    Text(service.providerKind.title)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: selectedServiceID == service.id ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(selectedServiceID == service.id ? .accentColor : .secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(selectedServiceID == service.id ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(selectedServiceID == service.id ? Color.accentColor.opacity(0.35) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
