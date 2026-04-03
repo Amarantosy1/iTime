@@ -7,6 +7,7 @@ public final class AppModel {
     public private(set) var authorizationState: CalendarAuthorizationState
     public private(set) var availableCalendars: [CalendarSource]
     public private(set) var availableAIServices: [AIServiceEndpoint]
+    public private(set) var reviewReminderAuthorizationStatus: ReviewReminderAuthorizationStatus
     public private(set) var overview: TimeOverview?
     public private(set) var aiAnalysisState: AIAnalysisState
     public private(set) var aiConversationState: AIConversationState
@@ -24,6 +25,7 @@ public final class AppModel {
     private let aiConversationService: AIConversationServing
     private let aiKeyStore: AIAPIKeyStoring
     private let aiConversationArchiveStore: AIConversationArchiveStoring
+    private let reviewReminderScheduler: ReviewReminderScheduling
     private let calendar: Calendar
     private let now: @Sendable () -> Date
     private var currentEvents: [CalendarEventRecord]
@@ -48,6 +50,7 @@ public final class AppModel {
         aiConversationArchiveStore: AIConversationArchiveStoring = FileAIConversationArchiveStore(
             directoryURL: FileAIConversationArchiveStore.defaultDirectoryURL
         ),
+        reviewReminderScheduler: ReviewReminderScheduling = NoopReviewReminderScheduler(),
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
@@ -58,12 +61,14 @@ public final class AppModel {
         self.aiConversationService = aiConversationService
         self.aiKeyStore = aiKeyStore
         self.aiConversationArchiveStore = aiConversationArchiveStore
+        self.reviewReminderScheduler = reviewReminderScheduler
         self.calendar = calendar
         self.now = now
         self.preferences = preferences
         self.authorizationState = service.authorizationState()
         self.availableCalendars = []
         self.availableAIServices = preferences.aiServiceEndpoints
+        self.reviewReminderAuthorizationStatus = .notDetermined
         self.aiAnalysisState = .unavailable(.noData)
         self.aiConversationState = .unavailable(.noData)
         self.aiLongFormState = .idle
@@ -137,6 +142,8 @@ public final class AppModel {
         authorizationState = service.authorizationState()
         availableAIServices = preferences.aiServiceEndpoints
         synchronizeConversationSelection()
+        reviewReminderAuthorizationStatus = await reviewReminderScheduler.authorizationStatus()
+        await synchronizeReviewReminderSchedule()
 
         guard authorizationState == .authorized else {
             availableCalendars = []
@@ -438,6 +445,37 @@ public final class AppModel {
         preferences.aiAnalysisEnabled = isEnabled
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
+    }
+
+    public func requestReviewReminderAuthorization() async {
+        reviewReminderAuthorizationStatus = await reviewReminderScheduler.requestAuthorization()
+        await synchronizeReviewReminderSchedule()
+    }
+
+    public func updateReviewReminderEnabled(_ isEnabled: Bool) async {
+        preferences.reviewReminderEnabled = isEnabled
+
+        if !isEnabled {
+            await reviewReminderScheduler.removeScheduledReminder()
+            return
+        }
+
+        let currentStatus = await reviewReminderScheduler.authorizationStatus()
+        if currentStatus == .notDetermined {
+            reviewReminderAuthorizationStatus = await reviewReminderScheduler.requestAuthorization()
+        } else {
+            reviewReminderAuthorizationStatus = currentStatus
+        }
+
+        await synchronizeReviewReminderSchedule()
+    }
+
+    public func updateReviewReminderTime(_ time: Date) async {
+        preferences.reviewReminderTime = time
+        if preferences.reviewReminderEnabled {
+            reviewReminderAuthorizationStatus = await reviewReminderScheduler.authorizationStatus()
+            await synchronizeReviewReminderSchedule()
+        }
     }
 
     public func updateDefaultAIProvider(_ provider: AIProviderKind) {
@@ -912,6 +950,24 @@ public final class AppModel {
             return service.defaultModel
         }
         return service.models.first ?? ""
+    }
+
+    private func synchronizeReviewReminderSchedule() async {
+        guard preferences.reviewReminderEnabled else {
+            await reviewReminderScheduler.removeScheduledReminder()
+            return
+        }
+
+        guard reviewReminderAuthorizationStatus == .authorized else {
+            await reviewReminderScheduler.removeScheduledReminder()
+            return
+        }
+
+        do {
+            try await reviewReminderScheduler.scheduleDailyReminder(at: preferences.reviewReminderTime)
+        } catch {
+            reviewReminderAuthorizationStatus = await reviewReminderScheduler.authorizationStatus()
+        }
     }
 
     private func saveConversationArchive(

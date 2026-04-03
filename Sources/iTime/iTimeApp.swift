@@ -4,7 +4,8 @@ import SwiftUI
 struct iTimeApp: App {
     @State private var model = AppModel(
         service: EventKitCalendarAccessService(),
-        preferences: UserPreferences(storage: .standard)
+        preferences: UserPreferences(storage: .standard),
+        reviewReminderScheduler: SystemReviewReminderScheduler()
     )
 
     var body: some Scene {
