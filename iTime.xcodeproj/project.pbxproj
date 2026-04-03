@@ -50,6 +50,13 @@
 		A0000000000000000000012B /* OverviewAIAnalysisSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000046 /* OverviewAIAnalysisSection.swift */; };
 		A0000000000000000000012C /* AIAnalysisAppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000047 /* AIAnalysisAppModelTests.swift */; };
 		A0000000000000000000012D /* AIAnalysisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000048 /* AIAnalysisServiceTests.swift */; };
+		A00000000000000000000132 /* AIConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000049 /* AIConversation.swift */; };
+		A00000000000000000000133 /* FileAIConversationArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004A /* FileAIConversationArchiveStore.swift */; };
+		A00000000000000000000134 /* AIConversationArchiveStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004B /* AIConversationArchiveStoreTests.swift */; };
+		A00000000000000000000135 /* AIConversationContextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004C /* AIConversationContextTests.swift */; };
+		A00000000000000000000136 /* AIConversationServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004D /* AIConversationServing.swift */; };
+		A00000000000000000000137 /* OpenAICompatibleAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */; };
+		A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004F /* AIConversationServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +118,13 @@
 		A00000000000000000000046 /* OverviewAIAnalysisSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewAIAnalysisSection.swift; sourceTree = "<group>"; };
 		A00000000000000000000047 /* AIAnalysisAppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisAppModelTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000048 /* AIAnalysisServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisServiceTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000049 /* AIConversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversation.swift; sourceTree = "<group>"; };
+		A0000000000000000000004A /* FileAIConversationArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileAIConversationArchiveStore.swift; sourceTree = "<group>"; };
+		A0000000000000000000004B /* AIConversationArchiveStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationArchiveStoreTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000004C /* AIConversationContextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationContextTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000004D /* AIConversationServing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationServing.swift; sourceTree = "<group>"; };
+		A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICompatibleAIConversationService.swift; sourceTree = "<group>"; };
+		A0000000000000000000004F /* AIConversationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +191,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000042 /* AIAnalysis.swift */,
+				A00000000000000000000049 /* AIConversation.swift */,
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
 				A0000000000000000000002E /* DailyDurationSummary.swift */,
@@ -193,10 +208,12 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000043 /* AIAnalysisServing.swift */,
+				A0000000000000000000004D /* AIConversationServing.swift */,
 				A00000000000000000000017 /* CalendarAccessServing.swift */,
 				A00000000000000000000018 /* CalendarStatisticsAggregator.swift */,
 				A00000000000000000000019 /* EventKitCalendarAccessService.swift */,
 				A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */,
+				A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */,
 				A0000000000000000000001A /* StatisticsAggregating.swift */,
 			);
 			path = Services;
@@ -215,6 +232,7 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000045 /* AIAPIKeyStoring.swift */,
+				A0000000000000000000004A /* FileAIConversationArchiveStore.swift */,
 				A0000000000000000000002A /* UserPreferences.swift */,
 			);
 			path = Persistence;
@@ -310,6 +328,9 @@
 			children = (
 				A00000000000000000000047 /* AIAnalysisAppModelTests.swift */,
 				A00000000000000000000048 /* AIAnalysisServiceTests.swift */,
+				A0000000000000000000004B /* AIConversationArchiveStoreTests.swift */,
+				A0000000000000000000004C /* AIConversationContextTests.swift */,
+				A0000000000000000000004F /* AIConversationServiceTests.swift */,
 				A00000000000000000000024 /* AppModelTests.swift */,
 				A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */,
 				A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */,
@@ -424,6 +445,8 @@
 				A00000000000000000000127 /* AIAnalysis.swift in Sources */,
 				A0000000000000000000012A /* AIAPIKeyStoring.swift in Sources */,
 				A00000000000000000000128 /* AIAnalysisServing.swift in Sources */,
+				A00000000000000000000132 /* AIConversation.swift in Sources */,
+				A00000000000000000000136 /* AIConversationServing.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,
 				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
 				A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */,
@@ -431,6 +454,7 @@
 				A00000000000000000000104 /* CalendarSource.swift in Sources */,
 				A0000000000000000000010D /* CGColor+Hex.swift in Sources */,
 				A0000000000000000000010A /* EventKitCalendarAccessService.swift in Sources */,
+				A00000000000000000000133 /* FileAIConversationArchiveStore.swift in Sources */,
 				A0000000000000000000010E /* AuthorizationStateView.swift in Sources */,
 				A00000000000000000000117 /* AppTheme.swift in Sources */,
 				A00000000000000000000113 /* Color+Hex.swift in Sources */,
@@ -438,6 +462,7 @@
 				A00000000000000000000114 /* LiquidGlassCard.swift in Sources */,
 				A00000000000000000000110 /* MenuBarContentView.swift in Sources */,
 				A00000000000000000000129 /* OpenAICompatibleAIAnalysisService.swift in Sources */,
+				A00000000000000000000137 /* OpenAICompatibleAIConversationService.swift in Sources */,
 				A0000000000000000000012B /* OverviewAIAnalysisSection.swift in Sources */,
 				A00000000000000000000111 /* OverviewChartView.swift in Sources */,
 				A0000000000000000000011A /* OverviewMetricsSection.swift in Sources */,
@@ -464,6 +489,9 @@
 			files = (
 				A0000000000000000000012C /* AIAnalysisAppModelTests.swift in Sources */,
 				A0000000000000000000012D /* AIAnalysisServiceTests.swift in Sources */,
+				A00000000000000000000134 /* AIConversationArchiveStoreTests.swift in Sources */,
+				A00000000000000000000135 /* AIConversationContextTests.swift in Sources */,
+				A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */,
 				A00000000000000000000121 /* AppModelTests.swift in Sources */,
 				A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */,
 				A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */,
