@@ -158,6 +158,7 @@
 		A0000000000000000000005F /* AIServiceEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceEndpoint.swift; sourceTree = "<group>"; };
 		A00000000000000000000093 /* ReviewReminderScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderScheduling.swift; sourceTree = "<group>"; };
 		A00000000000000000000094 /* ReviewReminderSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderSchedulingTests.swift; sourceTree = "<group>"; };
+		B5DE7FDC2F8021BA007C9D96 /* iTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iTime.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -190,6 +191,7 @@
 		A00000000000000000000060 = {
 			isa = PBXGroup;
 			children = (
+				B5DE7FDC2F8021BA007C9D96 /* iTime.entitlements */,
 				A00000000000000000000002 /* README.md */,
 				A00000000000000000000003 /* Package.swift */,
 				A00000000000000000000004 /* .gitignore */,
@@ -685,9 +687,13 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = iTime.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 5H8QMXF6G9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_MODULE_VERIFIER = YES;
@@ -708,6 +714,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -721,9 +728,13 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = iTime.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 5H8QMXF6G9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_MODULE_VERIFIER = YES;
@@ -741,6 +752,7 @@
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++14";
 				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;

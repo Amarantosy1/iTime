@@ -50,7 +50,7 @@ private final class StubNotificationAuthorizationRequester: @unchecked Sendable,
 
     let status = await scheduler.requestAuthorization()
 
-    #expect(status == .authorized)
+    #expect(status == .notDetermined)
     #expect(activator.activationCount == 1)
     #expect(requester.requestedOptions == [.alert, .sound])
 }

@@ -93,11 +93,13 @@ public struct SystemReviewReminderScheduler: @unchecked Sendable, ReviewReminder
     }
 
     public func requestAuthorization() async -> ReviewReminderAuthorizationStatus {
-        await appActivator.activateApp()
-        let granted = await authorizationRequester.requestAuthorization(options: [.alert, .sound])
-        if granted {
-            return .authorized
+        let currentStatus = await authorizationStatus()
+        guard currentStatus == .notDetermined else {
+            return currentStatus
         }
+
+        await appActivator.activateApp()
+        _ = await authorizationRequester.requestAuthorization(options: [.alert, .sound])
         return await authorizationStatus()
     }
 
@@ -158,11 +160,7 @@ private struct DefaultReviewReminderAppActivator: ReviewReminderAppActivating {
     @MainActor
     func activateApp() async {
         #if canImport(AppKit)
-        if #available(macOS 14.0, *) {
-            NSApplication.shared.activate()
-        } else {
-            NSApplication.shared.activate(ignoringOtherApps: true)
-        }
+        NSApplication.shared.activate(ignoringOtherApps: true)
         #endif
     }
 }

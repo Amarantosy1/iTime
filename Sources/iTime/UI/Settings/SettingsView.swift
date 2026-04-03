@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 enum SettingsCopy {
     static let navigationTitle = "设置"
@@ -43,6 +46,7 @@ enum ReviewReminderCopy {
     static let enabledTitle = "启用每日复盘提醒"
     static let timeTitle = "提醒时间"
     static let requestPermissionAction = "允许通知"
+    static let openSystemSettingsAction = "打开系统通知设置"
     static let authorizationGrantedText = "通知权限已允许。"
     static let authorizationPendingText = "需要通知权限后才能按时提醒。"
     static let authorizationDeniedText = "系统通知权限已关闭，请前往系统设置开启。"
@@ -213,10 +217,17 @@ struct SettingsView: View {
                             .foregroundStyle(reviewReminderStatusColor)
 
                         if model.reviewReminderAuthorizationStatus != .authorized {
-                            Button(ReviewReminderCopy.requestPermissionAction) {
-                                Task { await model.requestReviewReminderAuthorization() }
+                            if model.reviewReminderAuthorizationStatus == .denied {
+                                Button(ReviewReminderCopy.openSystemSettingsAction) {
+                                    openSystemNotificationSettings()
+                                }
+                                .buttonStyle(.borderedProminent)
+                            } else {
+                                Button(ReviewReminderCopy.requestPermissionAction) {
+                                    Task { await model.requestReviewReminderAuthorization() }
+                                }
+                                .buttonStyle(.borderedProminent)
                             }
-                            .buttonStyle(.borderedProminent)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -588,5 +599,23 @@ struct SettingsView: View {
         case .denied:
             .red
         }
+    }
+
+    private func openSystemNotificationSettings() {
+        #if canImport(AppKit)
+        let workspace = NSWorkspace.shared
+        let candidates = [
+            "x-apple.systempreferences:com.apple.Notifications-Settings.extension?com.amarantos.iTime",
+            "x-apple.systempreferences:com.apple.Notifications-Settings.extension",
+            "x-apple.systempreferences:com.apple.preference.notifications",
+        ]
+
+        for candidate in candidates {
+            guard let url = URL(string: candidate) else { continue }
+            if workspace.open(url) {
+                return
+            }
+        }
+        #endif
     }
 }
