@@ -7,25 +7,33 @@ public final class AppModel {
     public private(set) var authorizationState: CalendarAuthorizationState
     public private(set) var availableCalendars: [CalendarSource]
     public private(set) var overview: TimeOverview?
+    public private(set) var aiAnalysisState: AIAnalysisState
 
     public var preferences: UserPreferences
 
     private let service: CalendarAccessServing
+    private let aiService: AIAnalysisServing
+    private let aiKeyStore: AIAPIKeyStoring
     private let calendar: Calendar
     private let now: @Sendable () -> Date
 
     public init(
         service: CalendarAccessServing,
         preferences: UserPreferences,
+        aiService: AIAnalysisServing = OpenAICompatibleAIAnalysisService(),
+        aiKeyStore: AIAPIKeyStoring = KeychainAIAPIKeyStore(),
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.service = service
+        self.aiService = aiService
+        self.aiKeyStore = aiKeyStore
         self.calendar = calendar
         self.now = now
         self.preferences = preferences
         self.authorizationState = service.authorizationState()
         self.availableCalendars = []
+        self.aiAnalysisState = .unavailable(.noData)
     }
 
     public var liveSelectedRange: TimeRangePreset {
@@ -67,6 +75,7 @@ public final class AppModel {
         guard authorizationState == .authorized else {
             availableCalendars = []
             overview = nil
+            resetAIAnalysisState()
             return
         }
 
@@ -102,6 +111,7 @@ public final class AppModel {
             calendar: calendar
         )
         overview = aggregator.makeOverview(range: range, interval: activeInterval, events: events)
+        resetAIAnalysisState()
     }
 
     public func requestAccessIfNeeded() async {
@@ -132,5 +142,85 @@ public final class AppModel {
         }
         preferences.replaceSelectedCalendars(with: Array(updated))
         await refresh()
+    }
+
+    public func analyzeOverview() async {
+        guard let overview, !overview.buckets.isEmpty else {
+            aiAnalysisState = .unavailable(.noData)
+            return
+        }
+
+        let configuration = currentAIConfiguration()
+        if !configuration.isEnabled {
+            aiAnalysisState = .unavailable(.disabled)
+            return
+        }
+        if !configuration.isComplete {
+            aiAnalysisState = .unavailable(.notConfigured)
+            return
+        }
+
+        aiAnalysisState = .loading
+
+        do {
+            let result = try await aiService.analyze(
+                request: overview.makeAIAnalysisRequest(),
+                configuration: configuration
+            )
+            aiAnalysisState = .loaded(result)
+        } catch let error as AIAnalysisServiceError {
+            aiAnalysisState = .failed(error.userMessage)
+        } catch {
+            aiAnalysisState = .failed("AI 评估生成失败，请稍后重试。")
+        }
+    }
+
+    public func updateAIAnalysisEnabled(_ isEnabled: Bool) {
+        preferences.aiAnalysisEnabled = isEnabled
+        resetAIAnalysisState()
+    }
+
+    public func updateAIBaseURL(_ baseURL: String) {
+        preferences.aiBaseURL = baseURL
+        resetAIAnalysisState()
+    }
+
+    public func updateAIModel(_ model: String) {
+        preferences.aiModel = model
+        resetAIAnalysisState()
+    }
+
+    public func loadAIAPIKey() -> String {
+        (try? aiKeyStore.loadAPIKey()) ?? ""
+    }
+
+    public func updateAIAPIKey(_ apiKey: String) {
+        try? aiKeyStore.saveAPIKey(apiKey)
+        resetAIAnalysisState()
+    }
+
+    private func currentAIConfiguration() -> AIAnalysisConfiguration {
+        AIAnalysisConfiguration(
+            baseURL: preferences.aiBaseURL,
+            model: preferences.aiModel,
+            apiKey: loadAIAPIKey(),
+            isEnabled: preferences.aiAnalysisEnabled
+        )
+    }
+
+    private func resetAIAnalysisState() {
+        guard authorizationState == .authorized, let overview, !overview.buckets.isEmpty else {
+            aiAnalysisState = .unavailable(.noData)
+            return
+        }
+
+        let configuration = currentAIConfiguration()
+        if !configuration.isEnabled {
+            aiAnalysisState = .unavailable(.disabled)
+        } else if !configuration.isComplete {
+            aiAnalysisState = .unavailable(.notConfigured)
+        } else {
+            aiAnalysisState = .idle
+        }
     }
 }

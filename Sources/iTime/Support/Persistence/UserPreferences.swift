@@ -13,6 +13,9 @@ public final class UserPreferences {
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let customStartDate = "customStartDate"
         static let customEndDate = "customEndDate"
+        static let aiAnalysisEnabled = "aiAnalysisEnabled"
+        static let aiBaseURL = "aiBaseURL"
+        static let aiModel = "aiModel"
     }
 
     private static let inMemoryLock = NSLock()
@@ -34,6 +37,18 @@ public final class UserPreferences {
 
     public var customEndDate: Date {
         didSet { defaults.set(customEndDate, forKey: Keys.customEndDate) }
+    }
+
+    public var aiAnalysisEnabled: Bool {
+        didSet { defaults.set(aiAnalysisEnabled, forKey: Keys.aiAnalysisEnabled) }
+    }
+
+    public var aiBaseURL: String {
+        didSet { defaults.set(aiBaseURL, forKey: Keys.aiBaseURL) }
+    }
+
+    public var aiModel: String {
+        didSet { defaults.set(aiModel, forKey: Keys.aiModel) }
     }
 
     public init(storage: Storage, suiteNameOverride: String? = nil) {
@@ -58,6 +73,9 @@ public final class UserPreferences {
         let todayInterval = calendar.dateInterval(of: .day, for: now) ?? DateInterval(start: now, duration: 86_400)
         self.customStartDate = defaults.object(forKey: Keys.customStartDate) as? Date ?? todayInterval.start
         self.customEndDate = defaults.object(forKey: Keys.customEndDate) as? Date ?? todayInterval.end
+        self.aiAnalysisEnabled = defaults.object(forKey: Keys.aiAnalysisEnabled) as? Bool ?? false
+        self.aiBaseURL = defaults.string(forKey: Keys.aiBaseURL) ?? "https://api.openai.com/v1"
+        self.aiModel = defaults.string(forKey: Keys.aiModel) ?? ""
     }
 
     public func replaceSelectedCalendars(with ids: [String]) {

@@ -94,6 +94,7 @@ struct OverviewWindowView: View {
         if let overview = model.overview, !overview.buckets.isEmpty {
             VStack(alignment: .leading, spacing: 20) {
                 OverviewMetricsSection(overview: overview)
+                OverviewAIAnalysisSection(model: model)
                 OverviewTrendChartView(overview: overview)
 
                 LiquidGlassCard {

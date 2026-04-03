@@ -199,3 +199,10 @@ import Testing
 @Test func menuBarChartUsesChineseSectionTitle() {
     #expect(MenuBarBucketChartCopy.sectionTitle == "按日历分布")
 }
+
+@Test func aiAnalysisCopyUsesChineseStrings() {
+    #expect(AIAnalysisCopy.sectionTitle == "AI 时间评估")
+    #expect(AIAnalysisCopy.generateAction == "生成评估")
+    #expect(AIAnalysisCopy.regenerateAction == "重新生成")
+    #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
+}

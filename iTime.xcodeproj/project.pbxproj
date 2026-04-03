@@ -43,6 +43,13 @@
 		A00000000000000000000124 /* PresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000027 /* PresentationTests.swift */; };
 		A00000000000000000000125 /* TimeOverviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* TimeOverviewTests.swift */; };
 		A00000000000000000000126 /* UserPreferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000029 /* UserPreferencesTests.swift */; };
+		A00000000000000000000127 /* AIAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000042 /* AIAnalysis.swift */; };
+		A00000000000000000000128 /* AIAnalysisServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000043 /* AIAnalysisServing.swift */; };
+		A00000000000000000000129 /* OpenAICompatibleAIAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */; };
+		A0000000000000000000012A /* AIAPIKeyStoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000045 /* AIAPIKeyStoring.swift */; };
+		A0000000000000000000012B /* OverviewAIAnalysisSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000046 /* OverviewAIAnalysisSection.swift */; };
+		A0000000000000000000012C /* AIAnalysisAppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000047 /* AIAnalysisAppModelTests.swift */; };
+		A0000000000000000000012D /* AIAnalysisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000048 /* AIAnalysisServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +104,13 @@
 		A00000000000000000000035 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000040 /* iTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000041 /* iTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000042 /* AIAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysis.swift; sourceTree = "<group>"; };
+		A00000000000000000000043 /* AIAnalysisServing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisServing.swift; sourceTree = "<group>"; };
+		A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICompatibleAIAnalysisService.swift; sourceTree = "<group>"; };
+		A00000000000000000000045 /* AIAPIKeyStoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAPIKeyStoring.swift; sourceTree = "<group>"; };
+		A00000000000000000000046 /* OverviewAIAnalysisSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewAIAnalysisSection.swift; sourceTree = "<group>"; };
+		A00000000000000000000047 /* AIAnalysisAppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisAppModelTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000048 /* AIAnalysisServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +176,7 @@
 		A00000000000000000000064 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000042 /* AIAnalysis.swift */,
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
 				A0000000000000000000002E /* DailyDurationSummary.swift */,
@@ -177,9 +192,11 @@
 		A00000000000000000000065 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000043 /* AIAnalysisServing.swift */,
 				A00000000000000000000017 /* CalendarAccessServing.swift */,
 				A00000000000000000000018 /* CalendarStatisticsAggregator.swift */,
 				A00000000000000000000019 /* EventKitCalendarAccessService.swift */,
+				A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */,
 				A0000000000000000000001A /* StatisticsAggregating.swift */,
 			);
 			path = Services;
@@ -197,6 +214,7 @@
 		A00000000000000000000067 /* Persistence */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000045 /* AIAPIKeyStoring.swift */,
 				A0000000000000000000002A /* UserPreferences.swift */,
 			);
 			path = Persistence;
@@ -251,6 +269,7 @@
 		A0000000000000000000006C /* Overview */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000046 /* OverviewAIAnalysisSection.swift */,
 				A00000000000000000000031 /* OverviewBucketTable.swift */,
 				A00000000000000000000020 /* OverviewChartView.swift */,
 				A0000000000000000000002F /* OverviewMetricsSection.swift */,
@@ -289,6 +308,8 @@
 		A00000000000000000000071 /* iTimeTests */ = {
 			isa = PBXGroup;
 			children = (
+				A00000000000000000000047 /* AIAnalysisAppModelTests.swift */,
+				A00000000000000000000048 /* AIAnalysisServiceTests.swift */,
 				A00000000000000000000024 /* AppModelTests.swift */,
 				A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */,
 				A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */,
@@ -400,6 +421,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A00000000000000000000127 /* AIAnalysis.swift in Sources */,
+				A0000000000000000000012A /* AIAPIKeyStoring.swift in Sources */,
+				A00000000000000000000128 /* AIAnalysisServing.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,
 				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
 				A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */,
@@ -413,6 +437,8 @@
 				A00000000000000000000101 /* iTimeApp.swift in Sources */,
 				A00000000000000000000114 /* LiquidGlassCard.swift in Sources */,
 				A00000000000000000000110 /* MenuBarContentView.swift in Sources */,
+				A00000000000000000000129 /* OpenAICompatibleAIAnalysisService.swift in Sources */,
+				A0000000000000000000012B /* OverviewAIAnalysisSection.swift in Sources */,
 				A00000000000000000000111 /* OverviewChartView.swift in Sources */,
 				A0000000000000000000011A /* OverviewMetricsSection.swift in Sources */,
 				A0000000000000000000011B /* OverviewTrendChartView.swift in Sources */,
@@ -436,6 +462,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A0000000000000000000012C /* AIAnalysisAppModelTests.swift in Sources */,
+				A0000000000000000000012D /* AIAnalysisServiceTests.swift in Sources */,
 				A00000000000000000000121 /* AppModelTests.swift in Sources */,
 				A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */,
 				A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */,

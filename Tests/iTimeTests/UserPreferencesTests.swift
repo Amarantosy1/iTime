@@ -35,3 +35,24 @@ import Testing
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
     #expect(second.selectedRange == .custom)
 }
+
+@Test func defaultAIPreferencesUseDisabledOpenAICompatibleScaffold() {
+    let preferences = UserPreferences(storage: .inMemory)
+
+    #expect(preferences.aiAnalysisEnabled == false)
+    #expect(preferences.aiBaseURL == "https://api.openai.com/v1")
+    #expect(preferences.aiModel.isEmpty)
+}
+
+@Test func aiPreferencesPersistAcrossPreferenceInstances() {
+    let suite = "iTime.tests.ai-preferences"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    first.aiAnalysisEnabled = true
+    first.aiBaseURL = "https://example.com/v1"
+    first.aiModel = "gpt-5-mini"
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.aiAnalysisEnabled == true)
+    #expect(second.aiBaseURL == "https://example.com/v1")
+    #expect(second.aiModel == "gpt-5-mini")
+}
