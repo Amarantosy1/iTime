@@ -16,12 +16,17 @@ struct OverviewWindowView: View {
 
                     RangePicker(
                         selection: Binding(
-                            get: { model.liveSelectedRange },
+                            get: { model.preferences.selectedRange },
                             set: { newValue in
                                 Task { await model.setRange(newValue) }
                             }
-                        )
+                        ),
+                        ranges: TimeRangePreset.overviewCases
                     )
+
+                    if model.preferences.selectedRange == .custom {
+                        customDateRangeControls
+                    }
 
                     if model.authorizationState == .authorized {
                         overviewContent
@@ -43,39 +48,65 @@ struct OverviewWindowView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("我的时间去哪了？")
                 .font(.system(size: 32, weight: .bold, design: .rounded))
-            Text("基于日历事件统计你的时间分布。")
-                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var customDateRangeControls: some View {
+        LiquidGlassCard {
+            HStack(spacing: 16) {
+                DatePicker(
+                    "开始日期",
+                    selection: Binding(
+                        get: { model.preferences.customStartDate },
+                        set: { newValue in
+                            Task {
+                                await model.setCustomDateRange(
+                                    start: newValue,
+                                    end: model.preferences.customEndDate
+                                )
+                            }
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+
+                DatePicker(
+                    "结束日期",
+                    selection: Binding(
+                        get: { model.preferences.customEndDate },
+                        set: { newValue in
+                            Task {
+                                await model.setCustomDateRange(
+                                    start: model.preferences.customStartDate,
+                                    end: newValue
+                                )
+                            }
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+            }
         }
     }
 
     @ViewBuilder
     private var overviewContent: some View {
         if let overview = model.overview, !overview.buckets.isEmpty {
-            LiquidGlassCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(overview.totalDuration.formattedDuration)
-                        .font(.system(size: 34, weight: .semibold, design: .rounded))
+            VStack(alignment: .leading, spacing: 20) {
+                OverviewMetricsSection(overview: overview)
+                OverviewTrendChartView(overview: overview)
 
-                    OverviewChartView(overview: overview)
+                LiquidGlassCard {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("分类分布")
+                            .font(.headline)
 
-                    ForEach(overview.buckets) { bucket in
-                        let style = AppTheme.overviewLegendStyle(for: bucket.colorHex)
-
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(Color(hex: style.swatchHex))
-                                .frame(width: 8, height: 8)
-                            Text(bucket.name)
-                                .foregroundStyle(style.titleRole.color)
-                            Spacer()
-                            Text(bucket.shareText)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(style.shareRole.color)
-                            Text(bucket.totalDuration.formattedDuration)
-                                .foregroundStyle(style.durationRole.color)
-                        }
+                        OverviewChartView(overview: overview)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                OverviewBucketTable(overview: overview)
             }
         } else {
             LiquidGlassCard {

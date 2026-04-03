@@ -7,11 +7,23 @@ import Testing
     #expect(TimeRangePreset.allCases == [.today, .week, .month, .custom])
 }
 
+@Test func menuAndOverviewRangeOptionsAreSeparated() {
+    #expect(TimeRangePreset.menuCases == [.today, .week, .month])
+    #expect(TimeRangePreset.overviewCases == [.today, .week, .month, .custom])
+}
+
 @Test func rangeTitlesUseChineseStrings() {
     #expect(TimeRangePreset.today.title == "今天")
     #expect(TimeRangePreset.week.title == "本周")
     #expect(TimeRangePreset.month.title == "本月")
     #expect(TimeRangePreset.custom.title == "自定义")
+}
+
+@Test func overviewMetricTitlesUseChineseStrings() {
+    #expect(OverviewMetricKind.totalDuration.title == "总时长")
+    #expect(OverviewMetricKind.eventCount.title == "事件数")
+    #expect(OverviewMetricKind.averageDailyDuration.title == "日均时长")
+    #expect(OverviewMetricKind.longestDay.title == "最长单日")
 }
 
 @Test func durationFormattingRendersHoursAndMinutes() {
