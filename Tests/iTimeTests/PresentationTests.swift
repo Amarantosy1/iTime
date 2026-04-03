@@ -219,6 +219,14 @@ import Testing
     #expect(AISettingsCopy.modelsTitle == "模型列表")
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
+    #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 挂载。")
+}
+
+@Test func settingsNavigationUsesClassicSidebarSections() {
+    #expect(SettingsCopy.navigationTitle == "设置")
+    #expect(SettingsCopy.calendarSectionTitle == "统计日历")
+    #expect(SettingsCopy.aiMountSectionTitle == "AI 挂载")
+    #expect(SettingsSection.allCases == [.calendars, .aiMounts])
 }
 
 @Test func aiConversationSummaryUsesConcretePeriodText() {

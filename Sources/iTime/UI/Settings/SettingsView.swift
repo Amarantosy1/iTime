@@ -1,13 +1,45 @@
 import SwiftUI
 
+enum SettingsCopy {
+    static let navigationTitle = "设置"
+    static let calendarSectionTitle = "统计日历"
+    static let calendarSectionDescription = "选择要纳入统计的日历。"
+    static let noCalendarsText = "当前没有可用日历。"
+    static let aiMountSectionTitle = "AI 挂载"
+}
+
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case calendars
+    case aiMounts
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .calendars:
+            SettingsCopy.calendarSectionTitle
+        case .aiMounts:
+            SettingsCopy.aiMountSectionTitle
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .calendars:
+            "calendar"
+        case .aiMounts:
+            "sparkles.rectangle.stack"
+        }
+    }
+}
+
 enum AISettingsCopy {
-    static let sectionTitle = "AI 挂载"
+    static let sectionTitle = SettingsCopy.aiMountSectionTitle
     static let helperText = "参考 Cherry Studio 的挂载方式：为每个挂载单独保存 Base URL、模型列表和 API Key，并选择默认挂载。"
     static let addCustomMountAction = "新增挂载"
     static let defaultMountBadge = "默认"
     static let builtInBadge = "内置"
     static let customBadge = "自定义"
-    static let enableTitle = "启用 AI 复盘"
     static let mountEnabledTitle = "启用此挂载"
     static let setDefaultMountAction = "设为默认挂载"
     static let deleteMountAction = "删除挂载"
@@ -35,28 +67,27 @@ enum AISettingsCopy {
 
 struct SettingsView: View {
     @Bindable var model: AppModel
+    @State private var selectedSection: SettingsSection? = .calendars
     @State private var selectedMountID: UUID?
     @State private var mountAPIKeys: [UUID: String] = [:]
     @State private var mountModelsText: [UUID: String] = [:]
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                aiMountPanel
-                Divider()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        calendarSection
-                    }
-                    .padding(20)
-                }
+        NavigationSplitView {
+            List(SettingsSection.allCases, selection: $selectedSection) { section in
+                Label(section.title, systemImage: section.systemImage)
+                    .tag(section)
             }
-            .navigationTitle("设置")
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)
+        } detail: {
+            detailView
+                .navigationTitle(SettingsCopy.navigationTitle)
         }
-        .frame(width: 900, height: 700)
+        .frame(width: 960, height: 700)
         .task {
             await model.refresh()
             syncMountEditorState()
+            selectedSection = selectedSection ?? .calendars
             selectedMountID = selectedMountID ?? model.defaultAIMountID ?? model.availableAIMounts.first?.id
         }
         .onChange(of: model.availableAIMounts.map(\.id)) { _, _ in
@@ -67,21 +98,66 @@ struct SettingsView: View {
         }
     }
 
-    private var aiMountPanel: some View {
+    @ViewBuilder
+    private var detailView: some View {
+        switch selectedSection ?? .calendars {
+        case .calendars:
+            calendarSettingsPage
+        case .aiMounts:
+            aiMountSettingsPage
+        }
+    }
+
+    private var calendarSettingsPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(SettingsCopy.calendarSectionTitle)
+                    .font(.title3.weight(.semibold))
+
+                Text(SettingsCopy.calendarSectionDescription)
+                    .foregroundStyle(.secondary)
+
+                if model.authorizationState != .authorized {
+                    AuthorizationStateView(state: model.authorizationState) {
+                        Task { await model.requestAccessIfNeeded() }
+                    }
+                } else if model.availableCalendars.isEmpty {
+                    Text(SettingsCopy.noCalendarsText)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(model.availableCalendars) { calendar in
+                            Toggle(isOn: binding(for: calendar)) {
+                                HStack(spacing: 10) {
+                                    Circle()
+                                        .fill(Color(hex: calendar.colorHex))
+                                        .frame(width: 8, height: 8)
+                                    Text(calendar.name)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+        }
+    }
+
+    private var aiMountSettingsPage: some View {
         HSplitView {
             mountsSidebar
                 .frame(minWidth: 260, idealWidth: 280, maxWidth: 320)
 
             mountEditor
-                .frame(minWidth: 520, maxWidth: .infinity)
+                .frame(minWidth: 560, maxWidth: .infinity)
         }
-        .frame(minHeight: 420)
     }
 
     private var mountsSidebar: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(AISettingsCopy.sectionTitle)
+                Text(SettingsCopy.aiMountSectionTitle)
                     .font(.title3.weight(.semibold))
                 Spacer()
                 Button {
@@ -148,14 +224,6 @@ struct SettingsView: View {
 
                     GroupBox {
                         VStack(alignment: .leading, spacing: 14) {
-                            Toggle(
-                                AISettingsCopy.enableTitle,
-                                isOn: Binding(
-                                    get: { model.preferences.aiAnalysisEnabled },
-                                    set: { model.updateAIAnalysisEnabled($0) }
-                                )
-                            )
-
                             Toggle(
                                 AISettingsCopy.mountEnabledTitle,
                                 isOn: Binding(
@@ -283,38 +351,6 @@ struct SettingsView: View {
                 AISettingsCopy.mountPlaceholder,
                 systemImage: "slider.horizontal.3"
             )
-        }
-    }
-
-    private var calendarSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("统计日历")
-                .font(.title3.weight(.semibold))
-
-            Text("选择要纳入统计的日历。")
-                .foregroundStyle(.secondary)
-
-            if model.authorizationState != .authorized {
-                AuthorizationStateView(state: model.authorizationState) {
-                    Task { await model.requestAccessIfNeeded() }
-                }
-            } else if model.availableCalendars.isEmpty {
-                Text("当前没有可用日历。")
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(model.availableCalendars) { calendar in
-                        Toggle(isOn: binding(for: calendar)) {
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(Color(hex: calendar.colorHex))
-                                    .frame(width: 8, height: 8)
-                                Text(calendar.name)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 

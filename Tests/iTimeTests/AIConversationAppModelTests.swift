@@ -794,3 +794,41 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(model.aiMountConnectionState(for: mount.id) == .succeeded("连接成功"))
     #expect(conversationService.validatedConfigurations.first?.provider == .openAI)
 }
+
+@MainActor
+@Test func testAIMountConnectionDoesNotDependOnLegacyAIAnalysisToggle() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [],
+        events: []
+    )
+    let conversationService = RecordingAIConversationService()
+    let mount = AIProviderMount.custom(
+        displayName: "Gemini 代理",
+        providerType: .gemini,
+        baseURL: "https://generativelanguage.googleapis.com/v1beta",
+        models: ["gemini-2.5-flash"],
+        defaultModel: "gemini-2.5-flash",
+        isEnabled: true
+    )
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[mount.id] = "gemini-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = false
+    preferences.saveAIMount(mount)
+    preferences.setDefaultAIMountID(mount.id)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.testAIMountConnection(mount.id)
+
+    #expect(model.aiMountConnectionState(for: mount.id) == .succeeded("连接成功"))
+    #expect(conversationService.validatedConfigurations.first?.provider == .gemini)
+    #expect(conversationService.validatedConfigurations.first?.isEnabled == true)
+}

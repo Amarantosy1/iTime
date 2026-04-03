@@ -664,7 +664,7 @@ public final class AppModel {
             baseURL: configuration.baseURL,
             model: configuration.model,
             apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
-            isEnabled: preferences.aiAnalysisEnabled && configuration.isEnabled
+            isEnabled: configuration.isEnabled
         )
     }
 
@@ -680,7 +680,7 @@ public final class AppModel {
                 baseURL: mount.baseURL,
                 model: resolvedModel,
                 apiKey: (try? aiKeyStore.loadAPIKey(for: mount.id)) ?? "",
-                isEnabled: preferences.aiAnalysisEnabled && mount.isEnabled
+                isEnabled: mount.isEnabled
             )
         }
 
@@ -693,7 +693,7 @@ public final class AppModel {
             baseURL: configuration.baseURL,
             model: resolvedModel,
             apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
-            isEnabled: preferences.aiAnalysisEnabled && configuration.isEnabled
+            isEnabled: configuration.isEnabled
         )
     }
 

@@ -7,8 +7,8 @@ public protocol AIAnalysisHTTPSending: Sendable {
 public struct URLSessionAIAnalysisHTTPSender: AIAnalysisHTTPSending {
     private let session: URLSession
 
-    public init(session: URLSession = .shared) {
-        self.session = session
+    public init(session: URLSession? = nil) {
+        self.session = session ?? URLSession(configuration: Self.defaultConfiguration())
     }
 
     public func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
@@ -17,6 +17,14 @@ public struct URLSessionAIAnalysisHTTPSender: AIAnalysisHTTPSending {
             throw AIAnalysisServiceError.invalidResponse
         }
         return (data, httpResponse)
+    }
+
+    static func defaultConfiguration() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        configuration.waitsForConnectivity = true
+        return configuration
     }
 }
 

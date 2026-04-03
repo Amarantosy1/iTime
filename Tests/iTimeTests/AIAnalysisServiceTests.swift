@@ -127,3 +127,13 @@ private extension Data {
         String(data: self, encoding: .utf8)
     }
 }
+
+@Test func urlSessionSenderUsesDefaultConfigurationThatFollowsSystemNetworking() {
+    let configuration = URLSessionAIAnalysisHTTPSender.defaultConfiguration()
+
+    #expect(configuration.identifier == nil)
+    #expect(configuration.timeoutIntervalForRequest == 30)
+    #expect(configuration.timeoutIntervalForResource == 60)
+    #expect(configuration.waitsForConnectivity == true)
+    #expect(configuration.connectionProxyDictionary == nil)
+}
