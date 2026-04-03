@@ -51,8 +51,7 @@ public final class UserPreferences {
             self.defaults = defaults
         }
 
-        let restoredRange = TimeRangePreset(rawValue: defaults.string(forKey: Keys.selectedRange) ?? "") ?? .today
-        self.selectedRange = restoredRange.isRuntimeSelectable ? restoredRange : .today
+        self.selectedRange = TimeRangePreset(rawValue: defaults.string(forKey: Keys.selectedRange) ?? "") ?? .today
         self.selectedCalendarIDs = defaults.stringArray(forKey: Keys.selectedCalendarIDs) ?? []
         let now = Date()
         let calendar = Calendar.current

@@ -6,10 +6,14 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            RangePicker(selection: $model.preferences.selectedRange)
-                .onChange(of: model.preferences.selectedRange) { _, newValue in
-                    Task { await model.setRange(newValue) }
-                }
+            RangePicker(
+                selection: Binding(
+                    get: { model.liveSelectedRange },
+                    set: { newValue in
+                        Task { await model.setRange(newValue) }
+                    }
+                )
+            )
 
             switch model.authorizationState {
             case .authorized:

@@ -23,6 +23,10 @@ public final class AppModel {
         range.isRuntimeSelectable ? range : .today
     }
 
+    public var liveSelectedRange: TimeRangePreset {
+        normalizedRuntimeRange(preferences.selectedRange)
+    }
+
     public func refresh() async {
         authorizationState = service.authorizationState()
 
@@ -54,10 +58,6 @@ public final class AppModel {
         availableCalendars = fetchedCalendars
 
         let range = normalizedRuntimeRange(preferences.selectedRange)
-        if preferences.selectedRange != range {
-            preferences.selectedRange = range
-        }
-
         let selectedCalendarIDs = fetchedCalendars.filter(\.isSelected).map(\.id)
         let events = service.fetchEvents(
             in: range,
@@ -77,7 +77,7 @@ public final class AppModel {
     }
 
     public func setRange(_ range: TimeRangePreset) async {
-        preferences.selectedRange = normalizedRuntimeRange(range)
+        preferences.selectedRange = range
         await refresh()
     }
 

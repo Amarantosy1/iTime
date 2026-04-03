@@ -109,7 +109,7 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
 }
 
 @MainActor
-@Test func customRangeIsNormalizedOutOfRuntimeSelection() async {
+@Test func setRangePreservesCustomSelectionGroundworkWhileRuntimeUsesToday() async {
     let service = RecordingCalendarAccessService(
         state: .authorized,
         calendars: [
@@ -122,7 +122,27 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
 
     await model.setRange(.custom)
 
-    #expect(preferences.selectedRange == .today)
+    #expect(preferences.selectedRange == .custom)
+    #expect(service.fetchedRanges == [.today])
+    #expect(model.overview?.range == .today)
+}
+
+@MainActor
+@Test func refreshUsesTodayFetchForPreexistingCustomSelection() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.selectedRange = .custom
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.refresh()
+
+    #expect(preferences.selectedRange == .custom)
     #expect(service.fetchedRanges == [.today])
     #expect(model.overview?.range == .today)
 }

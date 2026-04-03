@@ -27,11 +27,11 @@ import Testing
     #expect(second.customEndDate == Date(timeIntervalSince1970: 172_800))
 }
 
-@Test func customPresetDoesNotRestoreIntoActiveSelection() {
+@Test func customPresetRestoresAsDormantSelectionGroundwork() {
     let suite = "iTime.tests.custom-range-selection-restore"
     let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
     first.selectedRange = .custom
 
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
-    #expect(second.selectedRange == .today)
+    #expect(second.selectedRange == .custom)
 }

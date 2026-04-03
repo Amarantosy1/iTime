@@ -14,10 +14,14 @@ struct OverviewWindowView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     header
 
-                    RangePicker(selection: $model.preferences.selectedRange)
-                        .onChange(of: model.preferences.selectedRange) { _, newValue in
-                            Task { await model.setRange(newValue) }
-                        }
+                    RangePicker(
+                        selection: Binding(
+                            get: { model.liveSelectedRange },
+                            set: { newValue in
+                                Task { await model.setRange(newValue) }
+                            }
+                        )
+                    )
 
                     if model.authorizationState == .authorized {
                         overviewContent
