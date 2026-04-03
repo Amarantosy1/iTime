@@ -48,18 +48,12 @@ import Testing
     let lightPalette = AppTheme.overviewBackgroundPalette(for: .light)
     let darkPalette = AppTheme.overviewBackgroundPalette(for: .dark)
 
-    #expect(lightPalette.startHex == "#ECECE8")
-    #expect(lightPalette.endHex == "#E1E1DC")
-    #expect(darkPalette.startHex == "#202124")
-    #expect(darkPalette.endHex == "#2A2B2F")
-}
-
-@Test func overviewBackgroundGradientUsesPaletteColors() {
-    let darkGradient = AppTheme.overviewBackgroundGradient(for: .dark)
-    let lightGradient = AppTheme.overviewBackgroundGradient(for: .light)
-
-    #expect(darkGradient.palette == AppTheme.BackgroundPalette(startHex: "#202124", endHex: "#2A2B2F"))
-    #expect(lightGradient.palette == AppTheme.BackgroundPalette(startHex: "#ECECE8", endHex: "#E1E1DC"))
+    #expect(lightPalette.startHex == "#F2F2F7")
+    #expect(lightPalette.endHex == "#E5E5EA")
+    #expect(lightPalette.accentHex == "#007AFF")
+    #expect(darkPalette.startHex == "#1C1C1E")
+    #expect(darkPalette.endHex == "#0A0A0B")
+    #expect(darkPalette.accentHex == "#5E5CE6")
 }
 
 @Test func overviewLegendStyleUsesSemanticTextRoles() {

@@ -10,9 +10,15 @@ let package = Package(
     products: [
         .executable(name: "iTime", targets: ["iTime"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.4.0"),
+    ],
     targets: [
         .executableTarget(
             name: "iTime",
+            dependencies: [
+                .product(name: "MarkdownUI", package: "swift-markdown-ui"),
+            ],
             exclude: ["Resources"]
         ),
         .testTarget(

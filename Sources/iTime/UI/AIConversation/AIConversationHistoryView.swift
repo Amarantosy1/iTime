@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 enum AIConversationHistoryCopy {
     static let emptyText = "还没有历史总结。"
@@ -218,8 +219,8 @@ private struct AIConversationSummaryDetailView: View {
                 .padding(10)
                 .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         } else {
-            Text(readOnlyText)
-                .foregroundStyle(.secondary)
+            Markdown(readOnlyText)
+                .markdownTheme(.gitHub)
         }
     }
 
@@ -240,10 +241,8 @@ private struct AIConversationSummaryDetailView: View {
                     .padding(10)
                     .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             } else if !items.isEmpty {
-                ForEach(items, id: \.self) { item in
-                    Text("• \(item)")
-                        .foregroundStyle(.secondary)
-                }
+                Markdown(items.map { "- \($0)" }.joined(separator: "\n"))
+                    .markdownTheme(.gitHub)
             }
         }
     }
@@ -312,8 +311,8 @@ private struct AIConversationSummaryDetailView: View {
                     Text(report.title)
                         .font(.headline)
 
-                    Text(report.content)
-                        .foregroundStyle(.secondary)
+                    Markdown(report.content)
+                        .markdownTheme(.gitHub)
                 }
             } else {
                 Text(AIConversationHistoryCopy.longFormPlaceholder)
