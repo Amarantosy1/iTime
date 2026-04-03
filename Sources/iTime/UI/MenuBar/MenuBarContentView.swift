@@ -1,5 +1,34 @@
 import SwiftUI
 
+enum MenuBarBucketChartCopy {
+    static let sectionTitle = "按日历分布"
+}
+
+struct MenuBarBucketChartRow: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let colorHex: String
+    let durationText: String
+    let shareText: String
+    let fillRatio: Double
+
+    static func makeRows(
+        from buckets: [TimeBucketSummary],
+        limit: Int = 4
+    ) -> [MenuBarBucketChartRow] {
+        Array(buckets.prefix(limit)).map { bucket in
+            MenuBarBucketChartRow(
+                id: bucket.id,
+                name: bucket.name,
+                colorHex: bucket.colorHex,
+                durationText: bucket.totalDuration.formattedDuration,
+                shareText: bucket.shareText,
+                fillRatio: min(max(bucket.share, 0), 1)
+            )
+        }
+    }
+}
+
 struct MenuBarContentView: View {
     @Bindable var model: AppModel
     @Environment(\.openWindow) private var openWindow
@@ -58,15 +87,45 @@ struct MenuBarContentView: View {
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
 
                 if let overview = model.overview, !overview.buckets.isEmpty {
-                    ForEach(overview.buckets.prefix(3)) { bucket in
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(Color(hex: bucket.colorHex))
-                                .frame(width: 8, height: 8)
-                            Text(bucket.name)
-                            Spacer()
-                            Text(bucket.totalDuration.formattedDuration)
-                                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(MenuBarBucketChartCopy.sectionTitle)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+
+                        ForEach(MenuBarBucketChartRow.makeRows(from: overview.buckets)) { row in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color(hex: row.colorHex))
+                                        .frame(width: 8, height: 8)
+
+                                    Text(row.name)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+
+                                    Spacer(minLength: 8)
+
+                                    Text(row.shareText)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                GeometryReader { proxy in
+                                    ZStack(alignment: .leading) {
+                                        Capsule()
+                                            .fill(.quaternary)
+
+                                        Capsule()
+                                            .fill(Color(hex: row.colorHex))
+                                            .frame(width: max(proxy.size.width * row.fillRatio, row.fillRatio > 0 ? 10 : 0))
+                                    }
+                                }
+                                .frame(height: 8)
+
+                                Text(row.durationText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 } else {

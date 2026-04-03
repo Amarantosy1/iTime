@@ -142,3 +142,60 @@ import Testing
     #expect(OverviewTrendChartCopy.xDomainLabels(for: buckets).first == "0时")
     #expect(OverviewTrendChartCopy.xDomainLabels(for: buckets).last == "23时")
 }
+
+@Test func menuBarChartRowsKeepTopBucketsInOrder() {
+    let rows = MenuBarBucketChartRow.makeRows(
+        from: [
+            TimeBucketSummary(
+                id: "work",
+                name: "工作",
+                colorHex: "#4A90E2",
+                totalDuration: 7_200,
+                eventCount: 2,
+                share: 0.5
+            ),
+            TimeBucketSummary(
+                id: "study",
+                name: "学习",
+                colorHex: "#50E3C2",
+                totalDuration: 3_600,
+                eventCount: 1,
+                share: 0.25
+            ),
+            TimeBucketSummary(
+                id: "life",
+                name: "生活",
+                colorHex: "#F5A623",
+                totalDuration: 1_800,
+                eventCount: 1,
+                share: 0.125
+            ),
+            TimeBucketSummary(
+                id: "fitness",
+                name: "健身",
+                colorHex: "#D0021B",
+                totalDuration: 900,
+                eventCount: 1,
+                share: 0.0625
+            ),
+            TimeBucketSummary(
+                id: "misc",
+                name: "其他",
+                colorHex: "#9013FE",
+                totalDuration: 450,
+                eventCount: 1,
+                share: 0.03125
+            ),
+        ]
+    )
+
+    #expect(rows.count == 4)
+    #expect(rows.map(\.name) == ["工作", "学习", "生活", "健身"])
+    #expect(rows[0].shareText == "50%")
+    #expect(rows[0].fillRatio == 0.5)
+    #expect(rows[1].durationText == "1h")
+}
+
+@Test func menuBarChartUsesChineseSectionTitle() {
+    #expect(MenuBarBucketChartCopy.sectionTitle == "按日历分布")
+}
