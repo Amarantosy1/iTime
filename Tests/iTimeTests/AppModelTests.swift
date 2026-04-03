@@ -10,7 +10,7 @@ private struct StubCalendarAccessService: CalendarAccessServing {
     func authorizationState() -> CalendarAuthorizationState { state }
     func requestAccess() async -> CalendarAuthorizationState { state }
     func fetchCalendars() -> [CalendarSource] { calendars }
-    func fetchEvents(in range: TimeRangePreset, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
+    func fetchEvents(in interval: DateInterval, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
         events.filter { selectedCalendarIDs.isEmpty || selectedCalendarIDs.contains($0.calendarID) }
     }
 }
@@ -19,7 +19,7 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
     let state: CalendarAuthorizationState
     let calendars: [CalendarSource]
     let events: [CalendarEventRecord]
-    private(set) var fetchedRanges: [TimeRangePreset] = []
+    private(set) var fetchedIntervals: [DateInterval] = []
 
     init(
         state: CalendarAuthorizationState,
@@ -35,10 +35,30 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
     func requestAccess() async -> CalendarAuthorizationState { state }
     func fetchCalendars() -> [CalendarSource] { calendars }
 
-    func fetchEvents(in range: TimeRangePreset, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
-        fetchedRanges.append(range)
+    func fetchEvents(in interval: DateInterval, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
+        fetchedIntervals.append(interval)
         return events.filter { selectedCalendarIDs.isEmpty || selectedCalendarIDs.contains($0.calendarID) }
     }
+}
+
+private func makeCalendar() -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+    calendar.locale = Locale(identifier: "en_US_POSIX")
+    calendar.firstWeekday = 2
+    return calendar
+}
+
+private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minute: Int = 0) -> Date {
+    var components = DateComponents()
+    components.calendar = makeCalendar()
+    components.timeZone = TimeZone(secondsFromGMT: 0)
+    components.year = year
+    components.month = month
+    components.day = day
+    components.hour = hour
+    components.minute = minute
+    return components.date!
 }
 
 @MainActor
@@ -109,7 +129,7 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
 }
 
 @MainActor
-@Test func setRangePreservesCustomSelectionGroundworkWhileRuntimeUsesToday() async {
+@Test func refreshUsesResolvedCustomInterval() async {
     let service = RecordingCalendarAccessService(
         state: .authorized,
         calendars: [
@@ -117,32 +137,85 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
         ],
         events: []
     )
-    let preferences = UserPreferences(storage: .inMemory)
-    let model = AppModel(service: service, preferences: preferences)
-
-    await model.setRange(.custom)
-
-    #expect(preferences.selectedRange == .custom)
-    #expect(service.fetchedRanges == [.today])
-    #expect(model.overview?.range == .today)
-}
-
-@MainActor
-@Test func refreshUsesTodayFetchForPreexistingCustomSelection() async {
-    let service = RecordingCalendarAccessService(
-        state: .authorized,
-        calendars: [
-            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
-        ],
-        events: []
-    )
+    let calendar = makeCalendar()
     let preferences = UserPreferences(storage: .inMemory)
     preferences.selectedRange = .custom
-    let model = AppModel(service: service, preferences: preferences)
+    preferences.customStartDate = makeDate(2026, 4, 3, hour: 18, minute: 45)
+    preferences.customEndDate = makeDate(2026, 4, 5, hour: 9, minute: 15)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 12) }
+    )
 
     await model.refresh()
 
     #expect(preferences.selectedRange == .custom)
-    #expect(service.fetchedRanges == [.today])
-    #expect(model.overview?.range == .today)
+    #expect(service.fetchedIntervals == [
+        DateInterval(start: makeDate(2026, 4, 3), end: makeDate(2026, 4, 6))
+    ])
+    #expect(model.overview?.range == .custom)
+}
+
+@MainActor
+@Test func setCustomDateRangeClampsInvalidRange() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let calendar = makeCalendar()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.selectedRange = .custom
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 12) }
+    )
+
+    await model.setCustomDateRange(
+        start: makeDate(2026, 4, 10, hour: 14),
+        end: makeDate(2026, 4, 8, hour: 8)
+    )
+
+    #expect(preferences.customStartDate == makeDate(2026, 4, 8, hour: 8))
+    #expect(preferences.customEndDate == makeDate(2026, 4, 10, hour: 14))
+    #expect(service.fetchedIntervals.last == DateInterval(
+        start: makeDate(2026, 4, 8),
+        end: makeDate(2026, 4, 11)
+    ))
+}
+
+@MainActor
+@Test func presetRangesResolveToConcreteIntervals() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let calendar = makeCalendar()
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 15, minute: 30) }
+    )
+
+    await model.setRange(.today)
+    await model.setRange(.week)
+    await model.setRange(.month)
+
+    #expect(service.fetchedIntervals == [
+        DateInterval(start: makeDate(2026, 4, 3), end: makeDate(2026, 4, 4)),
+        DateInterval(start: makeDate(2026, 3, 30), end: makeDate(2026, 4, 6)),
+        DateInterval(start: makeDate(2026, 4, 1), end: makeDate(2026, 5, 1)),
+    ])
+    #expect(model.overview?.range == .month)
 }

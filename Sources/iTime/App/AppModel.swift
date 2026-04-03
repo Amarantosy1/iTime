@@ -11,20 +11,54 @@ public final class AppModel {
     public var preferences: UserPreferences
 
     private let service: CalendarAccessServing
+    private let calendar: Calendar
+    private let now: @Sendable () -> Date
 
-    public init(service: CalendarAccessServing, preferences: UserPreferences) {
+    public init(
+        service: CalendarAccessServing,
+        preferences: UserPreferences,
+        calendar: Calendar = .current,
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
         self.service = service
+        self.calendar = calendar
+        self.now = now
         self.preferences = preferences
         self.authorizationState = service.authorizationState()
         self.availableCalendars = []
     }
 
-    private func normalizedRuntimeRange(_ range: TimeRangePreset) -> TimeRangePreset {
-        range.isRuntimeSelectable ? range : .today
+    public var liveSelectedRange: TimeRangePreset {
+        preferences.selectedRange.isRuntimeSelectable ? preferences.selectedRange : .today
     }
 
-    public var liveSelectedRange: TimeRangePreset {
-        normalizedRuntimeRange(preferences.selectedRange)
+    private var activeRange: TimeRangePreset {
+        preferences.selectedRange
+    }
+
+    private var activeInterval: DateInterval {
+        resolveInterval(for: activeRange)
+    }
+
+    private func resolveInterval(for range: TimeRangePreset) -> DateInterval {
+        let referenceDate = now()
+
+        switch range {
+        case .today:
+            return calendar.dateInterval(of: .day, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 86_400)
+        case .week:
+            return calendar.dateInterval(of: .weekOfYear, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 604_800)
+        case .month:
+            return calendar.dateInterval(of: .month, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 2_592_000)
+        case .custom:
+            let start = calendar.startOfDay(for: preferences.customStartDate)
+            let endStart = calendar.startOfDay(for: preferences.customEndDate)
+            let end = calendar.date(byAdding: .day, value: 1, to: endStart) ?? endStart.addingTimeInterval(86_400)
+            return DateInterval(start: start, end: end)
+        }
     }
 
     public func refresh() async {
@@ -57,10 +91,10 @@ public final class AppModel {
 
         availableCalendars = fetchedCalendars
 
-        let range = normalizedRuntimeRange(preferences.selectedRange)
+        let range = activeRange
         let selectedCalendarIDs = fetchedCalendars.filter(\.isSelected).map(\.id)
         let events = service.fetchEvents(
-            in: range,
+            in: activeInterval,
             selectedCalendarIDs: selectedCalendarIDs
         )
         let aggregator = CalendarStatisticsAggregator(
@@ -78,6 +112,13 @@ public final class AppModel {
 
     public func setRange(_ range: TimeRangePreset) async {
         preferences.selectedRange = range
+        await refresh()
+    }
+
+    public func setCustomDateRange(start: Date, end: Date) async {
+        let range = StatisticsDateRange(startDate: start, endDate: end)
+        preferences.customStartDate = range.startDate
+        preferences.customEndDate = range.endDate
         await refresh()
     }
 

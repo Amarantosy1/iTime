@@ -4,11 +4,9 @@ import Foundation
 @MainActor
 public final class EventKitCalendarAccessService: CalendarAccessServing {
     private let store: EKEventStore
-    private let calendar: Calendar
 
-    public init(store: EKEventStore = EKEventStore(), calendar: Calendar = .current) {
+    public init(store: EKEventStore = EKEventStore()) {
         self.store = store
-        self.calendar = calendar
     }
 
     public func authorizationState() -> CalendarAuthorizationState {
@@ -48,8 +46,7 @@ public final class EventKitCalendarAccessService: CalendarAccessServing {
             }
     }
 
-    public func fetchEvents(in range: TimeRangePreset, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
-        let interval = Self.dateInterval(for: range, referenceDate: .now, calendar: calendar)
+    public func fetchEvents(in interval: DateInterval, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
         let visibleCalendars = store.calendars(for: .event).filter {
             selectedCalendarIDs.isEmpty || selectedCalendarIDs.contains($0.calendarIdentifier)
         }
@@ -69,13 +66,16 @@ public final class EventKitCalendarAccessService: CalendarAccessServing {
     public static func dateInterval(for range: TimeRangePreset, referenceDate: Date, calendar: Calendar) -> DateInterval {
         switch range {
         case .today:
-            calendar.dateInterval(of: .day, for: referenceDate) ?? DateInterval(start: referenceDate, duration: 86_400)
+            return calendar.dateInterval(of: .day, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 86_400)
         case .week:
-            calendar.dateInterval(of: .weekOfYear, for: referenceDate) ?? DateInterval(start: referenceDate, duration: 604_800)
+            return calendar.dateInterval(of: .weekOfYear, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 604_800)
         case .month:
-            calendar.dateInterval(of: .month, for: referenceDate) ?? DateInterval(start: referenceDate, duration: 2_592_000)
+            return calendar.dateInterval(of: .month, for: referenceDate)
+                ?? DateInterval(start: referenceDate, duration: 2_592_000)
         case .custom:
-            preconditionFailure("Custom range fetching is not implemented yet")
+            preconditionFailure("Custom interval resolution requires explicit dates and is handled in AppModel")
         }
     }
 }
