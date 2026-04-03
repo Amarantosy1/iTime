@@ -48,6 +48,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     var nextQuestion: String
     var summaryDraft: AIConversationSummaryDraft
     var shouldSuspendNextQuestion = false
+    var validateShouldFail = false
+    private(set) var validatedConfigurations: [ResolvedAIProviderConfiguration] = []
     private(set) var askedContexts: [AIConversationContext] = []
     private(set) var askedHistories: [[AIConversationMessage]] = []
     private(set) var askedConfigurations: [ResolvedAIProviderConfiguration] = []
@@ -68,6 +70,13 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     ) {
         self.nextQuestion = nextQuestion
         self.summaryDraft = summaryDraft
+    }
+
+    func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
+        validatedConfigurations.append(configuration)
+        if validateShouldFail {
+            throw AIAnalysisServiceError.invalidConfiguration
+        }
     }
 
     func askQuestion(
@@ -238,6 +247,63 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func startAIConversationBindsSelectedMountAndModel() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "路线评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let mount = AIProviderMount.custom(
+        displayName: "OpenAI Proxy",
+        providerType: .openAI,
+        baseURL: "https://proxy.example.com/v1",
+        models: ["gpt-5", "gpt-5-mini"],
+        defaultModel: "gpt-5-mini",
+        isEnabled: true
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[mount.id] = "proxy-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.saveAIMount(mount)
+    preferences.setDefaultAIMountID(mount.id)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    model.selectConversationMount(id: mount.id)
+    model.selectConversationModel("gpt-5")
+    await model.startAIConversation()
+
+    guard case .waitingForUser(let session) = model.aiConversationState else {
+        Issue.record("Expected waitingForUser state")
+        return
+    }
+    #expect(session.mountID == mount.id)
+    #expect(session.mountDisplayName == "OpenAI Proxy")
+    #expect(session.model == "gpt-5")
+    #expect(conversationService.askedConfigurations.first?.baseURL == "https://proxy.example.com/v1")
+    #expect(conversationService.askedConfigurations.first?.model == "gpt-5")
+}
+
+@MainActor
 @Test func sendAIConversationReplyAppendsUserReplyAndNextQuestion() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: CalendarAuthorizationState.authorized,
@@ -395,6 +461,74 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func changingMountSelectionDoesNotAffectOngoingConversation() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let primaryMount = AIProviderMount.custom(
+        displayName: "OpenAI Proxy A",
+        providerType: .openAI,
+        baseURL: "https://proxy-a.example.com/v1",
+        models: ["gpt-5-mini"],
+        defaultModel: "gpt-5-mini",
+        isEnabled: true
+    )
+    let secondaryMount = AIProviderMount.custom(
+        displayName: "OpenAI Proxy B",
+        providerType: .openAI,
+        baseURL: "https://proxy-b.example.com/v1",
+        models: ["gpt-5"],
+        defaultModel: "gpt-5",
+        isEnabled: true
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[primaryMount.id] = "proxy-a-key"
+    keyStore.values[secondaryMount.id] = "proxy-b-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.saveAIMount(primaryMount)
+    preferences.saveAIMount(secondaryMount)
+    preferences.setDefaultAIMountID(primaryMount.id)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    model.selectConversationMount(id: primaryMount.id)
+    await model.startAIConversation()
+
+    let startedSession = try #require(model.currentConversationSession)
+    model.selectConversationMount(id: secondaryMount.id)
+    model.selectConversationModel("gpt-5")
+    await model.sendAIConversationReply("已经产出结论了。")
+
+    let continuedSession = try #require(model.currentConversationSession)
+    #expect(continuedSession.mountID == startedSession.mountID)
+    #expect(continuedSession.model == startedSession.model)
+    #expect(conversationService.askedConfigurations.count == 2)
+    #expect(conversationService.askedConfigurations[0].baseURL == "https://proxy-a.example.com/v1")
+    #expect(conversationService.askedConfigurations[1].baseURL == "https://proxy-a.example.com/v1")
+}
+
+@MainActor
 @Test func finishAIConversationArchivesSummaryAndLoadsHistory() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: CalendarAuthorizationState.authorized,
@@ -483,4 +617,180 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 
     #expect(model.aiConversationHistory.count == 1)
     #expect(model.aiConversationState == AIConversationState.idle)
+}
+
+@MainActor
+@Test func deletingConversationSummaryRemovesSummarySessionAndMemory() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService()
+    let summaryID = UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!
+    let sessionID = UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [
+                AIConversationSession(
+                    id: sessionID,
+                    mountID: AIProviderKind.openAI.builtInMountID,
+                    mountDisplayName: "OpenAI",
+                    provider: .openAI,
+                    model: "gpt-5-mini",
+                    range: .today,
+                    startDate: .init(timeIntervalSince1970: 0),
+                    endDate: .init(timeIntervalSince1970: 86_400),
+                    startedAt: .init(timeIntervalSince1970: 0),
+                    completedAt: .init(timeIntervalSince1970: 7_200),
+                    status: .completed,
+                    overviewSnapshot: AIOverviewSnapshot(
+                        rangeTitle: "今天",
+                        totalDurationText: "1小时",
+                        totalEventCount: 1,
+                        topCalendarNames: ["工作"]
+                    ),
+                    messages: []
+                ),
+            ],
+            summaries: [
+                AIConversationSummary(
+                    id: summaryID,
+                    sessionID: sessionID,
+                    mountID: AIProviderKind.openAI.builtInMountID,
+                    mountDisplayName: "OpenAI",
+                    provider: .openAI,
+                    model: "gpt-5-mini",
+                    range: .today,
+                    startDate: .init(timeIntervalSince1970: 0),
+                    endDate: .init(timeIntervalSince1970: 86_400),
+                    createdAt: .init(timeIntervalSince1970: 7_200),
+                    headline: "今天以沟通为主",
+                    summary: "今天的日程多为需求同步。",
+                    findings: ["沟通密度偏高"],
+                    suggestions: ["给执行留整块时间"],
+                    overviewSnapshot: AIOverviewSnapshot(
+                        rangeTitle: "今天",
+                        totalDurationText: "1小时",
+                        totalEventCount: 1,
+                        topCalendarNames: ["工作"]
+                    )
+                ),
+            ],
+            memorySnapshots: [
+                AIMemorySnapshot(
+                    id: UUID(uuidString: "cccccccc-cccc-cccc-cccc-cccccccccccc")!,
+                    createdAt: .init(timeIntervalSince1970: 8_000),
+                    sourceSummaryIDs: [summaryID],
+                    summary: "最近几轮复盘都显示沟通偏多。"
+                ),
+            ]
+        )
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    model.deleteAIConversationSummary(id: summaryID)
+
+    #expect(model.aiConversationHistory.isEmpty)
+    #expect(model.latestAIMemorySnapshot == nil)
+    #expect(archiveStore.archive.summaries.isEmpty)
+    #expect(archiveStore.archive.sessions.isEmpty)
+    #expect(archiveStore.archive.memorySnapshots.isEmpty)
+}
+
+@MainActor
+@Test func discardingInProgressConversationRemovesDraftSessionWithoutSummary() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService()
+    let archiveStore = InMemoryAIConversationArchiveStore()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    await model.sendAIConversationReply("主要在对齐需求变更。")
+    let sessionID = try #require(model.currentConversationSession?.id)
+
+    model.discardCurrentAIConversation()
+
+    #expect(model.aiConversationState == .idle)
+    #expect(model.aiConversationHistory.isEmpty)
+    #expect(archiveStore.archive.summaries.isEmpty)
+    #expect(archiveStore.archive.sessions.contains(where: { $0.id == sessionID }) == false)
+}
+
+@MainActor
+@Test func testAIMountConnectionStoresSuccessStatePerMount() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [],
+        events: []
+    )
+    let conversationService = RecordingAIConversationService()
+    let keyStore = ConversationInMemoryAIKeyStore(value: "secret-key")
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://api.openai.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    let mount = try #require(model.availableAIMounts.first(where: { $0.providerType == .openAI }))
+
+    await model.testAIMountConnection(mount.id)
+
+    #expect(model.aiMountConnectionState(for: mount.id) == .succeeded("连接成功"))
+    #expect(conversationService.validatedConfigurations.first?.provider == .openAI)
 }

@@ -6,6 +6,10 @@ private final class RecordingProviderConversationService: @unchecked Sendable, A
     private(set) var askCount = 0
     private(set) var lastConfiguration: ResolvedAIProviderConfiguration?
 
+    func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
+        lastConfiguration = configuration
+    }
+
     func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],

@@ -7,6 +7,14 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         self.httpSender = httpSender
     }
 
+    public func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
+        _ = try await sendRequest(
+            systemPrompt: "你是一个连接测试助手，只返回纯文本 pong。",
+            userPrompt: "回复 pong。",
+            configuration: configuration
+        )
+    }
+
     public func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],

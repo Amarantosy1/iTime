@@ -7,6 +7,13 @@ public struct AIConversationRoutingService: AIConversationServing, Sendable {
         self.services = services
     }
 
+    public func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
+        guard let service = services[configuration.provider] else {
+            throw AIAnalysisServiceError.invalidConfiguration
+        }
+        try await service.validateConnection(configuration: configuration)
+    }
+
     public func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],

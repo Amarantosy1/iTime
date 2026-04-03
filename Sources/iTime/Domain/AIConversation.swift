@@ -24,7 +24,10 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
 
 public struct AIConversationSession: Equatable, Codable, Sendable {
     public let id: UUID
+    public let mountID: UUID?
+    public let mountDisplayName: String
     public let provider: AIProviderKind
+    public let model: String
     public let range: TimeRangePreset
     public let startDate: Date
     public let endDate: Date
@@ -36,7 +39,10 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
 
     public init(
         id: UUID,
+        mountID: UUID?,
+        mountDisplayName: String,
         provider: AIProviderKind,
+        model: String,
         range: TimeRangePreset,
         startDate: Date,
         endDate: Date,
@@ -47,7 +53,10 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         messages: [AIConversationMessage]
     ) {
         self.id = id
+        self.mountID = mountID
+        self.mountDisplayName = mountDisplayName
         self.provider = provider
+        self.model = model
         self.range = range
         self.startDate = startDate
         self.endDate = endDate
@@ -60,7 +69,10 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case mountID
+        case mountDisplayName
         case provider
+        case model
         case range
         case startDate
         case endDate
@@ -75,6 +87,9 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         provider = try container.decodeIfPresent(AIProviderKind.self, forKey: .provider) ?? .openAI
+        mountID = try container.decodeIfPresent(UUID.self, forKey: .mountID)
+        mountDisplayName = try container.decodeIfPresent(String.self, forKey: .mountDisplayName) ?? provider.title
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? ""
         range = try container.decode(TimeRangePreset.self, forKey: .range)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decode(Date.self, forKey: .endDate)
@@ -88,7 +103,10 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(mountID, forKey: .mountID)
+        try container.encode(mountDisplayName, forKey: .mountDisplayName)
         try container.encode(provider, forKey: .provider)
+        try container.encode(model, forKey: .model)
         try container.encode(range, forKey: .range)
         try container.encode(startDate, forKey: .startDate)
         try container.encode(endDate, forKey: .endDate)
@@ -133,7 +151,10 @@ public enum AIConversationMessageRole: String, Equatable, Codable, Sendable {
 public struct AIConversationSummary: Equatable, Codable, Sendable {
     public let id: UUID
     public let sessionID: UUID
+    public let mountID: UUID?
+    public let mountDisplayName: String
     public let provider: AIProviderKind
+    public let model: String
     public let range: TimeRangePreset
     public let startDate: Date
     public let endDate: Date
@@ -147,7 +168,10 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
     public init(
         id: UUID,
         sessionID: UUID,
+        mountID: UUID?,
+        mountDisplayName: String,
         provider: AIProviderKind,
+        model: String,
         range: TimeRangePreset,
         startDate: Date,
         endDate: Date,
@@ -160,7 +184,10 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
     ) {
         self.id = id
         self.sessionID = sessionID
+        self.mountID = mountID
+        self.mountDisplayName = mountDisplayName
         self.provider = provider
+        self.model = model
         self.range = range
         self.startDate = startDate
         self.endDate = endDate
@@ -175,7 +202,10 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id
         case sessionID
+        case mountID
+        case mountDisplayName
         case provider
+        case model
         case range
         case startDate
         case endDate
@@ -192,6 +222,9 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
         id = try container.decode(UUID.self, forKey: .id)
         sessionID = try container.decode(UUID.self, forKey: .sessionID)
         provider = try container.decodeIfPresent(AIProviderKind.self, forKey: .provider) ?? .openAI
+        mountID = try container.decodeIfPresent(UUID.self, forKey: .mountID)
+        mountDisplayName = try container.decodeIfPresent(String.self, forKey: .mountDisplayName) ?? provider.title
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? ""
         range = try container.decode(TimeRangePreset.self, forKey: .range)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decode(Date.self, forKey: .endDate)
@@ -207,7 +240,10 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(sessionID, forKey: .sessionID)
+        try container.encodeIfPresent(mountID, forKey: .mountID)
+        try container.encode(mountDisplayName, forKey: .mountDisplayName)
         try container.encode(provider, forKey: .provider)
+        try container.encode(model, forKey: .model)
         try container.encode(range, forKey: .range)
         try container.encode(startDate, forKey: .startDate)
         try container.encode(endDate, forKey: .endDate)

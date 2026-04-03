@@ -25,7 +25,10 @@ import Testing
         sessions: [
             AIConversationSession(
                 id: sessionID,
+                mountID: AIProviderKind.openAI.builtInMountID,
+                mountDisplayName: "OpenAI",
                 provider: .openAI,
+                model: "gpt-5-mini",
                 range: .week,
                 startDate: startDate,
                 endDate: endDate,
@@ -58,7 +61,10 @@ import Testing
             AIConversationSummary(
                 id: summaryID,
                 sessionID: sessionID,
+                mountID: AIProviderKind.openAI.builtInMountID,
+                mountDisplayName: "OpenAI",
                 provider: .openAI,
+                model: "gpt-5-mini",
                 range: .week,
                 startDate: startDate,
                 endDate: endDate,

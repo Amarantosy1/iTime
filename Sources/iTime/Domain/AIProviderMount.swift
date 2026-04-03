@@ -88,3 +88,10 @@ public struct AIProviderMount: Equatable, Codable, Identifiable, Sendable {
         )
     }
 }
+
+public enum AIMountConnectionState: Equatable, Sendable {
+    case idle
+    case testing
+    case succeeded(String)
+    case failed(String)
+}

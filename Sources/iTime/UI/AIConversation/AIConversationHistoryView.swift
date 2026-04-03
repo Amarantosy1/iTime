@@ -1,22 +1,30 @@
 import SwiftUI
 
+private enum AIConversationHistoryCopy {
+    static let emptyText = "还没有历史总结。"
+    static let deleteAction = "删除总结"
+    static let deleteConfirmationTitle = "删除这条历史总结？"
+    static let deleteConfirmationMessage = "删除后会同时移除关联会话记录和依赖它的 memory。"
+}
+
 struct AIConversationHistoryView: View {
-    let summaries: [AIConversationSummary]
+    @Bindable var model: AppModel
     @State private var selectedSummaryID: UUID?
+    @State private var pendingDeletionSummaryID: UUID?
 
     var body: some View {
         NavigationSplitView {
-            if summaries.isEmpty {
-                Text("还没有历史总结。")
+            if model.aiConversationHistory.isEmpty {
+                Text(AIConversationHistoryCopy.emptyText)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 List(selection: $selectedSummaryID) {
-                    ForEach(summaries, id: \.id) { summary in
+                    ForEach(model.aiConversationHistory, id: \.id) { summary in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(summary.headline)
                                 .font(.headline)
-                            Text("\(summary.provider.title) · \(summary.displayPeriodText)")
+                            Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             Text(summary.summary)
@@ -28,40 +36,88 @@ struct AIConversationHistoryView: View {
                     }
                 }
                 .onAppear {
-                    selectedSummaryID = selectedSummaryID ?? summaries.first?.id
+                    selectedSummaryID = selectedSummaryID ?? model.aiConversationHistory.first?.id
                 }
             }
         } detail: {
             if let summary = selectedSummary {
-                AIConversationSummaryDetailView(summary: summary)
+                AIConversationSummaryDetailView(
+                    summary: summary,
+                    onDelete: { pendingDeletionSummaryID = summary.id }
+                )
             } else {
-                Text("还没有历史总结。")
+                Text(AIConversationHistoryCopy.emptyText)
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle(AIAnalysisCopy.historyAction)
-        .frame(minWidth: 700, minHeight: 440)
+        .frame(minWidth: 760, minHeight: 480)
+        .toolbar {
+            if selectedSummary != nil {
+                ToolbarItem {
+                    Button(AIConversationHistoryCopy.deleteAction, role: .destructive) {
+                        pendingDeletionSummaryID = selectedSummaryID
+                    }
+                }
+            }
+        }
+        .alert(
+            AIConversationHistoryCopy.deleteConfirmationTitle,
+            isPresented: Binding(
+                get: { pendingDeletionSummaryID != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingDeletionSummaryID = nil
+                    }
+                }
+            )
+        ) {
+            Button("删除", role: .destructive) {
+                guard let summaryID = pendingDeletionSummaryID else { return }
+                deleteSummary(id: summaryID)
+                pendingDeletionSummaryID = nil
+            }
+            Button("取消", role: .cancel) {
+                pendingDeletionSummaryID = nil
+            }
+        } message: {
+            Text(AIConversationHistoryCopy.deleteConfirmationMessage)
+        }
     }
 
     private var selectedSummary: AIConversationSummary? {
         if let selectedSummaryID {
-            return summaries.first(where: { $0.id == selectedSummaryID })
+            return model.aiConversationHistory.first(where: { $0.id == selectedSummaryID })
         }
-        return summaries.first
+        return model.aiConversationHistory.first
+    }
+
+    private func deleteSummary(id: UUID) {
+        model.deleteAIConversationSummary(id: id)
+        selectedSummaryID = model.aiConversationHistory.first?.id
     }
 }
 
 private struct AIConversationSummaryDetailView: View {
     let summary: AIConversationSummary
+    let onDelete: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(summary.headline)
-                    .font(.title2.weight(.semibold))
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(summary.headline)
+                            .font(.title2.weight(.semibold))
 
-                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
-                    .foregroundStyle(.secondary)
+                        Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button(AIConversationHistoryCopy.deleteAction, role: .destructive, action: onDelete)
+                }
 
                 Text(summary.summary)
                     .foregroundStyle(.secondary)

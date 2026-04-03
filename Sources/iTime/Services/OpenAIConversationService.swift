@@ -7,6 +7,10 @@ public struct OpenAIConversationService: AIConversationServing, Sendable {
         self.implementation = OpenAICompatibleAIConversationService(httpSender: httpSender)
     }
 
+    public func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws {
+        try await implementation.validateConnection(configuration: configuration)
+    }
+
     public func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],

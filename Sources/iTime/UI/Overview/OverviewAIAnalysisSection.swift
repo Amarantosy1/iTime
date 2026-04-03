@@ -66,7 +66,7 @@ struct OverviewAIAnalysisSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .sheet(isPresented: $showsHistory) {
-            AIConversationHistoryView(summaries: model.aiConversationHistory)
+            AIConversationHistoryView(model: model)
         }
     }
 
@@ -88,7 +88,7 @@ struct OverviewAIAnalysisSection: View {
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
 
-                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
+                Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

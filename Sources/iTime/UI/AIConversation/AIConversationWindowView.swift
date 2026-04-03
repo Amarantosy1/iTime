@@ -15,20 +15,33 @@ enum AIConversationWindowCopy {
     static let composerHint = "Enter 发送，Shift+Enter 换行"
     static let findingsTitle = "主要发现"
     static let suggestionsTitle = "改进建议"
+    static let mountSelectionTitle = "挂载"
+    static let modelSelectionTitle = "模型"
+    static let mountSelectionHint = "开始前可切换挂载和模型。"
+    static let missingModelText = "请先在设置里补充模型列表。"
+    static let discardConversationAccessibilityLabel = "退出本轮复盘"
+    static let discardConfirmationTitle = "放弃这轮复盘？"
+    static let discardConfirmationMessage = "退出后不会生成报告，这一轮未完成对话也不会进入历史。"
 }
 
 struct AIConversationWindowView: View {
     static let windowID = "aiConversation"
 
     @Bindable var model: AppModel
+    @Environment(\.dismissWindow) private var dismissWindow
     @State private var replyDraft = ""
     @State private var showsHistory = false
+    @State private var showsDiscardConfirmation = false
     @FocusState private var isComposerFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
+            if showsPreflightOptions {
+                preflightOptionsView
+                Divider()
+            }
             conversationBody
             if showsComposer {
                 Divider()
@@ -43,9 +56,26 @@ struct AIConversationWindowView: View {
             }
         }
         .navigationTitle(AIConversationWindowCopy.title)
-        .frame(minWidth: 620, minHeight: 540)
+        .frame(minWidth: 720, minHeight: 560)
         .sheet(isPresented: $showsHistory) {
-            AIConversationHistoryView(summaries: model.aiConversationHistory)
+            AIConversationHistoryView(model: model)
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(action: closeOrDiscardConversation) {
+                    Image(systemName: "chevron.left")
+                }
+                .help(AIConversationWindowCopy.discardConversationAccessibilityLabel)
+            }
+        }
+        .alert(AIConversationWindowCopy.discardConfirmationTitle, isPresented: $showsDiscardConfirmation) {
+            Button("退出", role: .destructive) {
+                model.discardCurrentAIConversation()
+                dismissWindow(id: Self.windowID)
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text(AIConversationWindowCopy.discardConfirmationMessage)
         }
     }
 
@@ -73,10 +103,69 @@ struct AIConversationWindowView: View {
                         Task { await model.startAIConversation() }
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(!canStartConversationNow)
                 }
             }
         }
         .padding(20)
+    }
+
+    private var preflightOptionsView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(AIConversationWindowCopy.mountSelectionHint)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(AIConversationWindowCopy.mountSelectionTitle)
+                        .font(.subheadline.weight(.semibold))
+
+                    Picker(
+                        AIConversationWindowCopy.mountSelectionTitle,
+                        selection: Binding(
+                            get: { model.selectedConversationMountID ?? UUID() },
+                            set: { model.selectConversationMount(id: $0) }
+                        )
+                    ) {
+                        ForEach(model.availableAIMounts) { mount in
+                            Text(mount.displayName).tag(mount.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(AIConversationWindowCopy.modelSelectionTitle)
+                        .font(.subheadline.weight(.semibold))
+
+                    if selectedMountModels.isEmpty {
+                        Text(AIConversationWindowCopy.missingModelText)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker(
+                            AIConversationWindowCopy.modelSelectionTitle,
+                            selection: Binding(
+                                get: { model.selectedConversationModel },
+                                set: { model.selectConversationModel($0) }
+                            )
+                        ) {
+                            ForEach(selectedMountModels, id: \.self) { modelName in
+                                Text(modelName).tag(modelName)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(Color.secondary.opacity(0.06))
     }
 
     @ViewBuilder
@@ -114,11 +203,15 @@ struct AIConversationWindowView: View {
 
     private var canStartNewConversation: Bool {
         switch model.aiConversationState {
-        case .idle, .completed, .failed:
+        case .idle, .completed, .failed, .unavailable:
             return true
-        case .unavailable, .asking, .responding, .waitingForUser, .summarizing:
+        case .asking, .responding, .waitingForUser, .summarizing:
             return false
         }
+    }
+
+    private var showsPreflightOptions: Bool {
+        canStartNewConversation
     }
 
     private var showsComposer: Bool {
@@ -130,14 +223,34 @@ struct AIConversationWindowView: View {
         }
     }
 
+    private var selectedMount: AIProviderMount? {
+        guard let selectedID = model.selectedConversationMountID else { return nil }
+        return model.availableAIMounts.first(where: { $0.id == selectedID })
+    }
+
+    private var selectedMountModels: [String] {
+        guard let selectedMount else { return [] }
+        var models: [String] = []
+        if !selectedMount.defaultModel.isEmpty {
+            models.append(selectedMount.defaultModel)
+        }
+        models.append(contentsOf: selectedMount.models)
+        return Array(NSOrderedSet(array: models)) as? [String] ?? models
+    }
+
+    private var canStartConversationNow: Bool {
+        guard let selectedMount else { return false }
+        return selectedMount.isEnabled && !model.selectedConversationModel.isEmpty
+    }
+
     private var providerTitle: String {
         switch model.aiConversationState {
         case .responding(let session), .waitingForUser(let session), .summarizing(let session):
-            return session.provider.title
+            return session.mountDisplayName
         case .completed(let summary):
-            return summary.provider.title
+            return summary.mountDisplayName
         case .unavailable, .idle, .asking, .failed:
-            return model.preferences.defaultAIProvider.title
+            return selectedMount?.displayName ?? "未选择挂载"
         }
     }
 
@@ -178,15 +291,25 @@ struct AIConversationWindowView: View {
         Task { await model.finishAIConversation() }
     }
 
+    private func closeOrDiscardConversation() {
+        switch model.aiConversationState {
+        case .asking, .responding, .waitingForUser, .summarizing:
+            showsDiscardConfirmation = true
+        case .unavailable, .idle, .completed, .failed:
+            dismissWindow(id: Self.windowID)
+        }
+    }
+
     private func emptyStateView(text: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(text)
                 .foregroundStyle(.secondary)
 
-            Button(AIConversationWindowCopy.newConversationAction) {
-                Task { await model.startAIConversation() }
+            if !canStartConversationNow {
+                Text(AIConversationWindowCopy.missingModelText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(24)
@@ -222,7 +345,7 @@ struct AIConversationWindowView: View {
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
 
-                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
+                Text("\(summary.mountDisplayName) · \(summary.displayPeriodText)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 

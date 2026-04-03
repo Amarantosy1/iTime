@@ -1,6 +1,8 @@
 import Foundation
 
 public protocol AIConversationServing: Sendable {
+    func validateConnection(configuration: ResolvedAIProviderConfiguration) async throws
+
     func askQuestion(
         context: AIConversationContext,
         history: [AIConversationMessage],

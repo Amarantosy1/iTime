@@ -6,11 +6,15 @@ import Observation
 public final class AppModel {
     public private(set) var authorizationState: CalendarAuthorizationState
     public private(set) var availableCalendars: [CalendarSource]
+    public private(set) var availableAIMounts: [AIProviderMount]
     public private(set) var overview: TimeOverview?
     public private(set) var aiAnalysisState: AIAnalysisState
     public private(set) var aiConversationState: AIConversationState
     public private(set) var aiConversationHistory: [AIConversationSummary]
     public private(set) var latestAIMemorySnapshot: AIMemorySnapshot?
+    public private(set) var aiMountConnectionStates: [UUID: AIMountConnectionState]
+    public private(set) var selectedConversationMountID: UUID?
+    public private(set) var selectedConversationModel: String
 
     public var preferences: UserPreferences
 
@@ -23,6 +27,7 @@ public final class AppModel {
     private let now: @Sendable () -> Date
     private var currentEvents: [CalendarEventRecord]
     private var aiConversationArchive: AIConversationArchive
+    private var aiConversationOperationID: UUID
 
     public init(
         service: CalendarAccessServing,
@@ -55,12 +60,18 @@ public final class AppModel {
         self.preferences = preferences
         self.authorizationState = service.authorizationState()
         self.availableCalendars = []
+        self.availableAIMounts = preferences.aiProviderMounts
         self.aiAnalysisState = .unavailable(.noData)
         self.aiConversationState = .unavailable(.noData)
         self.aiConversationHistory = archive.summaries.sorted(by: { $0.createdAt > $1.createdAt })
         self.latestAIMemorySnapshot = archive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
+        self.aiMountConnectionStates = [:]
+        self.selectedConversationMountID = preferences.defaultAIMountID ?? preferences.defaultAIMount?.id
+        self.selectedConversationModel = ""
         self.currentEvents = []
         self.aiConversationArchive = archive
+        self.aiConversationOperationID = UUID()
+        synchronizeConversationSelection()
     }
 
     public var liveSelectedRange: TimeRangePreset {
@@ -69,6 +80,19 @@ public final class AppModel {
 
     public var latestAIConversationSummary: AIConversationSummary? {
         aiConversationHistory.first
+    }
+
+    public var defaultAIMountID: UUID? {
+        preferences.defaultAIMountID
+    }
+
+    public var currentConversationSession: AIConversationSession? {
+        switch aiConversationState {
+        case .responding(let session), .waitingForUser(let session), .summarizing(let session):
+            return session
+        case .unavailable, .idle, .asking, .completed, .failed:
+            return nil
+        }
     }
 
     private var activeRange: TimeRangePreset {
@@ -102,11 +126,14 @@ public final class AppModel {
 
     public func refresh() async {
         authorizationState = service.authorizationState()
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
 
         guard authorizationState == .authorized else {
             availableCalendars = []
             overview = nil
             currentEvents = []
+            invalidateAIConversationOperations()
             resetAIAnalysisState()
             resetAIConversationState()
             return
@@ -145,6 +172,7 @@ public final class AppModel {
             calendar: calendar
         )
         overview = aggregator.makeOverview(range: range, interval: activeInterval, events: events)
+        invalidateAIConversationOperations()
         resetAIAnalysisState()
         resetAIConversationState()
     }
@@ -215,9 +243,17 @@ public final class AppModel {
             return
         }
         let configuration = currentAIConversationConfiguration()
-        guard configuration.isEnabled, configuration.isComplete else {
+        guard configuration.isEnabled else {
+            aiConversationState = .unavailable(.disabled)
             return
         }
+        guard configuration.isComplete else {
+            aiConversationState = .unavailable(.notConfigured)
+            return
+        }
+        let selectedMount = currentSelectedAIMount()
+        let operationID = UUID()
+        aiConversationOperationID = operationID
 
         aiConversationState = .asking
 
@@ -227,9 +263,13 @@ public final class AppModel {
                 history: [],
                 configuration: configuration
             )
+            guard aiConversationOperationID == operationID else { return }
             let session = AIConversationSession(
                 id: UUID(),
+                mountID: selectedMount?.id,
+                mountDisplayName: selectedMount?.displayName ?? configuration.provider.title,
                 provider: configuration.provider,
+                model: configuration.model,
                 range: context.range,
                 startDate: context.startDate,
                 endDate: context.endDate,
@@ -252,8 +292,14 @@ public final class AppModel {
         guard case .waitingForUser(let session) = aiConversationState else { return }
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedContent.isEmpty, let context = currentAIConversationContext() else { return }
-        let configuration = resolvedAIConversationConfiguration(for: session.provider)
+        let configuration = resolvedAIConversationConfiguration(
+            mountID: session.mountID,
+            provider: session.provider,
+            model: session.model
+        )
         guard configuration.isEnabled, configuration.isComplete else { return }
+        let operationID = UUID()
+        aiConversationOperationID = operationID
 
         let userMessage = AIConversationMessage(
             id: UUID(),
@@ -264,7 +310,10 @@ public final class AppModel {
         let historyWithReply = session.messages + [userMessage]
         let respondingSession = AIConversationSession(
             id: session.id,
+            mountID: session.mountID,
+            mountDisplayName: session.mountDisplayName,
             provider: session.provider,
+            model: session.model,
             range: session.range,
             startDate: session.startDate,
             endDate: session.endDate,
@@ -283,9 +332,13 @@ public final class AppModel {
                 history: historyWithReply,
                 configuration: configuration
             )
+            guard aiConversationOperationID == operationID else { return }
             let updatedSession = AIConversationSession(
                 id: session.id,
+                mountID: session.mountID,
+                mountDisplayName: session.mountDisplayName,
                 provider: session.provider,
+                model: session.model,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -308,8 +361,14 @@ public final class AppModel {
         guard case .waitingForUser(let session) = aiConversationState, let context = currentAIConversationContext() else {
             return
         }
-        let configuration = resolvedAIConversationConfiguration(for: session.provider)
+        let configuration = resolvedAIConversationConfiguration(
+            mountID: session.mountID,
+            provider: session.provider,
+            model: session.model
+        )
         guard configuration.isEnabled, configuration.isComplete else { return }
+        let operationID = UUID()
+        aiConversationOperationID = operationID
 
         aiConversationState = .summarizing(session)
 
@@ -319,10 +378,14 @@ public final class AppModel {
                 history: session.messages,
                 configuration: configuration
             )
+            guard aiConversationOperationID == operationID else { return }
             let completedAt = now()
             let completedSession = AIConversationSession(
                 id: session.id,
+                mountID: session.mountID,
+                mountDisplayName: session.mountDisplayName,
                 provider: session.provider,
+                model: session.model,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -335,7 +398,10 @@ public final class AppModel {
             let summary = AIConversationSummary(
                 id: UUID(),
                 sessionID: session.id,
+                mountID: session.mountID,
+                mountDisplayName: session.mountDisplayName,
                 provider: session.provider,
+                model: session.model,
                 range: session.range,
                 startDate: session.startDate,
                 endDate: session.endDate,
@@ -363,6 +429,8 @@ public final class AppModel {
 
     public func updateDefaultAIProvider(_ provider: AIProviderKind) {
         preferences.defaultAIProvider = provider
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
@@ -373,30 +441,40 @@ public final class AppModel {
 
     public func updateAIProviderEnabled(_ isEnabled: Bool, for provider: AIProviderKind) {
         preferences.setAIProviderEnabled(isEnabled, for: provider)
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
 
     public func updateAIProviderBaseURL(_ baseURL: String, for provider: AIProviderKind) {
         preferences.setAIProviderBaseURL(baseURL, for: provider)
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
 
     public func updateAIProviderModel(_ model: String, for provider: AIProviderKind) {
         preferences.setAIProviderModel(model, for: provider)
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
 
     public func updateAIBaseURL(_ baseURL: String) {
         preferences.aiBaseURL = baseURL
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
 
     public func updateAIModel(_ model: String) {
         preferences.aiModel = model
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
@@ -419,6 +497,140 @@ public final class AppModel {
         resetAIConversationStateIfSafe()
     }
 
+    public func loadAIAPIKey(for mountID: UUID) -> String {
+        (try? aiKeyStore.loadAPIKey(for: mountID)) ?? ""
+    }
+
+    public func updateAIAPIKey(_ apiKey: String, for mountID: UUID) {
+        try? aiKeyStore.saveAPIKey(apiKey, for: mountID)
+        aiMountConnectionStates[mountID] = .idle
+        resetAIConversationStateIfSafe()
+    }
+
+    public func selectConversationMount(id: UUID) {
+        guard availableAIMounts.contains(where: { $0.id == id }) else { return }
+        selectedConversationMountID = id
+        synchronizeConversationSelection(preserveSelectedModel: false)
+        resetAIConversationStateIfSafe()
+    }
+
+    public func selectConversationModel(_ model: String) {
+        let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        selectedConversationModel = trimmed
+        resetAIConversationStateIfSafe()
+    }
+
+    @discardableResult
+    public func createCustomAIMount() -> UUID {
+        let mount = AIProviderMount.custom(
+            displayName: "自定义挂载",
+            providerType: .openAI,
+            baseURL: "",
+            models: [],
+            defaultModel: "",
+            isEnabled: false
+        )
+        preferences.saveAIMount(mount)
+        availableAIMounts = preferences.aiProviderMounts
+        selectedConversationMountID = mount.id
+        synchronizeConversationSelection(preserveSelectedModel: false)
+        resetAIConversationStateIfSafe()
+        return mount.id
+    }
+
+    public func updateAIMount(_ mount: AIProviderMount) {
+        preferences.saveAIMount(mount)
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
+        aiMountConnectionStates[mount.id] = .idle
+        resetAIConversationStateIfSafe()
+    }
+
+    public func deleteAIMount(id: UUID) {
+        preferences.deleteAIMount(id: id)
+        availableAIMounts = preferences.aiProviderMounts
+        aiMountConnectionStates[id] = nil
+        synchronizeConversationSelection()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func setDefaultAIMount(id: UUID) {
+        preferences.setDefaultAIMountID(id)
+        availableAIMounts = preferences.aiProviderMounts
+        synchronizeConversationSelection()
+        resetAIConversationStateIfSafe()
+    }
+
+    public func aiMountConnectionState(for mountID: UUID) -> AIMountConnectionState {
+        aiMountConnectionStates[mountID] ?? .idle
+    }
+
+    public func testAIMountConnection(_ mountID: UUID) async {
+        guard let mount = availableAIMounts.first(where: { $0.id == mountID }) else { return }
+        let configuration = resolvedAIConversationConfiguration(
+            mountID: mount.id,
+            provider: mount.providerType,
+            model: mount.defaultModel
+        )
+        guard configuration.isComplete else {
+            aiMountConnectionStates[mountID] = .failed("请先补全 Base URL、模型和 API Key。")
+            return
+        }
+
+        aiMountConnectionStates[mountID] = .testing
+        do {
+            try await aiConversationService.validateConnection(configuration: configuration)
+            aiMountConnectionStates[mountID] = .succeeded("连接成功")
+        } catch let error as AIAnalysisServiceError {
+            aiMountConnectionStates[mountID] = .failed(error.userMessage)
+        } catch {
+            aiMountConnectionStates[mountID] = .failed("连接失败，请检查配置。")
+        }
+    }
+
+    public func deleteAIConversationSummary(id: UUID) {
+        let removedSummaries = aiConversationArchive.summaries.filter { $0.id == id }
+        guard !removedSummaries.isEmpty else { return }
+
+        let removedSummaryIDs = Set(removedSummaries.map(\.id))
+        let removedSessionIDs = Set(removedSummaries.map(\.sessionID))
+        let updatedArchive = AIConversationArchive(
+            sessions: aiConversationArchive.sessions.filter { !removedSessionIDs.contains($0.id) },
+            summaries: aiConversationArchive.summaries.filter { !removedSummaryIDs.contains($0.id) },
+            memorySnapshots: aiConversationArchive.memorySnapshots.filter { snapshot in
+                removedSummaryIDs.isDisjoint(with: snapshot.sourceSummaryIDs)
+            }
+        )
+
+        try? persistConversationArchive(updatedArchive)
+        if case .completed(let summary) = aiConversationState, removedSummaryIDs.contains(summary.id) {
+            resetAIConversationState()
+        }
+    }
+
+    public func discardCurrentAIConversation() {
+        invalidateAIConversationOperations()
+        let removableSessionID: UUID?
+        switch aiConversationState {
+        case .responding(let session), .waitingForUser(let session), .summarizing(let session):
+            removableSessionID = session.id
+        case .unavailable, .idle, .asking, .completed, .failed:
+            removableSessionID = nil
+        }
+
+        if let removableSessionID {
+            let updatedArchive = AIConversationArchive(
+                sessions: aiConversationArchive.sessions.filter { $0.id != removableSessionID },
+                summaries: aiConversationArchive.summaries,
+                memorySnapshots: aiConversationArchive.memorySnapshots
+            )
+            try? persistConversationArchive(updatedArchive)
+        }
+
+        resetAIConversationState()
+    }
+
     private func currentAIConfiguration() -> AIAnalysisConfiguration {
         AIAnalysisConfiguration(
             baseURL: preferences.aiBaseURL,
@@ -429,7 +641,20 @@ public final class AppModel {
     }
 
     private func currentAIConversationConfiguration() -> ResolvedAIProviderConfiguration {
-        resolvedAIConversationConfiguration(for: preferences.defaultAIProvider)
+        guard let mount = currentSelectedAIMount() else {
+            return ResolvedAIProviderConfiguration(
+                provider: preferences.defaultAIProvider,
+                baseURL: "",
+                model: "",
+                apiKey: "",
+                isEnabled: false
+            )
+        }
+        return resolvedAIConversationConfiguration(
+            mountID: mount.id,
+            provider: mount.providerType,
+            model: selectedConversationModel
+        )
     }
 
     private func resolvedAIConversationConfiguration(for provider: AIProviderKind) -> ResolvedAIProviderConfiguration {
@@ -438,6 +663,35 @@ public final class AppModel {
             provider: provider,
             baseURL: configuration.baseURL,
             model: configuration.model,
+            apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
+            isEnabled: preferences.aiAnalysisEnabled && configuration.isEnabled
+        )
+    }
+
+    private func resolvedAIConversationConfiguration(
+        mountID: UUID?,
+        provider: AIProviderKind,
+        model: String
+    ) -> ResolvedAIProviderConfiguration {
+        if let mountID, let mount = availableAIMounts.first(where: { $0.id == mountID }) {
+            let resolvedModel = resolvedModel(for: mount, selectedModel: model)
+            return ResolvedAIProviderConfiguration(
+                provider: mount.providerType,
+                baseURL: mount.baseURL,
+                model: resolvedModel,
+                apiKey: (try? aiKeyStore.loadAPIKey(for: mount.id)) ?? "",
+                isEnabled: preferences.aiAnalysisEnabled && mount.isEnabled
+            )
+        }
+
+        let configuration = preferences.aiProviderConfiguration(for: provider)
+        let resolvedModel = model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? configuration.model
+            : model.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ResolvedAIProviderConfiguration(
+            provider: provider,
+            baseURL: configuration.baseURL,
+            model: resolvedModel,
             apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
             isEnabled: preferences.aiAnalysisEnabled && configuration.isEnabled
         )
@@ -490,21 +744,50 @@ public final class AppModel {
             return nil
         }
 
-        let configuration = currentAIConversationConfiguration()
-        if !configuration.isEnabled {
-            aiConversationState = .unavailable(.disabled)
-            return nil
-        }
-        if !configuration.isComplete {
-            aiConversationState = .unavailable(.notConfigured)
-            return nil
-        }
-
         return overview.makeAIConversationContext(
             events: currentEvents,
             calendarLookup: Dictionary(uniqueKeysWithValues: availableCalendars.map { ($0.id, $0) }),
             latestMemorySummary: latestAIMemorySnapshot?.summary
         )
+    }
+
+    private func currentSelectedAIMount() -> AIProviderMount? {
+        let mounts = availableAIMounts
+        if let selectedConversationMountID, let mount = mounts.first(where: { $0.id == selectedConversationMountID }) {
+            return mount
+        }
+        if let defaultMount = preferences.defaultAIMount {
+            return defaultMount
+        }
+        return mounts.first
+    }
+
+    private func synchronizeConversationSelection(preserveSelectedModel: Bool = true) {
+        let mounts = availableAIMounts
+        guard !mounts.isEmpty else {
+            selectedConversationMountID = nil
+            selectedConversationModel = ""
+            return
+        }
+
+        let resolvedMount = currentSelectedAIMount() ?? mounts[0]
+        selectedConversationMountID = resolvedMount.id
+        let resolvedModel = resolvedModel(
+            for: resolvedMount,
+            selectedModel: preserveSelectedModel ? selectedConversationModel : nil
+        )
+        selectedConversationModel = resolvedModel
+    }
+
+    private func resolvedModel(for mount: AIProviderMount, selectedModel: String?) -> String {
+        let preferredModel = selectedModel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !preferredModel.isEmpty && mount.models.contains(preferredModel) {
+            return preferredModel
+        }
+        if !mount.defaultModel.isEmpty {
+            return mount.defaultModel
+        }
+        return mount.models.first ?? ""
     }
 
     private func saveConversationArchive(
@@ -527,9 +810,17 @@ public final class AppModel {
             summaries: summaries,
             memorySnapshots: aiConversationArchive.memorySnapshots
         )
+        try persistConversationArchive(updatedArchive)
+    }
+
+    private func persistConversationArchive(_ updatedArchive: AIConversationArchive) throws {
         try aiConversationArchiveStore.saveArchive(updatedArchive)
         aiConversationArchive = updatedArchive
         aiConversationHistory = updatedArchive.summaries
         latestAIMemorySnapshot = updatedArchive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
+    }
+
+    private func invalidateAIConversationOperations() {
+        aiConversationOperationID = UUID()
     }
 }

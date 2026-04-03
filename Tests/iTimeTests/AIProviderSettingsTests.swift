@@ -55,6 +55,22 @@ private final class InMemoryScopedAIKeyStore: @unchecked Sendable, AIAPIKeyStori
     #expect(preferences.aiProviderMounts.contains(where: { $0.id == mount.id }) == false)
 }
 
+@Test func deletingDefaultCustomMountFallsBackToFirstAvailableMount() {
+    let preferences = UserPreferences(storage: .inMemory)
+    let mount = AIProviderMount.custom(
+        displayName: "Proxy",
+        providerType: .openAI,
+        baseURL: "https://proxy.example.com/v1"
+    )
+
+    preferences.saveAIMount(mount)
+    preferences.setDefaultAIMountID(mount.id)
+    preferences.deleteAIMount(id: mount.id)
+
+    #expect(preferences.defaultAIMount != nil)
+    #expect(preferences.defaultAIMountID != mount.id)
+}
+
 @Test func aiAPIKeyStoreReadsAndWritesKeysPerMount() throws {
     let store = InMemoryScopedAIKeyStore()
     let openAIMountID = UUID()
