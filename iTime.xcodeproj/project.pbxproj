@@ -35,6 +35,7 @@
 		A0000000000000000000011A /* OverviewMetricsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002F /* OverviewMetricsSection.swift */; };
 		A0000000000000000000011B /* OverviewTrendChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000030 /* OverviewTrendChartView.swift */; };
 		A0000000000000000000011C /* OverviewBucketTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* OverviewBucketTable.swift */; };
+		A0000000000000000000011D /* OverviewStackedBucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000034 /* OverviewStackedBucket.swift */; };
 		A00000000000000000000121 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* AppModelTests.swift */; };
 		A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */; };
 		A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */; };
@@ -91,6 +92,7 @@
 		A0000000000000000000002F /* OverviewMetricsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewMetricsSection.swift; sourceTree = "<group>"; };
 		A00000000000000000000030 /* OverviewTrendChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewTrendChartView.swift; sourceTree = "<group>"; };
 		A00000000000000000000031 /* OverviewBucketTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewBucketTable.swift; sourceTree = "<group>"; };
+		A00000000000000000000034 /* OverviewStackedBucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewStackedBucket.swift; sourceTree = "<group>"; };
 		A00000000000000000000040 /* iTime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iTime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000041 /* iTimeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iTimeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -160,6 +162,7 @@
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
 				A0000000000000000000002E /* DailyDurationSummary.swift */,
+				A00000000000000000000034 /* OverviewStackedBucket.swift */,
 				A0000000000000000000002D /* StatisticsDateRange.swift */,
 				A00000000000000000000014 /* TimeBucketSummary.swift */,
 				A00000000000000000000015 /* TimeOverview.swift */,
@@ -406,6 +409,7 @@
 				A0000000000000000000010F /* RangePicker.swift in Sources */,
 				A00000000000000000000116 /* SettingsView.swift in Sources */,
 				A00000000000000000000119 /* DailyDurationSummary.swift in Sources */,
+				A0000000000000000000011D /* OverviewStackedBucket.swift in Sources */,
 				A00000000000000000000118 /* StatisticsDateRange.swift in Sources */,
 				A0000000000000000000010B /* StatisticsAggregating.swift in Sources */,
 				A0000000000000000000010C /* TimeInterval+Formatting.swift in Sources */,
