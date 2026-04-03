@@ -124,6 +124,22 @@ Package.swift
 
 如果你启用了复盘提醒，还需要系统通知权限。
 
+### 从 GitHub Release 下载后无法打开
+
+如果 macOS 提示“`iTime.app` 会损害你的电脑”或阻止打开，通常是系统给下载产物打了隔离标记。可以先把应用拖到“应用程序”目录，再执行：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/iTime.app
+```
+
+如果你还没有把应用移到“应用程序”目录，也可以直接对当前路径执行，例如：
+
+```bash
+xattr -dr com.apple.quarantine ~/Downloads/iTime.app
+```
+
+执行完成后重新打开 `iTime` 即可。这里是只对 `iTime.app` 单独移除隔离标记，不是全局关闭 Gatekeeper。
+
 ## 构建与测试
 
 ```bash
