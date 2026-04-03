@@ -1,9 +1,20 @@
 import Foundation
 
-public struct FileAIConversationArchiveStore {
+public protocol AIConversationArchiveStoring {
+    func loadArchive() throws -> AIConversationArchive
+    func saveArchive(_ archive: AIConversationArchive) throws
+}
+
+public struct FileAIConversationArchiveStore: AIConversationArchiveStoring {
     private let directoryURL: URL
     private let fileManager: FileManager
     private let fileName: String
+
+    public static var defaultDirectoryURL: URL {
+        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return baseURL.appendingPathComponent("iTime", isDirectory: true)
+    }
 
     public init(directoryURL: URL) {
         self.init(

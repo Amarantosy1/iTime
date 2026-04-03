@@ -192,6 +192,16 @@ public struct AIConversationContext: Equatable, Sendable {
     }
 }
 
+public enum AIConversationState: Equatable, Sendable {
+    case unavailable(AIAnalysisAvailability)
+    case idle
+    case asking
+    case waitingForUser(AIConversationSession)
+    case summarizing(AIConversationSession)
+    case completed(AIConversationSummary)
+    case failed(String)
+}
+
 public struct AIEventContext: Equatable, Sendable {
     public let id: String
     public let title: String

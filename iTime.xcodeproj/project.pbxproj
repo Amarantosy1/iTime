@@ -57,6 +57,7 @@
 		A00000000000000000000136 /* AIConversationServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004D /* AIConversationServing.swift */; };
 		A00000000000000000000137 /* OpenAICompatibleAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */; };
 		A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004F /* AIConversationServiceTests.swift */; };
+		A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000052 /* AIConversationAppModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -125,6 +126,7 @@
 		A0000000000000000000004D /* AIConversationServing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationServing.swift; sourceTree = "<group>"; };
 		A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICompatibleAIConversationService.swift; sourceTree = "<group>"; };
 		A0000000000000000000004F /* AIConversationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationServiceTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000052 /* AIConversationAppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationAppModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -329,6 +331,7 @@
 				A00000000000000000000047 /* AIAnalysisAppModelTests.swift */,
 				A00000000000000000000048 /* AIAnalysisServiceTests.swift */,
 				A0000000000000000000004B /* AIConversationArchiveStoreTests.swift */,
+				A00000000000000000000052 /* AIConversationAppModelTests.swift */,
 				A0000000000000000000004C /* AIConversationContextTests.swift */,
 				A0000000000000000000004F /* AIConversationServiceTests.swift */,
 				A00000000000000000000024 /* AppModelTests.swift */,
@@ -490,6 +493,7 @@
 				A0000000000000000000012C /* AIAnalysisAppModelTests.swift in Sources */,
 				A0000000000000000000012D /* AIAnalysisServiceTests.swift in Sources */,
 				A00000000000000000000134 /* AIConversationArchiveStoreTests.swift in Sources */,
+				A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */,
 				A00000000000000000000135 /* AIConversationContextTests.swift in Sources */,
 				A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */,
 				A00000000000000000000121 /* AppModelTests.swift in Sources */,
