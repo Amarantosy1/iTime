@@ -48,18 +48,18 @@ import Testing
     let lightPalette = AppTheme.overviewBackgroundPalette(for: .light)
     let darkPalette = AppTheme.overviewBackgroundPalette(for: .dark)
 
-    #expect(lightPalette.startHex == "#F2F7FF")
-    #expect(lightPalette.endHex == "#E6F0FA")
-    #expect(darkPalette.startHex == "#111827")
-    #expect(darkPalette.endHex == "#1F2937")
+    #expect(lightPalette.startHex == "#ECECE8")
+    #expect(lightPalette.endHex == "#E1E1DC")
+    #expect(darkPalette.startHex == "#202124")
+    #expect(darkPalette.endHex == "#2A2B2F")
 }
 
 @Test func overviewBackgroundGradientUsesPaletteColors() {
     let darkGradient = AppTheme.overviewBackgroundGradient(for: .dark)
     let lightGradient = AppTheme.overviewBackgroundGradient(for: .light)
 
-    #expect(darkGradient.palette == AppTheme.BackgroundPalette(startHex: "#111827", endHex: "#1F2937"))
-    #expect(lightGradient.palette == AppTheme.BackgroundPalette(startHex: "#F2F7FF", endHex: "#E6F0FA"))
+    #expect(darkGradient.palette == AppTheme.BackgroundPalette(startHex: "#202124", endHex: "#2A2B2F"))
+    #expect(lightGradient.palette == AppTheme.BackgroundPalette(startHex: "#ECECE8", endHex: "#E1E1DC"))
 }
 
 @Test func overviewLegendStyleUsesSemanticTextRoles() {
@@ -211,6 +211,8 @@ import Testing
     #expect(AIConversationWindowCopy.historyAction == "历史总结")
     #expect(AIConversationWindowCopy.sendReplyAction == "发送")
     #expect(AIConversationWindowCopy.finishConversationAction == "结束复盘")
+    #expect(AIConversationWindowCopy.saveEditsAction == "保存修改")
+    #expect(AIConversationWindowCopy.editSummaryAction == "编辑总结")
     #expect(AIConversationWindowCopy.discardConversationAccessibilityLabel == "退出本轮复盘")
     #expect(AIConversationWindowCopy.discardConfirmationTitle == "放弃这轮复盘？")
     #expect(AISettingsCopy.sectionTitle == "AI 服务")
@@ -220,6 +222,7 @@ import Testing
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
     #expect(AIAnalysisAvailability.disabled.message == "请先在设置中启用一个 AI 服务。")
+    #expect(AIConversationHistoryCopy.deleteAction == "删除总结")
 }
 
 @Test func settingsNavigationUsesClassicSidebarSections() {

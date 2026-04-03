@@ -5,8 +5,6 @@ enum AIAnalysisCopy {
     static let openConversationWindowAction = "打开 AI 复盘"
     static let historyAction = "查看历史总结"
     static let latestSummaryTitle = "最近一次总结"
-    static let helperText = "AI 复盘已迁移到独立窗口，支持更稳定的多轮追问和历史总结。"
-    static let inProgressText = "当前有一轮复盘正在进行中，可在独立窗口继续。"
 }
 
 struct OverviewAIAnalysisSection: View {
@@ -45,14 +43,10 @@ struct OverviewAIAnalysisSection: View {
                     }
 
                 case .asking, .responding, .waitingForUser, .summarizing:
-                    Text(AIAnalysisCopy.inProgressText)
-                        .foregroundStyle(.secondary)
                     openWindowButton
                     latestSummaryCard
 
                 case .idle, .completed:
-                    Text(AIAnalysisCopy.helperText)
-                        .foregroundStyle(.secondary)
                     openWindowButton
                     latestSummaryCard
 

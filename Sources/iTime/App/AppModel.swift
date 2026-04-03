@@ -609,6 +609,36 @@ public final class AppModel {
         }
     }
 
+    public func updateAIConversationSummary(
+        id: UUID,
+        headline: String,
+        summary: String,
+        findings: [String],
+        suggestions: [String]
+    ) {
+        guard let existingSummary = aiConversationArchive.summaries.first(where: { $0.id == id }) else { return }
+
+        let updatedSummary = existingSummary.updating(
+            headline: headline.trimmingCharacters(in: .whitespacesAndNewlines),
+            summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
+            findings: findings.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty },
+            suggestions: suggestions.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        )
+
+        let updatedArchive = AIConversationArchive(
+            sessions: aiConversationArchive.sessions,
+            summaries: aiConversationArchive.summaries
+                .map { $0.id == id ? updatedSummary : $0 }
+                .sorted(by: { $0.createdAt > $1.createdAt }),
+            memorySnapshots: aiConversationArchive.memorySnapshots
+        )
+
+        try? persistConversationArchive(updatedArchive)
+        if case .completed(let currentSummary) = aiConversationState, currentSummary.id == id {
+            aiConversationState = .completed(updatedSummary)
+        }
+    }
+
     public func discardCurrentAIConversation() {
         invalidateAIConversationOperations()
         let removableSessionID: UUID?

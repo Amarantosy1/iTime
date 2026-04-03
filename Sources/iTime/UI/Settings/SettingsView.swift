@@ -3,7 +3,6 @@ import SwiftUI
 enum SettingsCopy {
     static let navigationTitle = "设置"
     static let calendarSectionTitle = "统计日历"
-    static let calendarSectionDescription = "选择要纳入统计的日历。"
     static let noCalendarsText = "当前没有可用日历。"
     static let aiServicesSectionTitle = "AI 服务"
 }
@@ -35,7 +34,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
 enum AISettingsCopy {
     static let sectionTitle = SettingsCopy.aiServicesSectionTitle
-    static let helperText = "内置服务保留官方协议，自定义服务仅支持 OpenAI-compatible。"
     static let addCustomServiceAction = "新增自定义服务"
     static let defaultServiceBadge = "默认"
     static let builtInBadge = "内置"
@@ -117,9 +115,6 @@ struct SettingsView: View {
                 Text(SettingsCopy.calendarSectionTitle)
                     .font(.title3.weight(.semibold))
 
-                Text(SettingsCopy.calendarSectionDescription)
-                    .foregroundStyle(.secondary)
-
                 if model.authorizationState != .authorized {
                     AuthorizationStateView(state: model.authorizationState) {
                         Task { await model.requestAccessIfNeeded() }
@@ -171,10 +166,6 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.bordered)
             }
-
-            Text(AISettingsCopy.helperText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
 
             List(selection: $selectedServiceID) {
                 ForEach(model.availableAIServices) { service in

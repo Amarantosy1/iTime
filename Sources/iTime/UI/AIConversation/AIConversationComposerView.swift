@@ -60,11 +60,7 @@ struct AIConversationComposerView: View {
                 )
 
                 HStack(alignment: .center, spacing: 12) {
-                    Text(AIConversationWindowCopy.composerHint)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    Spacer()
+                    Spacer(minLength: 0)
 
                     Button(AIConversationWindowCopy.finishConversationAction, action: onFinish)
                         .buttonStyle(.bordered)

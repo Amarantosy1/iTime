@@ -42,9 +42,9 @@ enum AppTheme {
     static func overviewBackgroundPalette(for colorScheme: ColorScheme) -> BackgroundPalette {
         switch colorScheme {
         case .dark:
-            BackgroundPalette(startHex: "#111827", endHex: "#1F2937")
+            BackgroundPalette(startHex: "#202124", endHex: "#2A2B2F")
         default:
-            BackgroundPalette(startHex: "#F2F7FF", endHex: "#E6F0FA")
+            BackgroundPalette(startHex: "#ECECE8", endHex: "#E1E1DC")
         }
     }
 

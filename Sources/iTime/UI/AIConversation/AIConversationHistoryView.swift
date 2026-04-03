@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum AIConversationHistoryCopy {
+enum AIConversationHistoryCopy {
     static let emptyText = "还没有历史总结。"
     static let deleteAction = "删除总结"
     static let deleteConfirmationTitle = "删除这条历史总结？"
@@ -24,12 +24,11 @@ struct AIConversationHistoryView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(summary.headline)
                                 .font(.headline)
-                            Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
+                                .lineLimit(2)
+
+                            Text(summary.displayPeriodText)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text(summary.summary)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
                         }
                         .padding(.vertical, 4)
                         .tag(summary.id)
@@ -43,6 +42,15 @@ struct AIConversationHistoryView: View {
             if let summary = selectedSummary {
                 AIConversationSummaryDetailView(
                     summary: summary,
+                    onSave: { headline, summaryText, findings, suggestions in
+                        model.updateAIConversationSummary(
+                            id: summary.id,
+                            headline: headline,
+                            summary: summaryText,
+                            findings: findings,
+                            suggestions: suggestions
+                        )
+                    },
                     onDelete: { pendingDeletionSummaryID = summary.id }
                 )
             } else {
@@ -52,15 +60,6 @@ struct AIConversationHistoryView: View {
         }
         .navigationTitle(AIAnalysisCopy.historyAction)
         .frame(minWidth: 760, minHeight: 480)
-        .toolbar {
-            if selectedSummary != nil {
-                ToolbarItem {
-                    Button(AIConversationHistoryCopy.deleteAction, role: .destructive) {
-                        pendingDeletionSummaryID = selectedSummaryID
-                    }
-                }
-            }
-        }
         .alert(
             AIConversationHistoryCopy.deleteConfirmationTitle,
             isPresented: Binding(
@@ -100,15 +99,27 @@ struct AIConversationHistoryView: View {
 
 private struct AIConversationSummaryDetailView: View {
     let summary: AIConversationSummary
+    let onSave: (_ headline: String, _ summary: String, _ findings: [String], _ suggestions: [String]) -> Void
     let onDelete: () -> Void
+
+    @State private var isEditing = false
+    @State private var headlineDraft = ""
+    @State private var summaryDraft = ""
+    @State private var findingsDraft = ""
+    @State private var suggestionsDraft = ""
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(summary.headline)
-                            .font(.title2.weight(.semibold))
+                        if isEditing {
+                            TextField("标题", text: $headlineDraft)
+                                .textFieldStyle(.roundedBorder)
+                        } else {
+                            Text(summary.headline)
+                                .font(.title2.weight(.semibold))
+                        }
 
                         Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
                             .foregroundStyle(.secondary)
@@ -116,36 +127,115 @@ private struct AIConversationSummaryDetailView: View {
 
                     Spacer()
 
-                    Button(AIConversationHistoryCopy.deleteAction, role: .destructive, action: onDelete)
-                }
-
-                Text(summary.summary)
-                    .foregroundStyle(.secondary)
-
-                if !summary.findings.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AIConversationWindowCopy.findingsTitle)
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(summary.findings, id: \.self) { finding in
-                            Text("• \(finding)")
-                                .foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        if isEditing {
+                            Button("取消") {
+                                synchronizeDrafts()
+                                isEditing = false
+                            }
+                            .buttonStyle(.bordered)
                         }
+
+                        Button(isEditing ? AIConversationWindowCopy.saveEditsAction : AIConversationWindowCopy.editSummaryAction) {
+                            if isEditing {
+                                onSave(
+                                    headlineDraft,
+                                    summaryDraft,
+                                    parseLines(from: findingsDraft),
+                                    parseLines(from: suggestionsDraft)
+                                )
+                            }
+                            isEditing.toggle()
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(AIConversationHistoryCopy.deleteAction, role: .destructive, action: onDelete)
                     }
                 }
 
-                if !summary.suggestions.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AIConversationWindowCopy.suggestionsTitle)
-                            .font(.subheadline.weight(.semibold))
-                        ForEach(summary.suggestions, id: \.self) { suggestion in
-                            Text("• \(suggestion)")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                editorOrText(
+                    text: $summaryDraft,
+                    readOnlyText: summary.summary,
+                    isEditing: isEditing
+                )
+
+                detailSection(
+                    title: AIConversationWindowCopy.findingsTitle,
+                    items: summary.findings,
+                    draftText: $findingsDraft,
+                    isEditing: isEditing
+                )
+
+                detailSection(
+                    title: AIConversationWindowCopy.suggestionsTitle,
+                    items: summary.suggestions,
+                    draftText: $suggestionsDraft,
+                    isEditing: isEditing
+                )
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
         }
+        .onAppear(perform: synchronizeDrafts)
+        .onChange(of: summary.id) { _, _ in
+            isEditing = false
+            synchronizeDrafts()
+        }
+    }
+
+    private func synchronizeDrafts() {
+        headlineDraft = summary.headline
+        summaryDraft = summary.summary
+        findingsDraft = summary.findings.joined(separator: "\n")
+        suggestionsDraft = summary.suggestions.joined(separator: "\n")
+    }
+
+    @ViewBuilder
+    private func editorOrText(
+        text: Binding<String>,
+        readOnlyText: String,
+        isEditing: Bool
+    ) -> some View {
+        if isEditing {
+            TextEditor(text: text)
+                .frame(minHeight: 120)
+                .padding(10)
+                .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            Text(readOnlyText)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func detailSection(
+        title: String,
+        items: [String],
+        draftText: Binding<String>,
+        isEditing: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+
+            if isEditing {
+                TextEditor(text: draftText)
+                    .frame(minHeight: 110)
+                    .padding(10)
+                    .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            } else if !items.isEmpty {
+                ForEach(items, id: \.self) { item in
+                    Text("• \(item)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func parseLines(from text: String) -> [String] {
+        text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }

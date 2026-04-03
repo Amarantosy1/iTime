@@ -272,6 +272,31 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
             endDate: endDate
         )
     }
+
+    public func updating(
+        headline: String,
+        summary: String,
+        findings: [String],
+        suggestions: [String]
+    ) -> AIConversationSummary {
+        AIConversationSummary(
+            id: id,
+            sessionID: sessionID,
+            serviceID: serviceID,
+            serviceDisplayName: serviceDisplayName,
+            provider: provider,
+            model: model,
+            range: range,
+            startDate: startDate,
+            endDate: endDate,
+            createdAt: createdAt,
+            headline: headline,
+            summary: summary,
+            findings: findings,
+            suggestions: suggestions,
+            overviewSnapshot: overviewSnapshot
+        )
+    }
 }
 
 public struct AIMemorySnapshot: Equatable, Codable, Sendable {

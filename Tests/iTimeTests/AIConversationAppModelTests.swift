@@ -718,6 +718,81 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func updatingConversationSummaryPersistsEditedContent() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let summaryID = UUID(uuidString: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")!
+    let sessionID = UUID(uuidString: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")!
+    let originalSummary = AIConversationSummary(
+        id: summaryID,
+        sessionID: sessionID,
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .today,
+        startDate: .init(timeIntervalSince1970: 0),
+        endDate: .init(timeIntervalSince1970: 86_400),
+        createdAt: .init(timeIntervalSince1970: 7_200),
+        headline: "今天以沟通为主",
+        summary: "今天的日程多为需求同步。",
+        findings: ["沟通密度偏高"],
+        suggestions: ["给执行留整块时间"],
+        overviewSnapshot: AIOverviewSnapshot(
+            rangeTitle: "今天",
+            totalDurationText: "1小时",
+            totalEventCount: 1,
+            topCalendarNames: ["工作"]
+        )
+    )
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [originalSummary],
+            memorySnapshots: []
+        )
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: RecordingAIConversationService(),
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    model.updateAIConversationSummary(
+        id: summaryID,
+        headline: "今天的时间被会议切碎了",
+        summary: "今天大部分时间花在需求同步和结论确认上。",
+        findings: ["连续会议过多", "执行时间不足"],
+        suggestions: ["明天预留 2 小时深度工作"]
+    )
+
+    let editedSummary = try #require(model.aiConversationHistory.first)
+    #expect(editedSummary.headline == "今天的时间被会议切碎了")
+    #expect(editedSummary.summary == "今天大部分时间花在需求同步和结论确认上。")
+    #expect(editedSummary.findings == ["连续会议过多", "执行时间不足"])
+    #expect(editedSummary.suggestions == ["明天预留 2 小时深度工作"])
+    #expect(archiveStore.archive.summaries.first?.headline == "今天的时间被会议切碎了")
+}
+
+@MainActor
 @Test func discardingInProgressConversationRemovesDraftSessionWithoutSummary() async throws {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,

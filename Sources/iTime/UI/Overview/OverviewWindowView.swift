@@ -45,10 +45,8 @@ struct OverviewWindowView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("我的时间去哪了？")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-        }
+        GlassHeadlineText(text: "我的时间去哪了？")
+            .frame(maxWidth: .infinity)
     }
 
     private var customDateRangeControls: some View {
@@ -106,8 +104,6 @@ struct OverviewWindowView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                OverviewBucketTable(overview: overview)
             }
         } else {
             LiquidGlassCard {
@@ -116,5 +112,39 @@ struct OverviewWindowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+}
+
+private struct GlassHeadlineText: View {
+    let text: String
+
+    var body: some View {
+        ZStack {
+            titleText
+                .foregroundStyle(.white.opacity(0.2))
+                .blur(radius: 0.8)
+
+            if #available(macOS 26, *) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .mask(titleText)
+            } else {
+                titleText
+                    .foregroundStyle(.clear)
+                    .background(.ultraThinMaterial)
+                    .mask(titleText)
+            }
+
+            titleText
+                .foregroundStyle(.white.opacity(0.28))
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var titleText: some View {
+        Text(text)
+            .font(.system(size: 34, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
     }
 }

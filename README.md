@@ -1,124 +1,193 @@
 # iTime
 
-`iTime` 是一个原生 macOS 菜单栏应用，用来回答一个很直接的问题：`我的时间去哪了？`
+> A native macOS menu bar app that turns your calendars into a personal time dashboard.
 
-当前版本聚焦第一阶段最小闭环：
-- 从系统日历读取事件
-- 按日历分类聚合时长
-- 在菜单栏显示速览
-- 在详情窗口展示指标、趋势、分布和排行
-- 在详情窗口生成 AI 时间管理评估
-- 在原生设置窗口中选择参与统计的日历
-- 提供中文界面文案
-- 自动跟随系统浅色 / 深色外观
+[![Platform](https://img.shields.io/badge/platform-macOS-111111)](#)
+[![Swift](https://img.shields.io/badge/swift-6-orange)](#)
+[![UI](https://img.shields.io/badge/UI-SwiftUI-blue)](#)
+[![Tests](https://img.shields.io/badge/tests-75%20passing-brightgreen)](#)
 
-## 当前构建状态
+`iTime` answers one simple question:
 
-当前项目路径：
-- `/Users/amarantos/Project/iTime`
+**我的时间去哪了？**
 
-当前已完成内容：
-- 原生 `SwiftUI` 菜单栏应用入口
-- `EventKit` 日历权限与事件读取
-- `今天 / 本周 / 本月` 时间范围切换
-- 详情窗口 `今天 / 本周 / 本月 / 自定义` 时间范围切换
-- 按日历分组的聚合统计
-- 原生 `Settings` 设置窗口
-- 日历选择与持久化
-- 详情窗口总时长、事件数、日均时长、最长单日指标卡
-- 详情窗口按天趋势图、分类环图与日历排行
-- 自定义日期区间与持久化
-- 兼容 OpenAI 接口的 AI 时间评估
-- AI 服务设置、Keychain API Key 存储与手动生成评估
-- 菜单栏、详情页、授权提示中文化
-- 菜单栏、设置页、详情窗口跟随系统暗黑模式
-- 基于 `Swift Testing` 的核心逻辑测试
-- 原生 `iTime.xcodeproj` 工程整理
+It reads your system calendars, aggregates real scheduled time, and presents it in a fast menu bar view plus a richer desktop dashboard. It also includes an AI review flow that can ask follow-up questions about specific events, generate summaries, and keep local history.
 
-已验证状态：
-- `swift build` 通过
-- `swift test` 通过，42 个测试全部通过
-- `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' build` 通过
-- `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test` 通过
+## Highlights
 
-## 项目结构
+- Native macOS menu bar experience built with `SwiftUI`
+- Reads calendars and events through `EventKit`
+- Supports `今天 / 本周 / 本月 / 自定义` ranges
+- Excludes all-day events from statistics
+- Overview dashboard with:
+  - key metrics
+  - hourly/day/weekly stacked charts
+  - calendar distribution chart
+  - AI review entry and latest summary
+- Dedicated AI conversation window with:
+  - multi-turn review flow
+  - per-service model selection before each session
+  - local history archive
+  - editable past summaries
+- Native Settings window with:
+  - calendar selection
+  - built-in AI services
+  - custom `OpenAI-compatible` services
+- Chinese UI, dark mode support, app icon, and local persistence
+
+## What Makes It Useful
+
+Most calendar tools are built for planning. `iTime` is built for reflection.
+
+Instead of showing what you intended to do, it shows what your calendar actually captured:
+
+- how much time each calendar took
+- how your time was distributed across the day
+- where your schedule became fragmented
+- what changed over time
+- how an AI reviewer interprets those patterns after asking for missing context
+
+That makes it useful for:
+
+- work log reviews
+- study planning retrospectives
+- workload balance checks
+- recurring meeting audits
+- weekly or monthly personal reviews
+
+## Core Features
+
+### Menu Bar Snapshot
+
+- Quick range switching
+- Total tracked time at a glance
+- Horizontal distribution bars by calendar
+- Fast entry into the full dashboard
+
+### Overview Dashboard
+
+- Total duration
+- Event count
+- Average daily duration
+- Longest day
+- Screen Time-style stacked chart
+- Donut chart with calendar legend
+- Custom date range support
+
+### AI Review
+
+- Reads event titles, not just aggregated buckets
+- Starts by asking you about concrete scheduled items
+- Produces a structured summary after the conversation ends
+- Stores history locally
+- Lets you revisit and edit previous summaries
+
+### AI Services
+
+Built-in services:
+
+- `OpenAI`
+- `Anthropic`
+- `Gemini`
+- `DeepSeek`
+
+Custom services:
+
+- `OpenAI-compatible` endpoints
+
+Each service stores its own:
+
+- `Base URL`
+- API key
+- model list
+- default model
+- enabled state
+
+## Project Structure
 
 ```text
-iTime.xcodeproj/                Xcode 工程
-Sources/iTime/                  应用源码
-  App/                          应用状态
-  Domain/                       核心数据模型
-  Services/                     EventKit 与聚合逻辑
-  Support/                      持久化与格式化
-  UI/                           菜单栏、设置页、详情页、主题
-Tests/iTimeTests/               Swift Testing 测试
-Package.swift                   SwiftPM 入口，便于命令行构建
+iTime.xcodeproj/
+Sources/iTime/
+  App/          App state and orchestration
+  Domain/       Models for calendars, overview, AI services, AI history
+  Services/     EventKit access, statistics aggregation, AI adapters
+  Support/      Persistence, formatting, keychain, archive storage
+  UI/           Menu bar, dashboard, settings, AI conversation, theme
+Tests/iTimeTests/
+Package.swift
 ```
 
-## 当前交互
+## Getting Started
 
-- 菜单栏主界面支持切换 `今天 / 本周 / 本月`
-- 点击“查看详情”可打开独立统计窗口，查看指标、趋势、分布、排行和 AI 评估
-- 详情窗口支持 `今天 / 本周 / 本月 / 自定义` 范围，自定义范围可选择起止日期
-- 点击“设置”可打开原生设置窗口，勾选要纳入统计的日历，并配置 AI 服务的 `Base URL / Model / API Key`
-- 第一次授权后默认选中全部日历，后续选择会持久化保存
-- AI 评估采用手动触发，只有在详情窗口点击“生成评估”时才会请求模型
-- 应用界面固定跟随系统外观，浅色 / 深色模式会自动切换
+### Open in Xcode
 
-## Xcode 打开方式
+1. Open `iTime.xcodeproj`
+2. Select the `iTime` scheme
+3. Choose `My Mac`
+4. Run with `Cmd + R`
 
-1. 打开 Xcode。
-2. 选择 `File > Open...`
-3. 选择项目里的 `iTime.xcodeproj`
-4. 在左上角 Scheme 选择 `iTime`
-5. 运行目标选择 `My Mac`
-6. 按 `Cmd + R` 运行应用
+### First Launch
 
-这个工程默认关闭了代码签名要求，本地运行通常不需要额外配置 Team。
+`iTime` needs Calendar access.
 
-## 第一次运行需要的配置
+If access was denied previously:
 
-第一次运行时，应用会请求日历权限。
+1. Open `System Settings`
+2. Go to `Privacy & Security > Calendars`
+3. Enable access for `iTime`
 
-如果你之前拒绝过：
-1. 打开 `System Settings`
-2. 进入 `Privacy & Security > Calendars`
-3. 找到 `iTime`
-4. 重新打开权限
-
-## Xcode 常用操作
-
-运行应用：
-
-```bash
-Cmd + R
-```
-
-运行测试：
-
-```bash
-Cmd + U
-```
-
-只从命令行构建：
+## Build & Test
 
 ```bash
 swift build
-```
-
-只从命令行跑测试：
-
-```bash
 swift test
+xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' build
+xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test
 ```
 
-## 说明
+Current verification status:
 
-当前版本仍以“日历 + 图表 + AI 评估”闭环为主，下面这些能力还没有进入工程：
-- 自定义分类规则
-- 旧版 macOS 兼容 UI
+- `swift test` passes with **75** tests
+- `xcodebuild ... test` passes
 
-后续如果继续推进，建议顺序是：
-1. 增加更多统计维度
-2. 自定义分类规则
-3. 优化 AI 分析质量与可解释性
+## Design Direction
+
+The app intentionally stays close to native macOS behavior:
+
+- menu bar first
+- dedicated desktop overview window
+- native Settings window
+- system appearance following
+- restrained glass/material styling instead of a custom design system
+
+The goal is not to become a generic productivity suite. The goal is to make calendar-based time review feel immediate, personal, and native.
+
+## Current Scope
+
+Implemented:
+
+- calendar-based time aggregation
+- overview dashboard
+- custom ranges
+- AI review conversation
+- AI summary history
+- editable review history
+- multi-service AI configuration
+
+Not in scope yet:
+
+- task management
+- cross-device sync
+- Health / sleep ingestion
+- background AI automation
+- external analytics backend
+
+## Why This Repo Exists
+
+This project is a focused exploration of three things together:
+
+- native macOS menu bar product design
+- calendar-derived personal analytics
+- AI-assisted time reflection with local-first history
+
+If you want a compact macOS codebase that combines `EventKit`, `SwiftUI`, native settings, local persistence, charts, and AI service routing in one app, this repo is a good reference point.

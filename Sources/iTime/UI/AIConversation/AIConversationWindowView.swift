@@ -2,7 +2,6 @@ import SwiftUI
 
 enum AIConversationWindowCopy {
     static let title = "AI 复盘"
-    static let helperText = "AI 会先基于当前范围内的统计和具体日程发起提问，再在结束时生成总结。"
     static let askingText = "AI 正在准备问题…"
     static let respondingText = "AI 正在继续追问…"
     static let summarizingText = "AI 正在整理总结…"
@@ -12,16 +11,16 @@ enum AIConversationWindowCopy {
     static let sendReplyAction = "发送"
     static let finishConversationAction = "结束复盘"
     static let inputPlaceholder = "补充这个日程具体做了什么"
-    static let composerHint = "Enter 发送，Shift+Enter 换行"
     static let findingsTitle = "主要发现"
     static let suggestionsTitle = "改进建议"
     static let serviceSelectionTitle = "服务"
     static let modelSelectionTitle = "模型"
-    static let serviceSelectionHint = "开始前可切换服务和模型。"
     static let missingModelText = "请先在设置里补充模型列表。"
     static let discardConversationAccessibilityLabel = "退出本轮复盘"
     static let discardConfirmationTitle = "放弃这轮复盘？"
     static let discardConfirmationMessage = "退出后不会生成报告，这一轮未完成对话也不会进入历史。"
+    static let editSummaryAction = "编辑总结"
+    static let saveEditsAction = "保存修改"
 }
 
 struct AIConversationWindowView: View {
@@ -112,10 +111,6 @@ struct AIConversationWindowView: View {
 
     private var preflightOptionsView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(AIConversationWindowCopy.serviceSelectionHint)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(AIConversationWindowCopy.serviceSelectionTitle)
@@ -175,7 +170,7 @@ struct AIConversationWindowView: View {
             unavailableView(message: availability.message)
 
         case .idle:
-            emptyStateView(text: AIConversationWindowCopy.helperText)
+            emptyStateView()
 
         case .asking:
             progressView(AIConversationWindowCopy.askingText)
@@ -300,11 +295,8 @@ struct AIConversationWindowView: View {
         }
     }
 
-    private func emptyStateView(text: String) -> some View {
+    private func emptyStateView() -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(text)
-                .foregroundStyle(.secondary)
-
             if !canStartConversationNow {
                 Text(AIConversationWindowCopy.missingModelText)
                     .font(.subheadline)

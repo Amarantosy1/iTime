@@ -10,11 +10,34 @@ struct RangePicker: View {
     }
 
     var body: some View {
-        Picker("范围", selection: $selection) {
+        HStack(spacing: 8) {
             ForEach(ranges, id: \.self) { range in
-                Text(range.title).tag(range)
+                Button {
+                    selection = range
+                } label: {
+                    Text(range.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(selection == range ? .primary : .secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .frame(minWidth: 52)
+                        .background {
+                            if selection == range {
+                                if #available(macOS 26, *) {
+                                    Capsule()
+                                        .fill(.clear)
+                                        .glassEffect(.regular, in: Capsule())
+                                } else {
+                                    Capsule()
+                                        .fill(.regularMaterial)
+                                }
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
             }
         }
-        .pickerStyle(.segmented)
+        .padding(4)
+        .background(.ultraThinMaterial, in: Capsule())
     }
 }
