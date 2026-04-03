@@ -16,14 +16,14 @@ private struct ConversationStubCalendarAccessService: CalendarAccessServing {
 }
 
 private final class ConversationInMemoryAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
-    var value: String
+    var values: [AIProviderKind: String]
 
     init(value: String = "") {
-        self.value = value
+        self.values = [.openAI: value]
     }
 
-    func loadAPIKey() throws -> String { value }
-    func saveAPIKey(_ apiKey: String) throws { value = apiKey }
+    func loadAPIKey(for provider: AIProviderKind) throws -> String { values[provider] ?? "" }
+    func saveAPIKey(_ apiKey: String, for provider: AIProviderKind) throws { values[provider] = apiKey }
 }
 
 private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIConversationArchiveStoring {

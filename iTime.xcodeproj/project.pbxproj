@@ -58,6 +58,8 @@
 		A00000000000000000000137 /* OpenAICompatibleAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */; };
 		A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004F /* AIConversationServiceTests.swift */; };
 		A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000052 /* AIConversationAppModelTests.swift */; };
+		A0000000000000000000013A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* AIProvider.swift */; };
+		A0000000000000000000013B /* AIProviderSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AIProviderSettingsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -127,6 +129,8 @@
 		A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICompatibleAIConversationService.swift; sourceTree = "<group>"; };
 		A0000000000000000000004F /* AIConversationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationServiceTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000052 /* AIConversationAppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationAppModelTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000053 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
+		A00000000000000000000054 /* AIProviderSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -194,6 +198,7 @@
 			children = (
 				A00000000000000000000042 /* AIAnalysis.swift */,
 				A00000000000000000000049 /* AIConversation.swift */,
+				A00000000000000000000053 /* AIProvider.swift */,
 				A00000000000000000000012 /* CalendarEventRecord.swift */,
 				A00000000000000000000013 /* CalendarSource.swift */,
 				A0000000000000000000002E /* DailyDurationSummary.swift */,
@@ -334,6 +339,7 @@
 				A00000000000000000000052 /* AIConversationAppModelTests.swift */,
 				A0000000000000000000004C /* AIConversationContextTests.swift */,
 				A0000000000000000000004F /* AIConversationServiceTests.swift */,
+				A00000000000000000000054 /* AIProviderSettingsTests.swift */,
 				A00000000000000000000024 /* AppModelTests.swift */,
 				A00000000000000000000025 /* CalendarStatisticsAggregatorTests.swift */,
 				A00000000000000000000026 /* EventKitCalendarAccessServiceTests.swift */,
@@ -450,6 +456,7 @@
 				A00000000000000000000128 /* AIAnalysisServing.swift in Sources */,
 				A00000000000000000000132 /* AIConversation.swift in Sources */,
 				A00000000000000000000136 /* AIConversationServing.swift in Sources */,
+				A0000000000000000000013A /* AIProvider.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,
 				A00000000000000000000108 /* CalendarAccessServing.swift in Sources */,
 				A00000000000000000000109 /* CalendarStatisticsAggregator.swift in Sources */,
@@ -496,6 +503,7 @@
 				A00000000000000000000139 /* AIConversationAppModelTests.swift in Sources */,
 				A00000000000000000000135 /* AIConversationContextTests.swift in Sources */,
 				A00000000000000000000138 /* AIConversationServiceTests.swift in Sources */,
+				A0000000000000000000013B /* AIProviderSettingsTests.swift in Sources */,
 				A00000000000000000000121 /* AppModelTests.swift in Sources */,
 				A00000000000000000000122 /* CalendarStatisticsAggregatorTests.swift in Sources */,
 				A00000000000000000000123 /* EventKitCalendarAccessServiceTests.swift in Sources */,

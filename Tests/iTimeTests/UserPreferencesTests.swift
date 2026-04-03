@@ -56,3 +56,9 @@ import Testing
     #expect(second.aiBaseURL == "https://example.com/v1")
     #expect(second.aiModel == "gpt-5-mini")
 }
+
+@Test func defaultAIProviderUsesOpenAI() {
+    let preferences = UserPreferences(storage: .inMemory)
+
+    #expect(preferences.defaultAIProvider == .openAI)
+}
