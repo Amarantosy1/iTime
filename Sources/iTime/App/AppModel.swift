@@ -19,6 +19,10 @@ public final class AppModel {
         self.availableCalendars = []
     }
 
+    private func normalizedRuntimeRange(_ range: TimeRangePreset) -> TimeRangePreset {
+        range.isRuntimeSelectable ? range : .today
+    }
+
     public func refresh() async {
         authorizationState = service.authorizationState()
 
@@ -49,15 +53,20 @@ public final class AppModel {
 
         availableCalendars = fetchedCalendars
 
+        let range = normalizedRuntimeRange(preferences.selectedRange)
+        if preferences.selectedRange != range {
+            preferences.selectedRange = range
+        }
+
         let selectedCalendarIDs = fetchedCalendars.filter(\.isSelected).map(\.id)
         let events = service.fetchEvents(
-            in: preferences.selectedRange,
+            in: range,
             selectedCalendarIDs: selectedCalendarIDs
         )
         let aggregator = CalendarStatisticsAggregator(
             calendarLookup: Dictionary(uniqueKeysWithValues: fetchedCalendars.map { ($0.id, $0) })
         )
-        overview = aggregator.makeOverview(range: preferences.selectedRange, events: events)
+        overview = aggregator.makeOverview(range: range, events: events)
     }
 
     public func requestAccessIfNeeded() async {
@@ -68,7 +77,7 @@ public final class AppModel {
     }
 
     public func setRange(_ range: TimeRangePreset) async {
-        preferences.selectedRange = range
+        preferences.selectedRange = normalizedRuntimeRange(range)
         await refresh()
     }
 

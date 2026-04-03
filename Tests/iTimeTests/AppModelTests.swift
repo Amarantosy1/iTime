@@ -15,6 +15,32 @@ private struct StubCalendarAccessService: CalendarAccessServing {
     }
 }
 
+private final class RecordingCalendarAccessService: CalendarAccessServing {
+    let state: CalendarAuthorizationState
+    let calendars: [CalendarSource]
+    let events: [CalendarEventRecord]
+    private(set) var fetchedRanges: [TimeRangePreset] = []
+
+    init(
+        state: CalendarAuthorizationState,
+        calendars: [CalendarSource],
+        events: [CalendarEventRecord]
+    ) {
+        self.state = state
+        self.calendars = calendars
+        self.events = events
+    }
+
+    func authorizationState() -> CalendarAuthorizationState { state }
+    func requestAccess() async -> CalendarAuthorizationState { state }
+    func fetchCalendars() -> [CalendarSource] { calendars }
+
+    func fetchEvents(in range: TimeRangePreset, selectedCalendarIDs: [String]) -> [CalendarEventRecord] {
+        fetchedRanges.append(range)
+        return events.filter { selectedCalendarIDs.isEmpty || selectedCalendarIDs.contains($0.calendarID) }
+    }
+}
+
 @MainActor
 @Test func refreshLoadsCalendarsAndOverview() async {
     let service = StubCalendarAccessService(
@@ -80,4 +106,23 @@ private struct StubCalendarAccessService: CalendarAccessServing {
 
     #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isSelected == false)
     #expect(Set(preferences.selectedCalendarIDs) == ["work"])
+}
+
+@MainActor
+@Test func customRangeIsNormalizedOutOfRuntimeSelection() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.setRange(.custom)
+
+    #expect(preferences.selectedRange == .today)
+    #expect(service.fetchedRanges == [.today])
+    #expect(model.overview?.range == .today)
 }
