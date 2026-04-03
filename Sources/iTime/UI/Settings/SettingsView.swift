@@ -5,11 +5,13 @@ enum SettingsCopy {
     static let calendarSectionTitle = "统计日历"
     static let noCalendarsText = "当前没有可用日历。"
     static let aiServicesSectionTitle = "AI 服务"
+    static let reviewReminderSectionTitle = "复盘提醒"
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
     case calendars
     case aiServices
+    case reviewReminder
 
     var id: String { rawValue }
 
@@ -19,6 +21,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             SettingsCopy.calendarSectionTitle
         case .aiServices:
             SettingsCopy.aiServicesSectionTitle
+        case .reviewReminder:
+            SettingsCopy.reviewReminderSectionTitle
         }
     }
 
@@ -28,8 +32,20 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             "calendar"
         case .aiServices:
             "sparkles.rectangle.stack"
+        case .reviewReminder:
+            "bell.badge"
         }
     }
+}
+
+enum ReviewReminderCopy {
+    static let sectionTitle = SettingsCopy.reviewReminderSectionTitle
+    static let enabledTitle = "启用每日复盘提醒"
+    static let timeTitle = "提醒时间"
+    static let requestPermissionAction = "允许通知"
+    static let authorizationGrantedText = "通知权限已允许。"
+    static let authorizationPendingText = "需要通知权限后才能按时提醒。"
+    static let authorizationDeniedText = "系统通知权限已关闭，请前往系统设置开启。"
 }
 
 enum AISettingsCopy {
@@ -108,6 +124,8 @@ struct SettingsView: View {
             calendarSettingsPage
         case .aiServices:
             aiServicesSettingsPage
+        case .reviewReminder:
+            reviewReminderSettingsPage
         }
     }
 
@@ -153,6 +171,56 @@ struct SettingsView: View {
                 defaultServiceSection
                 serviceListSection
                 serviceEditorSection
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(24)
+        }
+    }
+
+    private var reviewReminderSettingsPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(ReviewReminderCopy.sectionTitle)
+                    .font(.title3.weight(.semibold))
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Toggle(
+                            ReviewReminderCopy.enabledTitle,
+                            isOn: Binding(
+                                get: { model.preferences.reviewReminderEnabled },
+                                set: { isEnabled in
+                                    Task { await model.updateReviewReminderEnabled(isEnabled) }
+                                }
+                            )
+                        )
+
+                        DatePicker(
+                            ReviewReminderCopy.timeTitle,
+                            selection: Binding(
+                                get: { model.preferences.reviewReminderTime },
+                                set: { newTime in
+                                    Task { await model.updateReviewReminderTime(newTime) }
+                                }
+                            ),
+                            displayedComponents: [.hourAndMinute]
+                        )
+                        .disabled(!model.preferences.reviewReminderEnabled)
+                        .datePickerStyle(.field)
+                        .frame(maxWidth: 240, alignment: .leading)
+
+                        Text(reviewReminderStatusText)
+                            .foregroundStyle(reviewReminderStatusColor)
+
+                        if model.reviewReminderAuthorizationStatus != .authorized {
+                            Button(ReviewReminderCopy.requestPermissionAction) {
+                                Task { await model.requestReviewReminderAuthorization() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(24)
@@ -498,5 +566,27 @@ struct SettingsView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var reviewReminderStatusText: String {
+        switch model.reviewReminderAuthorizationStatus {
+        case .authorized:
+            ReviewReminderCopy.authorizationGrantedText
+        case .notDetermined:
+            ReviewReminderCopy.authorizationPendingText
+        case .denied:
+            ReviewReminderCopy.authorizationDeniedText
+        }
+    }
+
+    private var reviewReminderStatusColor: Color {
+        switch model.reviewReminderAuthorizationStatus {
+        case .authorized:
+            .green
+        case .notDetermined:
+            .secondary
+        case .denied:
+            .red
+        }
     }
 }

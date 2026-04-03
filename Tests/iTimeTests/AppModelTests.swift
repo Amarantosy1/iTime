@@ -41,6 +41,40 @@ private final class RecordingCalendarAccessService: CalendarAccessServing {
     }
 }
 
+private final class RecordingReviewReminderScheduler: @unchecked Sendable, ReviewReminderScheduling {
+    var authorizationStatusValue: ReviewReminderAuthorizationStatus
+    var requestAuthorizationResult: ReviewReminderAuthorizationStatus
+    private(set) var requestedAuthorizationCount = 0
+    private(set) var scheduledTimes: [Date] = []
+    private(set) var removedCount = 0
+
+    init(
+        authorizationStatusValue: ReviewReminderAuthorizationStatus = .notDetermined,
+        requestAuthorizationResult: ReviewReminderAuthorizationStatus = .authorized
+    ) {
+        self.authorizationStatusValue = authorizationStatusValue
+        self.requestAuthorizationResult = requestAuthorizationResult
+    }
+
+    func authorizationStatus() async -> ReviewReminderAuthorizationStatus {
+        authorizationStatusValue
+    }
+
+    func requestAuthorization() async -> ReviewReminderAuthorizationStatus {
+        requestedAuthorizationCount += 1
+        authorizationStatusValue = requestAuthorizationResult
+        return requestAuthorizationResult
+    }
+
+    func scheduleDailyReminder(at time: Date) async throws {
+        scheduledTimes.append(time)
+    }
+
+    func removeScheduledReminder() async {
+        removedCount += 1
+    }
+}
+
 private func makeCalendar() -> Calendar {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
@@ -218,4 +252,68 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
         DateInterval(start: makeDate(2026, 4, 1), end: makeDate(2026, 5, 1)),
     ])
     #expect(model.overview?.range == .month)
+}
+
+@MainActor
+@Test func enablingReviewReminderRequestsPermissionAndSchedulesDailyNotification() async {
+    let service = StubCalendarAccessService(state: .authorized, calendars: [], events: [])
+    let preferences = UserPreferences(storage: .inMemory)
+    let scheduler = RecordingReviewReminderScheduler(
+        authorizationStatusValue: .notDetermined,
+        requestAuthorizationResult: .authorized
+    )
+    let reminderTime = makeDate(2026, 4, 3, hour: 21, minute: 30)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        reviewReminderScheduler: scheduler
+    )
+
+    await model.updateReviewReminderTime(reminderTime)
+    await model.updateReviewReminderEnabled(true)
+
+    #expect(model.reviewReminderAuthorizationStatus == .authorized)
+    #expect(preferences.reviewReminderEnabled == true)
+    #expect(preferences.reviewReminderTime == reminderTime)
+    #expect(scheduler.requestedAuthorizationCount == 1)
+    #expect(scheduler.scheduledTimes == [reminderTime])
+}
+
+@MainActor
+@Test func disablingReviewReminderRemovesScheduledNotification() async {
+    let service = StubCalendarAccessService(state: .authorized, calendars: [], events: [])
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.reviewReminderEnabled = true
+    let scheduler = RecordingReviewReminderScheduler(authorizationStatusValue: .authorized)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        reviewReminderScheduler: scheduler
+    )
+
+    await model.updateReviewReminderEnabled(false)
+
+    #expect(preferences.reviewReminderEnabled == false)
+    #expect(scheduler.removedCount == 1)
+}
+
+@MainActor
+@Test func changingReviewReminderTimeReschedulesWhenReminderIsEnabled() async {
+    let service = StubCalendarAccessService(state: .authorized, calendars: [], events: [])
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.reviewReminderEnabled = true
+    let originalTime = makeDate(2026, 4, 3, hour: 20, minute: 0)
+    let updatedTime = makeDate(2026, 4, 3, hour: 22, minute: 15)
+    preferences.reviewReminderTime = originalTime
+    let scheduler = RecordingReviewReminderScheduler(authorizationStatusValue: .authorized)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        reviewReminderScheduler: scheduler
+    )
+
+    await model.updateReviewReminderTime(updatedTime)
+
+    #expect(preferences.reviewReminderTime == updatedTime)
+    #expect(scheduler.scheduledTimes == [updatedTime])
 }

@@ -13,6 +13,8 @@ public final class UserPreferences {
         static let selectedCalendarIDs = "selectedCalendarIDs"
         static let customStartDate = "customStartDate"
         static let customEndDate = "customEndDate"
+        static let reviewReminderEnabled = "reviewReminderEnabled"
+        static let reviewReminderTime = "reviewReminderTime"
         static let aiAnalysisEnabled = "aiAnalysisEnabled"
         static let defaultAIProvider = "defaultAIProvider"
         static let aiBaseURL = "aiBaseURL"
@@ -56,6 +58,14 @@ public final class UserPreferences {
 
     public var customEndDate: Date {
         didSet { defaults.set(customEndDate, forKey: Keys.customEndDate) }
+    }
+
+    public var reviewReminderEnabled: Bool {
+        didSet { defaults.set(reviewReminderEnabled, forKey: Keys.reviewReminderEnabled) }
+    }
+
+    public var reviewReminderTime: Date {
+        didSet { defaults.set(reviewReminderTime, forKey: Keys.reviewReminderTime) }
     }
 
     public var aiAnalysisEnabled: Bool {
@@ -141,6 +151,9 @@ public final class UserPreferences {
         let todayInterval = calendar.dateInterval(of: .day, for: now) ?? DateInterval(start: now, duration: 86_400)
         self.customStartDate = defaults.object(forKey: Keys.customStartDate) as? Date ?? todayInterval.start
         self.customEndDate = defaults.object(forKey: Keys.customEndDate) as? Date ?? todayInterval.end
+        self.reviewReminderEnabled = defaults.object(forKey: Keys.reviewReminderEnabled) as? Bool ?? false
+        self.reviewReminderTime = defaults.object(forKey: Keys.reviewReminderTime) as? Date
+            ?? Self.defaultReviewReminderTime(calendar: calendar, referenceDate: now)
 
         self.aiAnalysisEnabled = defaults.object(forKey: Keys.aiAnalysisEnabled) as? Bool ?? false
         self.defaultAIProvider = AIProviderKind(rawValue: defaults.string(forKey: Keys.defaultAIProvider) ?? "") ?? .openAI
@@ -163,6 +176,14 @@ public final class UserPreferences {
 
         persistAIServiceEndpoints()
         synchronizeLegacyProviderFromDefaultService()
+    }
+
+    private static func defaultReviewReminderTime(calendar: Calendar, referenceDate: Date) -> Date {
+        let startOfDay = calendar.startOfDay(for: referenceDate)
+        var components = calendar.dateComponents([.year, .month, .day], from: startOfDay)
+        components.hour = 21
+        components.minute = 0
+        return calendar.date(from: components) ?? startOfDay.addingTimeInterval(21 * 3_600)
     }
 
     public func replaceSelectedCalendars(with ids: [String]) {

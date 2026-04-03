@@ -72,3 +72,23 @@ import Testing
     #expect(services.allSatisfy { $0.isBuiltIn })
     #expect(preferences.defaultAIService?.providerKind == .openAI)
 }
+
+@Test func defaultReviewReminderPreferencesAreDisabledWithNightDefaultTime() {
+    let preferences = UserPreferences(storage: .inMemory)
+    let components = Calendar.current.dateComponents([.hour, .minute], from: preferences.reviewReminderTime)
+
+    #expect(preferences.reviewReminderEnabled == false)
+    #expect(components.hour == 21)
+    #expect(components.minute == 0)
+}
+
+@Test func reviewReminderPreferencesPersistAcrossPreferenceInstances() {
+    let suite = "iTime.tests.review-reminder-preferences"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    first.reviewReminderEnabled = true
+    first.reviewReminderTime = Date(timeIntervalSince1970: 86_400)
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.reviewReminderEnabled == true)
+    #expect(second.reviewReminderTime == Date(timeIntervalSince1970: 86_400))
+}
