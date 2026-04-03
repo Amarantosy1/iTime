@@ -93,3 +93,88 @@ private func makeUTCGregorianCalendar() -> Calendar {
     #expect(overview.dailyDurations[2].totalDuration == 1_800)
     #expect(overview.buckets.map(\.name) == ["Work", "Life"])
 }
+
+@Test func aggregateBuildsStackedDayBucketsInStableCalendarOrder() {
+    let calendar = makeUTCGregorianCalendar()
+    let aggregator = CalendarStatisticsAggregator(
+        calendarLookup: [
+            "work": CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+            "life": CalendarSource(id: "life", name: "Life", colorHex: "#50E3C2", isSelected: true),
+        ],
+        calendar: calendar
+    )
+    let interval = DateInterval(
+        start: Date(timeIntervalSince1970: 0),
+        end: Date(timeIntervalSince1970: 3 * 86_400)
+    )
+
+    let overview = aggregator.makeOverview(
+        range: .custom,
+        interval: interval,
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "Focus",
+                calendarID: "work",
+                startDate: interval.start,
+                endDate: interval.start.addingTimeInterval(3_600),
+                isAllDay: false
+            ),
+            CalendarEventRecord(
+                id: "2",
+                title: "Dinner",
+                calendarID: "life",
+                startDate: interval.start,
+                endDate: interval.start.addingTimeInterval(1_800),
+                isAllDay: false
+            ),
+            CalendarEventRecord(
+                id: "3",
+                title: "Plan",
+                calendarID: "work",
+                startDate: interval.start.addingTimeInterval(2 * 86_400),
+                endDate: interval.start.addingTimeInterval(2 * 86_400 + 1_800),
+                isAllDay: false
+            ),
+        ]
+    )
+
+    #expect(overview.stackedBucketResolution == .day)
+    #expect(overview.stackedBuckets.count == 3)
+    #expect(overview.stackedBuckets[0].segments.map(\.calendarName) == ["Work", "Life"])
+    #expect(overview.stackedBuckets[1].totalDuration == 0)
+    #expect(overview.stackedBuckets[2].segments.first?.duration == 1_800)
+}
+
+@Test func aggregateUsesWeekBucketsForLongCustomRanges() {
+    let calendar = makeUTCGregorianCalendar()
+    let aggregator = CalendarStatisticsAggregator(
+        calendarLookup: [
+            "work": CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        calendar: calendar
+    )
+    let interval = DateInterval(
+        start: Date(timeIntervalSince1970: 0),
+        end: Date(timeIntervalSince1970: 60 * 86_400)
+    )
+
+    let overview = aggregator.makeOverview(
+        range: .custom,
+        interval: interval,
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "Focus",
+                calendarID: "work",
+                startDate: interval.start,
+                endDate: interval.start.addingTimeInterval(3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+
+    #expect(overview.stackedBucketResolution == .week)
+    #expect(overview.stackedBuckets.count < 20)
+    #expect(overview.stackedBuckets.first?.totalDuration == 3_600)
+}
