@@ -262,7 +262,20 @@ public final class AppModel {
             createdAt: now()
         )
         let historyWithReply = session.messages + [userMessage]
-        aiConversationState = .asking
+        let respondingSession = AIConversationSession(
+            id: session.id,
+            provider: session.provider,
+            range: session.range,
+            startDate: session.startDate,
+            endDate: session.endDate,
+            startedAt: session.startedAt,
+            completedAt: nil,
+            status: .inProgress,
+            overviewSnapshot: session.overviewSnapshot,
+            messages: historyWithReply
+        )
+        aiConversationState = .responding(respondingSession)
+        try? saveConversationArchive(upserting: respondingSession)
 
         do {
             let assistantMessage = try await aiConversationService.askQuestion(
@@ -464,7 +477,7 @@ public final class AppModel {
 
     private func resetAIConversationStateIfSafe() {
         switch aiConversationState {
-        case .asking, .waitingForUser, .summarizing:
+        case .asking, .responding, .waitingForUser, .summarizing:
             return
         case .unavailable, .idle, .completed, .failed:
             resetAIConversationState()

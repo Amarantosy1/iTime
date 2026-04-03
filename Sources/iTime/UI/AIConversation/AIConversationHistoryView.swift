@@ -16,7 +16,7 @@ struct AIConversationHistoryView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(summary.headline)
                                 .font(.headline)
-                            Text("\(summary.provider.title) · \(summary.range.title)")
+                            Text("\(summary.provider.title) · \(summary.displayPeriodText)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             Text(summary.summary)
@@ -60,7 +60,7 @@ private struct AIConversationSummaryDetailView: View {
                 Text(summary.headline)
                     .font(.title2.weight(.semibold))
 
-                Text("\(summary.provider.title) · \(summary.range.title)")
+                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
                     .foregroundStyle(.secondary)
 
                 Text(summary.summary)

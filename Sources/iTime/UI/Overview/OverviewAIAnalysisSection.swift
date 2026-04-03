@@ -44,7 +44,7 @@ struct OverviewAIAnalysisSection: View {
                         .buttonStyle(.bordered)
                     }
 
-                case .asking, .waitingForUser, .summarizing:
+                case .asking, .responding, .waitingForUser, .summarizing:
                     Text(AIAnalysisCopy.inProgressText)
                         .foregroundStyle(.secondary)
                     openWindowButton
@@ -87,6 +87,10 @@ struct OverviewAIAnalysisSection: View {
 
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
+
+                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
                 Text(summary.summary)
                     .foregroundStyle(.secondary)

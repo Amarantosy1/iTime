@@ -218,6 +218,14 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
         try container.encode(suggestions, forKey: .suggestions)
         try container.encode(overviewSnapshot, forKey: .overviewSnapshot)
     }
+
+    public var displayPeriodText: String {
+        AIConversationPeriodFormatter.displayText(
+            range: range,
+            startDate: startDate,
+            endDate: endDate
+        )
+    }
 }
 
 public struct AIMemorySnapshot: Equatable, Codable, Sendable {
@@ -290,10 +298,76 @@ public enum AIConversationState: Equatable, Sendable {
     case unavailable(AIAnalysisAvailability)
     case idle
     case asking
+    case responding(AIConversationSession)
     case waitingForUser(AIConversationSession)
     case summarizing(AIConversationSession)
     case completed(AIConversationSummary)
     case failed(String)
+}
+
+public enum AIConversationPeriodFormatter {
+    public static func displayText(
+        range: TimeRangePreset,
+        startDate: Date,
+        endDate: Date,
+        calendar: Calendar = .autoupdatingCurrent,
+        locale: Locale = Locale(identifier: "zh_CN")
+    ) -> String {
+        if isSingleDay(startDate: startDate, endDate: endDate, calendar: calendar) {
+            return dayFormatter(locale: locale, calendar: calendar).string(from: startDate)
+        }
+
+        if range == .month, isWholeMonth(startDate: startDate, endDate: endDate, calendar: calendar) {
+            return monthFormatter(locale: locale, calendar: calendar).string(from: startDate)
+        }
+
+        let inclusiveEndDate = endDate.addingTimeInterval(-1)
+        let startText = dayFormatter(locale: locale, calendar: calendar).string(from: startDate)
+        let endText = dayFormatter(locale: locale, calendar: calendar).string(from: inclusiveEndDate)
+        return "\(startText) - \(endText)"
+    }
+
+    private static func isSingleDay(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
+        guard endDate > startDate else { return true }
+        let inclusiveEndDate = endDate.addingTimeInterval(-1)
+        return calendar.isDate(startDate, inSameDayAs: inclusiveEndDate)
+    }
+
+    private static func isWholeMonth(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
+        guard
+            let monthInterval = calendar.dateInterval(of: .month, for: startDate)
+        else {
+            return false
+        }
+
+        return monthInterval.start == startDate && monthInterval.end == endDate
+    }
+
+    private static func dayFormatter(locale: Locale, calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.dateFormat = "M月d日"
+        return formatter
+    }
+
+    private static func monthFormatter(locale: Locale, calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.calendar = calendar
+        formatter.dateFormat = "M月"
+        return formatter
+    }
+}
+
+public extension AIConversationSession {
+    var displayPeriodText: String {
+        AIConversationPeriodFormatter.displayText(
+            range: range,
+            startDate: startDate,
+            endDate: endDate
+        )
+    }
 }
 
 public struct AIEventContext: Equatable, Sendable {

@@ -4,6 +4,7 @@ enum AIConversationWindowCopy {
     static let title = "AI 复盘"
     static let helperText = "AI 会先基于当前范围内的统计和具体日程发起提问，再在结束时生成总结。"
     static let askingText = "AI 正在准备问题…"
+    static let respondingText = "AI 正在继续追问…"
     static let summarizingText = "AI 正在整理总结…"
     static let unavailableNoDataText = "当前范围内没有可供复盘的统计数据。"
     static let newConversationAction = "开始新复盘"
@@ -11,6 +12,7 @@ enum AIConversationWindowCopy {
     static let sendReplyAction = "发送"
     static let finishConversationAction = "结束复盘"
     static let inputPlaceholder = "补充这个日程具体做了什么"
+    static let composerHint = "Enter 发送，Shift+Enter 换行"
     static let findingsTitle = "主要发现"
     static let suggestionsTitle = "改进建议"
 }
@@ -33,6 +35,8 @@ struct AIConversationWindowView: View {
                 AIConversationComposerView(
                     replyDraft: $replyDraft,
                     isFocused: $isComposerFocused,
+                    isSending: isComposerSending,
+                    statusText: composerStatusText,
                     onSend: sendReply,
                     onFinish: finishConversation
                 )
@@ -50,7 +54,7 @@ struct AIConversationWindowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(AIConversationWindowCopy.title)
                     .font(.title2.weight(.semibold))
-                Text("\(providerTitle) · \(model.liveSelectedRange.title)")
+                Text("\(providerTitle) · \(periodTitle)")
                     .foregroundStyle(.secondary)
             }
 
@@ -87,6 +91,9 @@ struct AIConversationWindowView: View {
         case .asking:
             progressView(AIConversationWindowCopy.askingText)
 
+        case .responding(let session):
+            AIConversationMessagesView(messages: session.messages)
+
         case .waitingForUser(let session):
             AIConversationMessagesView(messages: session.messages)
 
@@ -109,21 +116,23 @@ struct AIConversationWindowView: View {
         switch model.aiConversationState {
         case .idle, .completed, .failed:
             return true
-        case .unavailable, .asking, .waitingForUser, .summarizing:
+        case .unavailable, .asking, .responding, .waitingForUser, .summarizing:
             return false
         }
     }
 
     private var showsComposer: Bool {
-        if case .waitingForUser = model.aiConversationState {
+        switch model.aiConversationState {
+        case .waitingForUser, .responding:
             return true
+        default:
+            return false
         }
-        return false
     }
 
     private var providerTitle: String {
         switch model.aiConversationState {
-        case .waitingForUser(let session), .summarizing(let session):
+        case .responding(let session), .waitingForUser(let session), .summarizing(let session):
             return session.provider.title
         case .completed(let summary):
             return summary.provider.title
@@ -132,8 +141,34 @@ struct AIConversationWindowView: View {
         }
     }
 
+    private var periodTitle: String {
+        switch model.aiConversationState {
+        case .responding(let session), .waitingForUser(let session), .summarizing(let session):
+            return session.displayPeriodText
+        case .completed(let summary):
+            return summary.displayPeriodText
+        case .unavailable, .idle, .asking, .failed:
+            return model.liveSelectedRange.title
+        }
+    }
+
+    private var isComposerSending: Bool {
+        if case .responding = model.aiConversationState {
+            return true
+        }
+        return false
+    }
+
+    private var composerStatusText: String? {
+        if case .responding = model.aiConversationState {
+            return AIConversationWindowCopy.respondingText
+        }
+        return nil
+    }
+
     private func sendReply() {
-        let reply = replyDraft
+        let reply = replyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !reply.isEmpty else { return }
         replyDraft = ""
         Task { await model.sendAIConversationReply(reply) }
     }
@@ -186,6 +221,10 @@ struct AIConversationWindowView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(summary.headline)
                     .font(.title3.weight(.semibold))
+
+                Text("\(summary.provider.title) · \(summary.displayPeriodText)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
                 Text(summary.summary)
                     .foregroundStyle(.secondary)

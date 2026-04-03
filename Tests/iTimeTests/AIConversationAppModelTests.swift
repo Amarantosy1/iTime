@@ -47,12 +47,15 @@ private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIC
 private final class RecordingAIConversationService: @unchecked Sendable, AIConversationServing {
     var nextQuestion: String
     var summaryDraft: AIConversationSummaryDraft
+    var shouldSuspendNextQuestion = false
     private(set) var askedContexts: [AIConversationContext] = []
     private(set) var askedHistories: [[AIConversationMessage]] = []
     private(set) var askedConfigurations: [ResolvedAIProviderConfiguration] = []
     private(set) var summarizedContexts: [AIConversationContext] = []
     private(set) var summarizedHistories: [[AIConversationMessage]] = []
     private(set) var summarizedConfigurations: [ResolvedAIProviderConfiguration] = []
+    private var suspendedQuestionContinuation: CheckedContinuation<AIConversationMessage, Never>?
+    private var suspensionReadyContinuation: CheckedContinuation<Void, Never>?
 
     init(
         nextQuestion: String = "这个日程主要做了什么？",
@@ -75,6 +78,14 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         askedContexts.append(context)
         askedHistories.append(history)
         askedConfigurations.append(configuration)
+        if shouldSuspendNextQuestion {
+            shouldSuspendNextQuestion = false
+            return await withCheckedContinuation { continuation in
+                suspendedQuestionContinuation = continuation
+                suspensionReadyContinuation?.resume()
+                suspensionReadyContinuation = nil
+            }
+        }
         return AIConversationMessage(
             id: UUID(),
             role: .assistant,
@@ -92,6 +103,28 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         summarizedHistories.append(history)
         summarizedConfigurations.append(configuration)
         return summaryDraft
+    }
+
+    func resumeSuspendedQuestion() {
+        suspendedQuestionContinuation?.resume(
+            returning: AIConversationMessage(
+                id: UUID(),
+                role: .assistant,
+                content: nextQuestion,
+                createdAt: Date(timeIntervalSince1970: 2_000)
+            )
+        )
+        suspendedQuestionContinuation = nil
+    }
+
+    func waitUntilQuestionSuspends() async {
+        if suspendedQuestionContinuation != nil {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            suspensionReadyContinuation = continuation
+        }
     }
 }
 
@@ -250,6 +283,66 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(session.messages[2].role == AIConversationMessageRole.assistant)
     #expect(session.messages[2].content == "这次评审之后安排了什么动作？")
     #expect(conversationService.askedHistories.last?.count == 2)
+}
+
+@MainActor
+@Test func sendAIConversationReplyKeepsConversationVisibleWhileAwaitingNextQuestion() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: CalendarAuthorizationState.authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "这次评审之后安排了什么动作？")
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    conversationService.shouldSuspendNextQuestion = true
+
+    let replyTask = Task {
+        await model.sendAIConversationReply("主要在对齐需求变更。")
+    }
+    await conversationService.waitUntilQuestionSuspends()
+
+    guard case .responding(let session) = model.aiConversationState else {
+        Issue.record("Expected responding state while awaiting next question")
+        conversationService.resumeSuspendedQuestion()
+        await replyTask.value
+        return
+    }
+    #expect(session.messages.count == 2)
+    #expect(session.messages.last?.role == .user)
+    #expect(session.messages.last?.content == "主要在对齐需求变更。")
+
+    conversationService.resumeSuspendedQuestion()
+    await replyTask.value
+
+    guard case .waitingForUser(let updatedSession) = model.aiConversationState else {
+        Issue.record("Expected waitingForUser state after next question resumes")
+        return
+    }
+    #expect(updatedSession.messages.count == 3)
 }
 
 @MainActor

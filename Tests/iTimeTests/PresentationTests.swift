@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 import Testing
@@ -214,4 +215,41 @@ import Testing
     #expect(AISettingsCopy.providerSectionTitle(for: .anthropic) == "Anthropic")
     #expect(AIAnalysisCopy.historyAction == "查看历史总结")
     #expect(AIAnalysisAvailability.notConfigured.message == "请先在设置中配置 AI 服务。")
+}
+
+@Test func aiConversationSummaryUsesConcretePeriodText() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+
+    #expect(
+        AIConversationPeriodFormatter.displayText(
+            range: .today,
+            startDate: .init(timeIntervalSince1970: 1_743_609_600),
+            endDate: .init(timeIntervalSince1970: 1_743_696_000),
+            calendar: calendar
+        ) == "4月3日"
+    )
+    #expect(
+        AIConversationPeriodFormatter.displayText(
+            range: .month,
+            startDate: .init(timeIntervalSince1970: 1_743_436_800),
+            endDate: .init(timeIntervalSince1970: 1_746_028_800),
+            calendar: calendar
+        ) == "4月"
+    )
+    #expect(
+        AIConversationPeriodFormatter.displayText(
+            range: .custom,
+            startDate: .init(timeIntervalSince1970: 1_743_609_600),
+            endDate: .init(timeIntervalSince1970: 1_744_214_400),
+            calendar: calendar
+        ) == "4月3日 - 4月9日"
+    )
+}
+
+@Test func aiConversationComposerReturnKeyBehaviorUsesEnterToSend() {
+    #expect(AIConversationComposerKeyBehavior.shouldSendOnReturn(modifiers: []) == true)
+    #expect(AIConversationComposerKeyBehavior.shouldSendOnReturn(modifiers: [.shift]) == false)
+    #expect(AIConversationComposerKeyBehavior.shouldSendOnReturn(modifiers: [.option]) == false)
+    #expect(AIConversationComposerKeyBehavior.shouldSendOnReturn(modifiers: [.command]) == false)
 }
