@@ -1,7 +1,15 @@
 import SwiftUI
+import UserNotifications
+
+private final class iTimeAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        UNUserNotificationCenter.current().delegate = ReviewReminderNotificationCenterDelegate.shared
+    }
+}
 
 @main
 struct iTimeApp: App {
+    @NSApplicationDelegateAdaptor(iTimeAppDelegate.self) private var appDelegate
     @State private var model = AppModel(
         service: EventKitCalendarAccessService(),
         preferences: UserPreferences(storage: .standard),

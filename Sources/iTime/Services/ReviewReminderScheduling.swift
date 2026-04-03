@@ -158,8 +158,25 @@ private struct DefaultReviewReminderAppActivator: ReviewReminderAppActivating {
     @MainActor
     func activateApp() async {
         #if canImport(AppKit)
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApplication.shared.activate()
+        } else {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
         #endif
+    }
+}
+
+public final class ReviewReminderNotificationCenterDelegate: NSObject, @unchecked Sendable, UNUserNotificationCenterDelegate {
+    public static let shared = ReviewReminderNotificationCenterDelegate()
+    private override init() { super.init() }
+
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 }
 

@@ -208,6 +208,21 @@ private struct AIConversationSummaryDetailView: View {
     }
 
     @ViewBuilder
+    private func styledMarkdown(_ content: String) -> some View {
+        Markdown(content)
+            .markdownTextStyle {
+                BackgroundColor(nil)
+                TextTracking(0.3)
+            }
+            .markdownBlockStyle(\.paragraph) { configuration in
+                configuration.label
+                    .fixedSize(horizontal: false, vertical: true)
+                    .relativeLineSpacing(.em(0.4))
+                    .markdownMargin(top: 0, bottom: 16)
+            }
+    }
+
+    @ViewBuilder
     private func editorOrText(
         text: Binding<String>,
         readOnlyText: String,
@@ -219,8 +234,7 @@ private struct AIConversationSummaryDetailView: View {
                 .padding(10)
                 .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         } else {
-            Markdown(readOnlyText)
-                .markdownTheme(.gitHub)
+            styledMarkdown(readOnlyText)
         }
     }
 
@@ -241,8 +255,7 @@ private struct AIConversationSummaryDetailView: View {
                     .padding(10)
                     .background(Color(NSColor.textBackgroundColor), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             } else if !items.isEmpty {
-                Markdown(items.map { "- \($0)" }.joined(separator: "\n"))
-                    .markdownTheme(.gitHub)
+                styledMarkdown(items.map { "- \($0)" }.joined(separator: "\n"))
             }
         }
     }
@@ -311,8 +324,7 @@ private struct AIConversationSummaryDetailView: View {
                     Text(report.title)
                         .font(.headline)
 
-                    Markdown(report.content)
-                        .markdownTheme(.gitHub)
+                    styledMarkdown(report.content)
                 }
             } else {
                 Text(AIConversationHistoryCopy.longFormPlaceholder)
