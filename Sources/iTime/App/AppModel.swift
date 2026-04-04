@@ -434,6 +434,7 @@ public final class AppModel {
             )
             try saveConversationArchive(upserting: completedSession, appending: summary)
             aiConversationState = .completed(summary)
+            await performLongFormGeneration(session: completedSession, summary: summary, configuration: configuration)
         } catch let error as AIAnalysisServiceError {
             aiConversationState = .failed(error.userMessage)
         } catch {
@@ -734,6 +735,15 @@ public final class AppModel {
             return
         }
 
+        await performLongFormGeneration(session: session, summary: summary, configuration: configuration)
+    }
+
+    private func performLongFormGeneration(
+        session: AIConversationSession,
+        summary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async {
+        let summaryID = summary.id
         let operationID = UUID()
         aiLongFormOperationID = operationID
         aiLongFormState = .generating(summaryID: summaryID)
