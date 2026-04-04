@@ -95,11 +95,10 @@ public struct OpenAICompatibleAIAnalysisService: AIAnalysisServing, Sendable {
     }
 
     private static let systemPrompt = """
-    你是一个中文时间管理教练。你会基于用户提供的日历统计数据，输出简短、具体、可执行的评估。
-    你必须只返回 JSON，不要输出 Markdown，不要输出额外解释。
-    返回字段固定为：
+    你是用户的一位熟悉时间管理的老朋友，看了他的日历数据，说说你真实的判断——简短、具体、有用，不废话。
+    只返回 JSON，不要输出 Markdown：
     {"summary":"...", "findings":["..."], "suggestions":["..."]}
-    findings 和 suggestions 各返回 2 到 3 条。
+    findings 和 suggestions 各 2 到 3 条。
     """
 
     private static func userPrompt(for request: AIAnalysisRequest) -> String {

@@ -32,6 +32,7 @@ public final class AppModel {
     private var aiConversationArchive: AIConversationArchive
     private var aiConversationOperationID: UUID
     private var aiLongFormOperationID: UUID
+    private var aiAPIKeyOverrides: [UUID: String]
 
     public init(
         service: CalendarAccessServing,
@@ -81,6 +82,7 @@ public final class AppModel {
         self.aiConversationArchive = archive
         self.aiConversationOperationID = UUID()
         self.aiLongFormOperationID = UUID()
+        self.aiAPIKeyOverrides = [:]
         synchronizeConversationSelection()
     }
 
@@ -536,7 +538,7 @@ public final class AppModel {
     }
 
     public func loadAIAPIKey(for provider: AIProviderKind) -> String {
-        (try? aiKeyStore.loadAPIKey(for: provider)) ?? ""
+        loadAIAPIKey(for: provider.builtInServiceID)
     }
 
     public func updateAIAPIKey(_ apiKey: String) {
@@ -544,17 +546,22 @@ public final class AppModel {
     }
 
     public func updateAIAPIKey(_ apiKey: String, for provider: AIProviderKind) {
-        try? aiKeyStore.saveAPIKey(apiKey, for: provider)
+        updateAIAPIKey(apiKey, for: provider.builtInServiceID)
         resetAIAnalysisState()
         resetAIConversationStateIfSafe()
     }
 
     public func loadAIAPIKey(for serviceID: UUID) -> String {
-        (try? aiKeyStore.loadAPIKey(for: serviceID)) ?? ""
+        if let cached = aiAPIKeyOverrides[serviceID] {
+            return cached
+        }
+        return (try? aiKeyStore.loadAPIKey(for: serviceID)) ?? ""
     }
 
     public func updateAIAPIKey(_ apiKey: String, for serviceID: UUID) {
-        try? aiKeyStore.saveAPIKey(apiKey, for: serviceID)
+        let normalized = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        aiAPIKeyOverrides[serviceID] = normalized
+        try? aiKeyStore.saveAPIKey(normalized, for: serviceID)
         aiServiceConnectionStates[serviceID] = .idle
         resetAIConversationStateIfSafe()
     }
@@ -835,7 +842,7 @@ public final class AppModel {
             provider: provider,
             baseURL: configuration.baseURL,
             model: configuration.model,
-            apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
+            apiKey: loadAIAPIKey(for: provider),
             isEnabled: configuration.isEnabled
         )
     }
@@ -851,7 +858,7 @@ public final class AppModel {
                 provider: service.providerKind,
                 baseURL: service.baseURL,
                 model: resolvedModel,
-                apiKey: (try? aiKeyStore.loadAPIKey(for: service.id)) ?? "",
+                apiKey: loadAIAPIKey(for: service.id),
                 isEnabled: service.isEnabled
             )
         }
@@ -864,7 +871,7 @@ public final class AppModel {
             provider: provider,
             baseURL: configuration.baseURL,
             model: resolvedModel,
-            apiKey: (try? aiKeyStore.loadAPIKey(for: provider)) ?? "",
+            apiKey: loadAIAPIKey(for: provider),
             isEnabled: configuration.isEnabled
         )
     }

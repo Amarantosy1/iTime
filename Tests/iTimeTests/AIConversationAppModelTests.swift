@@ -26,6 +26,14 @@ private final class ConversationInMemoryAIKeyStore: @unchecked Sendable, AIAPIKe
     func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws { values[serviceID] = apiKey }
 }
 
+private final class FailingSaveAIKeyStore: @unchecked Sendable, AIAPIKeyStoring {
+    func loadAPIKey(for serviceID: UUID) throws -> String { "" }
+
+    func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws {
+        throw NSError(domain: NSOSStatusErrorDomain, code: -25293)
+    }
+}
+
 private final class InMemoryAIConversationArchiveStore: @unchecked Sendable, AIConversationArchiveStoring {
     var archive: AIConversationArchive
     private(set) var savedArchives: [AIConversationArchive] = []
@@ -1126,4 +1134,38 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
     #expect(conversationService.validatedConfigurations.first?.provider == .openAICompatible)
     #expect(conversationService.validatedConfigurations.first?.isEnabled == false)
+}
+
+@MainActor
+@Test func testAIServiceConnectionUsesInMemoryKeyWhenKeychainSaveFails() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [],
+        events: []
+    )
+    let conversationService = RecordingAIConversationService()
+    let service = AIServiceEndpoint.customOpenAICompatible(
+        displayName: "Keychain 失败服务",
+        baseURL: "https://api.example.com/v1",
+        models: ["gpt-4o-mini"],
+        defaultModel: "gpt-4o-mini",
+        isEnabled: true
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.saveAIService(service)
+    preferences.setDefaultAIServiceID(service.id)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: FailingSaveAIKeyStore(),
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    model.updateAIAPIKey("temp-key", for: service.id)
+    await model.testAIServiceConnection(service.id)
+
+    #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
+    #expect(conversationService.validatedConfigurations.first?.apiKey == "temp-key")
 }
