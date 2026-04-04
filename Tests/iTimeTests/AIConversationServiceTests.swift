@@ -93,6 +93,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("深度工作"))
     #expect(body.contains("需求评审"))
     #expect(body.contains("最近几轮复盘都提到会议偏多。"))
+    #expect(body.contains("高杠杆问题"))
+    #expect(body.contains("只输出 JSON"))
     #expect(reply.role == .assistant)
     #expect(reply.content == "周二下午的需求评审主要产出了什么？")
 }
@@ -163,6 +165,12 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
             isEnabled: true
         )
     )
+
+    let request = try #require(sender.lastRequest)
+    let bodyData = try #require(request.httpBody)
+    let body = try #require(String(data: bodyData, encoding: .utf8))
+    #expect(body.contains("模式 + 证据 + 影响"))
+    #expect(body.contains("动作 + 触发条件 + 最小起步动作 + 衡量指标"))
 
     #expect(draft.headline == "本周工作会议偏多")
     #expect(draft.summary == "你本周大量时间花在评审和同步上，深度工作时间不足。")
@@ -256,6 +264,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("周二下午的需求评审主要产出了什么？"))
     #expect(body.contains("主要在对齐需求变更和下周排期。"))
     #expect(body.contains("这段文字不该成为长文的主输入。") == false)
+    #expect(body.contains("至少给出 3 条可执行行动"))
+    #expect(body.contains("## 5. 改进行动建议"))
     #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
     #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
     #expect(draft.content == "这是一篇正式长文复盘。")
