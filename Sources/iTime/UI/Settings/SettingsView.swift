@@ -11,6 +11,15 @@ enum SettingsCopy {
     static let reviewReminderSectionTitle = "复盘提醒"
 }
 
+enum SettingsLayout {
+    static let defaultWindowWidth: CGFloat = 980
+    static let defaultWindowHeight: CGFloat = 720
+    static let minimumWindowWidth: CGFloat = 760
+    static let minimumWindowHeight: CGFloat = 560
+    static let sidebarIdealWidth: CGFloat = 192
+    static let detailContentMaxWidth: CGFloat = 760
+}
+
 enum SettingsSection: String, CaseIterable, Identifiable {
     case calendars
     case aiServices
@@ -37,6 +46,17 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             "sparkles.rectangle.stack"
         case .reviewReminder:
             "bell.badge"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .calendars:
+            "选择参与统计的日历。"
+        case .aiServices:
+            "管理默认服务、自定义服务与连接凭据。"
+        case .reviewReminder:
+            "安排每天的复盘提醒与通知权限。"
         }
     }
 }
@@ -101,12 +121,11 @@ struct SettingsView: View {
                 Label(section.title, systemImage: section.systemImage)
                     .tag(section)
             }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)
+            .navigationSplitViewColumnWidth(min: 168, ideal: SettingsLayout.sidebarIdealWidth, max: 220)
         } detail: {
             detailView
                 .navigationTitle(SettingsCopy.navigationTitle)
         }
-        .frame(width: 960, height: 700)
         .task {
             await model.refresh()
             syncServiceEditorState()
@@ -125,149 +144,168 @@ struct SettingsView: View {
     private var detailView: some View {
         switch selectedSection ?? .calendars {
         case .calendars:
-            calendarSettingsPage
+            settingsPage(
+                title: SettingsSection.calendars.title,
+                description: SettingsSection.calendars.description
+            ) {
+                calendarSettingsContent
+            }
         case .aiServices:
-            aiServicesSettingsPage
+            settingsPage(
+                title: SettingsSection.aiServices.title,
+                description: SettingsSection.aiServices.description
+            ) {
+                aiServicesSettingsContent
+            }
         case .reviewReminder:
-            reviewReminderSettingsPage
+            settingsPage(
+                title: SettingsSection.reviewReminder.title,
+                description: SettingsSection.reviewReminder.description
+            ) {
+                reviewReminderSettingsContent
+            }
         }
     }
 
-    private var calendarSettingsPage: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(SettingsCopy.calendarSectionTitle)
-                    .font(.title3.weight(.semibold))
-
-                if model.authorizationState != .authorized {
-                    AuthorizationStateView(state: model.authorizationState) {
-                        Task { await model.requestAccessIfNeeded() }
+    private var calendarSettingsContent: some View {
+        settingsCard {
+            if model.authorizationState != .authorized {
+                AuthorizationStateView(state: model.authorizationState) {
+                    Task { await model.requestAccessIfNeeded() }
+                }
+            } else if model.availableCalendars.isEmpty {
+                Text(SettingsCopy.noCalendarsText)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(model.availableCalendars) { calendar in
+                        Toggle(isOn: binding(for: calendar)) {
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(Color(hex: calendar.colorHex))
+                                    .frame(width: 8, height: 8)
+                                Text(calendar.name)
+                            }
+                        }
                     }
-                } else if model.availableCalendars.isEmpty {
-                    Text(SettingsCopy.noCalendarsText)
-                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var aiServicesSettingsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            defaultServiceSection
+            serviceListSection
+            serviceEditorSection
+        }
+    }
+
+    private var reviewReminderSettingsContent: some View {
+        settingsCard {
+            Toggle(
+                ReviewReminderCopy.enabledTitle,
+                isOn: Binding(
+                    get: { model.preferences.reviewReminderEnabled },
+                    set: { isEnabled in
+                        Task { await model.updateReviewReminderEnabled(isEnabled) }
+                    }
+                )
+            )
+
+            DatePicker(
+                ReviewReminderCopy.timeTitle,
+                selection: Binding(
+                    get: { model.preferences.reviewReminderTime },
+                    set: { newTime in
+                        Task { await model.updateReviewReminderTime(newTime) }
+                    }
+                ),
+                displayedComponents: [.hourAndMinute]
+            )
+            .disabled(!model.preferences.reviewReminderEnabled)
+            .datePickerStyle(.field)
+            .frame(maxWidth: 240, alignment: .leading)
+
+            Text(reviewReminderStatusText)
+                .foregroundStyle(reviewReminderStatusColor)
+
+            if model.reviewReminderAuthorizationStatus != .authorized {
+                if model.reviewReminderAuthorizationStatus == .denied {
+                    Button(ReviewReminderCopy.openSystemSettingsAction) {
+                        openSystemNotificationSettings()
+                    }
+                    .buttonStyle(.borderedProminent)
                 } else {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(model.availableCalendars) { calendar in
-                            Toggle(isOn: binding(for: calendar)) {
-                                HStack(spacing: 10) {
-                                    Circle()
-                                        .fill(Color(hex: calendar.colorHex))
-                                        .frame(width: 8, height: 8)
-                                    Text(calendar.name)
-                                }
-                            }
-                        }
+                    Button(ReviewReminderCopy.requestPermissionAction) {
+                        Task { await model.requestReviewReminderAuthorization() }
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
         }
     }
 
-    private var aiServicesSettingsPage: some View {
+    private func settingsPage<Content: View>(
+        title: String,
+        description: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(SettingsCopy.aiServicesSectionTitle)
-                    .font(.title3.weight(.semibold))
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(.title2.weight(.semibold))
+                    Text(description)
+                        .foregroundStyle(.secondary)
+                }
 
-                defaultServiceSection
-                serviceListSection
-                serviceEditorSection
+                content()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
+            .frame(maxWidth: SettingsLayout.detailContentMaxWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 28)
         }
     }
 
-    private var reviewReminderSettingsPage: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(ReviewReminderCopy.sectionTitle)
-                    .font(.title3.weight(.semibold))
-
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Toggle(
-                            ReviewReminderCopy.enabledTitle,
-                            isOn: Binding(
-                                get: { model.preferences.reviewReminderEnabled },
-                                set: { isEnabled in
-                                    Task { await model.updateReviewReminderEnabled(isEnabled) }
-                                }
-                            )
-                        )
-
-                        DatePicker(
-                            ReviewReminderCopy.timeTitle,
-                            selection: Binding(
-                                get: { model.preferences.reviewReminderTime },
-                                set: { newTime in
-                                    Task { await model.updateReviewReminderTime(newTime) }
-                                }
-                            ),
-                            displayedComponents: [.hourAndMinute]
-                        )
-                        .disabled(!model.preferences.reviewReminderEnabled)
-                        .datePickerStyle(.field)
-                        .frame(maxWidth: 240, alignment: .leading)
-
-                        Text(reviewReminderStatusText)
-                            .foregroundStyle(reviewReminderStatusColor)
-
-                        if model.reviewReminderAuthorizationStatus != .authorized {
-                            if model.reviewReminderAuthorizationStatus == .denied {
-                                Button(ReviewReminderCopy.openSystemSettingsAction) {
-                                    openSystemNotificationSettings()
-                                }
-                                .buttonStyle(.borderedProminent)
-                            } else {
-                                Button(ReviewReminderCopy.requestPermissionAction) {
-                                    Task { await model.requestReviewReminderAuthorization() }
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LiquidGlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                content()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var defaultServiceSection: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(AISettingsCopy.defaultServiceTitle)
-                    .font(.headline)
+        settingsCard {
+            Text(AISettingsCopy.defaultServiceTitle)
+                .font(.headline)
 
-                Picker(AISettingsCopy.defaultServiceTitle, selection: Binding(
-                    get: { model.defaultAIServiceID ?? model.availableAIServices.first?.id },
-                    set: { id in
-                        if let id {
-                            model.setDefaultAIService(id: id)
-                            if selectedServiceID == nil {
-                                selectedServiceID = id
-                            }
+            Picker(AISettingsCopy.defaultServiceTitle, selection: Binding(
+                get: { model.defaultAIServiceID ?? model.availableAIServices.first?.id },
+                set: { id in
+                    if let id {
+                        model.setDefaultAIService(id: id)
+                        if selectedServiceID == nil {
+                            selectedServiceID = id
                         }
                     }
-                )) {
-                    ForEach(model.availableAIServices) { service in
-                        Text(service.displayName).tag(Optional(service.id))
-                    }
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: 320, alignment: .leading)
+            )) {
+                ForEach(model.availableAIServices) { service in
+                    Text(service.displayName).tag(Optional(service.id))
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .pickerStyle(.menu)
+            .frame(maxWidth: 320, alignment: .leading)
         }
     }
 
     private var serviceListSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        settingsCard {
             Text(AISettingsCopy.serviceListTitle)
                 .font(.headline)
 
@@ -291,7 +329,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var serviceEditorSection: some View {
-        GroupBox {
+        settingsCard {
             if let service = selectedService {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top) {

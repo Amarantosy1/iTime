@@ -238,6 +238,21 @@ import Testing
     #expect(SettingsSection.allCases == [.calendars, .aiServices, .reviewReminder])
 }
 
+@Test func settingsLayoutUsesNotesStyleSizingConstraints() {
+    #expect(SettingsLayout.defaultWindowWidth == 980)
+    #expect(SettingsLayout.defaultWindowHeight == 720)
+    #expect(SettingsLayout.minimumWindowWidth == 760)
+    #expect(SettingsLayout.minimumWindowHeight == 560)
+    #expect(SettingsLayout.sidebarIdealWidth == 192)
+    #expect(SettingsLayout.detailContentMaxWidth == 760)
+}
+
+@Test func settingsSectionsExposeNotesStyleDescriptions() {
+    #expect(SettingsSection.calendars.description == "选择参与统计的日历。")
+    #expect(SettingsSection.aiServices.description == "管理默认服务、自定义服务与连接凭据。")
+    #expect(SettingsSection.reviewReminder.description == "安排每天的复盘提醒与通知权限。")
+}
+
 @Test func aiConversationSummaryUsesConcretePeriodText() {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!

@@ -36,6 +36,14 @@ struct iTimeApp: App {
 
         Settings {
             SettingsView(model: model)
+                .frame(
+                    minWidth: SettingsLayout.minimumWindowWidth,
+                    minHeight: SettingsLayout.minimumWindowHeight
+                )
         }
+        .defaultSize(
+            width: SettingsLayout.defaultWindowWidth,
+            height: SettingsLayout.defaultWindowHeight
+        )
     }
 }

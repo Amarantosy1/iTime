@@ -12,30 +12,48 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
     public init() {}
 
     public func loadAPIKey(for serviceID: UUID) throws -> String {
-        let query: [String: Any] = [
+        // Try Data Protection Keychain first — no ACL, no per-binary prompts.
+        let dpkQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account(for: serviceID),
+            kSecUseDataProtectionKeychain as String: true,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        let dpkStatus = SecItemCopyMatching(dpkQuery as CFDictionary, &item)
+        if dpkStatus == errSecSuccess {
+            guard let data = item as? Data, let value = String(data: data, encoding: .utf8) else {
+                return ""
+            }
+            return value
+        }
+
+        // Fall back to legacy login keychain and migrate on success.
+        let legacyQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account(for: serviceID),
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        switch status {
-        case errSecSuccess:
-            guard
-                let data = item as? Data,
-                let value = String(data: data, encoding: .utf8)
-            else {
+        var legacyItem: CFTypeRef?
+        let legacyStatus = SecItemCopyMatching(legacyQuery as CFDictionary, &legacyItem)
+        if legacyStatus == errSecSuccess {
+            guard let data = legacyItem as? Data, let value = String(data: data, encoding: .utf8) else {
                 return ""
             }
+            // Migrate to Data Protection Keychain, then remove legacy item.
+            try? saveAPIKey(value, for: serviceID)
+            SecItemDelete(legacyQuery as CFDictionary)
             return value
-        case errSecItemNotFound:
-            return ""
-        default:
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
         }
+
+        if dpkStatus == errSecItemNotFound || legacyStatus == errSecItemNotFound {
+            return ""
+        }
+        throw NSError(domain: NSOSStatusErrorDomain, code: Int(dpkStatus))
     }
 
     public func saveAPIKey(_ apiKey: String, for serviceID: UUID) throws {
@@ -44,10 +62,9 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account(for: serviceID),
+            kSecUseDataProtectionKeychain as String: true,
         ]
-        let attributes: [String: Any] = [
-            kSecValueData as String: encoded,
-        ]
+        let attributes: [String: Any] = [kSecValueData as String: encoded]
 
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if updateStatus == errSecSuccess {
@@ -57,6 +74,7 @@ public struct KeychainAIAPIKeyStore: AIAPIKeyStoring {
         if updateStatus == errSecItemNotFound {
             var insert = query
             insert[kSecValueData as String] = encoded
+            insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             let addStatus = SecItemAdd(insert as CFDictionary, nil)
             guard addStatus == errSecSuccess else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: Int(addStatus))
