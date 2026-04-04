@@ -54,6 +54,22 @@ public struct AnthropicConversationService: AIConversationServing, Sendable {
         )
     }
 
+    public func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        let content = try await sendRequest(
+            userPrompt: OpenAICompatibleAIConversationService.compactMemoryUserPrompt(
+                recentSummaries: recentSummaries,
+                existingMemory: existingMemory
+            ),
+            systemPrompt: OpenAICompatibleAIConversationService.compactMemorySystemPrompt,
+            configuration: configuration
+        )
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     public func generateLongFormReport(
         session: AIConversationSession,
         summary: AIConversationSummary,

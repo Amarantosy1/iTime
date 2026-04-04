@@ -68,6 +68,10 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     private(set) var generatedLongFormSessions: [AIConversationSession] = []
     private(set) var generatedLongFormSummaries: [AIConversationSummary] = []
     private(set) var generatedLongFormConfigurations: [ResolvedAIProviderConfiguration] = []
+    var compactedMemoryText: String = "• 最近几轮复盘显示会议偏多\n• 用户有意识地保护早晨时间"
+    private(set) var compactMemoryCallCount = 0
+    private(set) var compactedSummaries: [[AIConversationSummary]] = []
+    private(set) var compactedExistingMemories: [String?] = []
     private var suspendedQuestionContinuation: CheckedContinuation<AIConversationMessage, Never>?
     private var suspensionReadyContinuation: CheckedContinuation<Void, Never>?
 
@@ -140,6 +144,17 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         generatedLongFormSummaries.append(summary)
         generatedLongFormConfigurations.append(configuration)
         return longFormDraft
+    }
+
+    func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        compactMemoryCallCount += 1
+        compactedSummaries.append(recentSummaries)
+        compactedExistingMemories.append(existingMemory)
+        return compactedMemoryText
     }
 
     func resumeSuspendedQuestion() {
@@ -1168,4 +1183,105 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 
     #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
     #expect(conversationService.validatedConfigurations.first?.apiKey == "temp-key")
+}
+
+@MainActor
+@Test func finishAIConversationCreatesMemorySnapshotAfterSummary() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService()
+    conversationService.compactedMemoryText = "• 会议偏多\n• 执行时间不足"
+    let archiveStore = InMemoryAIConversationArchiveStore()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    await model.sendAIConversationReply("主要在对齐需求变更。")
+    await model.finishAIConversation()
+
+    #expect(conversationService.compactMemoryCallCount == 1)
+    #expect(conversationService.compactedSummaries.first?.count == 1)
+    #expect(model.latestAIMemorySnapshot?.summary == "• 会议偏多\n• 执行时间不足")
+    #expect(archiveStore.archive.memorySnapshots.count == 1)
+    #expect(archiveStore.archive.memorySnapshots.first?.summary == "• 会议偏多\n• 执行时间不足")
+}
+
+@MainActor
+@Test func contextMemoryIsTruncatedToTokenBudgetWhenTooLong() async {
+    let longMemory = String(repeating: "记忆内容", count: 250) // 1000 chars > 800 budget
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "深度工作",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService()
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [],
+            memorySnapshots: [
+                AIMemorySnapshot(
+                    id: UUID(),
+                    createdAt: .init(timeIntervalSince1970: 100),
+                    sourceSummaryIDs: [],
+                    summary: longMemory
+                ),
+            ],
+            longFormReports: []
+        )
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+    let memoryLength = injectedMemory?.count ?? 0
+    #expect(memoryLength <= 801)
+    #expect(injectedMemory?.hasSuffix("…") == true)
 }

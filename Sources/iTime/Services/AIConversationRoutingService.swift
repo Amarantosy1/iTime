@@ -58,4 +58,19 @@ public struct AIConversationRoutingService: AIConversationServing, Sendable {
             configuration: configuration
         )
     }
+
+    public func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        guard let service = services[configuration.provider] else {
+            throw AIAnalysisServiceError.invalidConfiguration
+        }
+        return try await service.compactMemory(
+            recentSummaries: recentSummaries,
+            existingMemory: existingMemory,
+            configuration: configuration
+        )
+    }
 }

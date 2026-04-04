@@ -79,10 +79,28 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         )
     }
 
+    public func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        let content = try await sendRequest(
+            systemPrompt: Self.compactMemorySystemPrompt,
+            userPrompt: Self.compactMemoryUserPrompt(
+                recentSummaries: recentSummaries,
+                existingMemory: existingMemory
+            ),
+            configuration: configuration,
+            responseFormatType: "text"
+        )
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func sendRequest(
         systemPrompt: String,
         userPrompt: String,
-        configuration: ResolvedAIProviderConfiguration
+        configuration: ResolvedAIProviderConfiguration,
+        responseFormatType: String = "json_object"
     ) async throws -> String {
         guard configuration.isComplete, let url = configuration.openAICompatibleChatCompletionsURL else {
             throw AIAnalysisServiceError.invalidConfiguration
@@ -99,7 +117,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
                     .init(role: "system", content: systemPrompt),
                     .init(role: "user", content: userPrompt),
                 ],
-                responseFormat: .init(type: "json_object")
+                responseFormat: .init(type: responseFormatType)
             )
         )
 
@@ -192,6 +210,40 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     语言要求：中文。必须使用平实、真诚的语言，像真实生活中的老朋友交谈。绝不要媚俗、不要牵强附会、绝不能矫情造作，避免过度渲染情绪和华而不实的词藻。
     输出markdown格式
     """
+
+    static let compactMemorySystemPrompt = """
+    你在帮助整理一位用户的时间记忆档案。根据提供的历史复盘摘要，提炼出这位用户最典型的时间习惯、重复模式和近期值得关注的变化。
+    要求：不超过 400 字，2-4 条要点，每条以 • 开头，聚焦于时间管理与任务执行的规律性观察，只输出纯文本，不要输出 JSON。
+    """
+
+    static func compactMemoryUserPrompt(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?
+    ) -> String {
+        let dailyCount = recentSummaries.filter { $0.range == .today }.count
+        let weeklyCount = recentSummaries.filter { $0.range == .week }.count
+
+        var hierarchicalNote = ""
+        if dailyCount >= 5 {
+            hierarchicalNote = "\n注意：以上摘要已覆盖本周完整的工作日复盘，请在要点末尾额外加一条 • 本周总体记忆：…（一句话概括本周整体状态）"
+        } else if weeklyCount >= 3 {
+            hierarchicalNote = "\n注意：以上摘要已覆盖本月完整的周复盘，请在要点末尾额外加一条 • 本月总体记忆：…（一句话概括本月整体趋势）"
+        }
+
+        let summaryLines = recentSummaries
+            .sorted { $0.createdAt > $1.createdAt }
+            .map { "- \($0.displayPeriodText)【\($0.range.title)】：\($0.headline)。\($0.summary)" }
+            .joined(separator: "\n")
+
+        return """
+        历史记忆（如有）：\(existingMemory ?? "无")
+
+        近期复盘摘要：
+        \(summaryLines.isEmpty ? "（无）" : summaryLines)
+        \(hierarchicalNote)
+        请提炼这位用户的时间使用规律。
+        """
+    }
 
     static func questionUserPrompt(
         for context: AIConversationContext,

@@ -436,6 +436,7 @@ public final class AppModel {
             )
             try saveConversationArchive(upserting: completedSession, appending: summary)
             aiConversationState = .completed(summary)
+            await performMemoryUpdate(newSummary: summary, configuration: configuration)
             await performLongFormGeneration(session: completedSession, summary: summary, configuration: configuration)
         } catch let error as AIAnalysisServiceError {
             aiConversationState = .failed(error.userMessage)
@@ -745,6 +746,94 @@ public final class AppModel {
         await performLongFormGeneration(session: session, summary: summary, configuration: configuration)
     }
 
+    private func performMemoryUpdate(
+        newSummary: AIConversationSummary,
+        configuration: ResolvedAIProviderConfiguration
+    ) async {
+        // newSummary is already in aiConversationHistory at this point
+        let allSummaries = aiConversationHistory
+        var summariesForCompaction: [AIConversationSummary] = []
+
+        switch newSummary.range {
+        case .today:
+            if let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: newSummary.startDate),
+               let yesterday = allSummaries.first(where: {
+                   $0.range == .today && calendar.isDate($0.startDate, inSameDayAs: yesterdayStart)
+               }) {
+                summariesForCompaction.append(yesterday)
+            }
+            if let thisWeek = allSummaries.first(where: {
+                $0.range == .week && calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .weekOfYear)
+            }) {
+                summariesForCompaction.append(thisWeek)
+            }
+            let weekDailies = allSummaries.filter {
+                $0.range == .today && $0.id != newSummary.id &&
+                calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .weekOfYear)
+            }
+            if weekDailies.count >= 5 {
+                for s in weekDailies where !summariesForCompaction.contains(where: { $0.id == s.id }) {
+                    summariesForCompaction.append(s)
+                }
+            }
+
+        case .week:
+            if let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: newSummary.startDate),
+               let lastWeek = allSummaries.first(where: {
+                   $0.range == .week && calendar.isDate($0.startDate, equalTo: lastWeekStart, toGranularity: .weekOfYear)
+               }) {
+                summariesForCompaction.append(lastWeek)
+            }
+            let monthWeeklies = allSummaries.filter {
+                $0.range == .week && $0.id != newSummary.id &&
+                calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .month)
+            }
+            if monthWeeklies.count >= 3 {
+                for s in monthWeeklies where !summariesForCompaction.contains(where: { $0.id == s.id }) {
+                    summariesForCompaction.append(s)
+                }
+            }
+
+        case .month:
+            if let lastMonthStart = calendar.date(byAdding: .month, value: -1, to: newSummary.startDate),
+               let lastMonth = allSummaries.first(where: {
+                   $0.range == .month && calendar.isDate($0.startDate, equalTo: lastMonthStart, toGranularity: .month)
+               }) {
+                summariesForCompaction.append(lastMonth)
+            }
+
+        case .custom:
+            break
+        }
+
+        if !summariesForCompaction.contains(where: { $0.id == newSummary.id }) {
+            summariesForCompaction.insert(newSummary, at: 0)
+        }
+
+        let existingMemory = latestAIMemorySnapshot?.summary
+        guard let compactedText = try? await aiConversationService.compactMemory(
+            recentSummaries: summariesForCompaction,
+            existingMemory: existingMemory,
+            configuration: configuration
+        ), !compactedText.isEmpty else { return }
+
+        let newSnapshot = AIMemorySnapshot(
+            id: UUID(),
+            createdAt: now(),
+            sourceSummaryIDs: summariesForCompaction.map(\.id),
+            summary: compactedText
+        )
+        var snapshots = aiConversationArchive.memorySnapshots
+        snapshots.append(newSnapshot)
+        let updatedArchive = AIConversationArchive(
+            sessions: aiConversationArchive.sessions,
+            summaries: aiConversationArchive.summaries,
+            memorySnapshots: snapshots,
+            longFormReports: aiConversationArchive.longFormReports
+        )
+        try? persistConversationArchive(updatedArchive)
+    }
+
     private func performLongFormGeneration(
         session: AIConversationSession,
         summary: AIConversationSummary,
@@ -774,6 +863,7 @@ public final class AppModel {
                 title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
                 content: draft.content.trimmingCharacters(in: .whitespacesAndNewlines)
             )
+
             let updatedArchive = AIConversationArchive(
                 sessions: aiConversationArchive.sessions,
                 summaries: aiConversationArchive.summaries,
@@ -923,13 +1013,19 @@ public final class AppModel {
             return nil
         }
 
-        let memoryText: String?
-        if let memory = latestAIMemorySnapshot?.summary, !memory.isEmpty {
-            memoryText = memory
-        } else if let lastSummary = aiConversationHistory.max(by: { $0.createdAt < $1.createdAt }) {
-            memoryText = "上次复盘标题：\(lastSummary.headline)\n上次复盘概要：\(lastSummary.summary)"
-        } else {
-            memoryText = nil
+        var memoryText = computeContextMemory(
+            range: overview.range,
+            interval: overview.interval,
+            summaries: aiConversationHistory
+        )
+        
+        if memoryText == nil {
+            memoryText = latestAIMemorySnapshot?.summary
+        }
+
+        let memoryBudget = 800
+        if let text = memoryText, text.count > memoryBudget {
+            memoryText = String(text.prefix(memoryBudget)) + "…"
         }
 
         return overview.makeAIConversationContext(
@@ -937,6 +1033,59 @@ public final class AppModel {
             calendarLookup: Dictionary(uniqueKeysWithValues: availableCalendars.map { ($0.id, $0) }),
             latestMemorySummary: memoryText
         )
+    }
+
+    private func computeContextMemory(
+        range: TimeRangePreset,
+        interval: DateInterval,
+        summaries: [AIConversationSummary]
+    ) -> String? {
+        let calendar = Calendar.current
+        let start = interval.start
+        var parts: [String] = []
+
+        switch range {
+        case .today:
+            if let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: start),
+               let yesterday = summaries.first(where: { $0.range == .today && calendar.isDate($0.startDate, inSameDayAs: yesterdayStart) }) {
+                parts.append("【昨天的反思】标题：\(yesterday.headline)\n概要：\(yesterday.summary)")
+            }
+            if let thisWeek = summaries.first(where: { $0.range == .week && calendar.isDate($0.startDate, equalTo: start, toGranularity: .weekOfYear) }) {
+                parts.append("【本周的全局定调】标题：\(thisWeek.headline)\n概要：\(thisWeek.summary)")
+            }
+            if let thisMonth = summaries.first(where: { $0.range == .month && calendar.isDate($0.startDate, equalTo: start, toGranularity: .month) }) {
+                parts.append("【本月的全局定调】标题：\(thisMonth.headline)\n概要：\(thisMonth.summary)")
+            }
+
+        case .week:
+            if let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: start),
+               let lastWeek = summaries.first(where: { $0.range == .week && calendar.isDate($0.startDate, equalTo: lastWeekStart, toGranularity: .weekOfYear) }) {
+                parts.append("【上周的反思】标题：\(lastWeek.headline)\n概要：\(lastWeek.summary)")
+            }
+            if let thisMonth = summaries.first(where: { $0.range == .month && calendar.isDate($0.startDate, equalTo: start, toGranularity: .month) }) {
+                parts.append("【本月的全局定调】标题：\(thisMonth.headline)\n概要：\(thisMonth.summary)")
+            }
+
+        case .month:
+            if let lastMonthStart = calendar.date(byAdding: .month, value: -1, to: start),
+               let lastMonth = summaries.first(where: { $0.range == .month && calendar.isDate($0.startDate, equalTo: lastMonthStart, toGranularity: .month) }) {
+                parts.append("【上个月的总结】标题：\(lastMonth.headline)\n概要：\(lastMonth.summary)")
+            }
+
+        case .custom:
+            let duration = interval.duration
+            let previousStart = start.addingTimeInterval(-duration)
+            if let previous = summaries.first(where: {
+                if case .custom = $0.range {
+                    return abs($0.startDate.timeIntervalSince(previousStart)) < 3600 // Roughly matching
+                }
+                return false
+            }) {
+                parts.append("【上一段相同时长的复盘】标题：\(previous.headline)\n概要：\(previous.summary)")
+            }
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
     }
 
     private func currentSelectedAIService() -> AIServiceEndpoint? {
@@ -1021,10 +1170,22 @@ public final class AppModel {
     }
 
     private func persistConversationArchive(_ updatedArchive: AIConversationArchive) throws {
-        try aiConversationArchiveStore.saveArchive(updatedArchive)
-        aiConversationArchive = updatedArchive
-        aiConversationHistory = updatedArchive.summaries
-        latestAIMemorySnapshot = updatedArchive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
+        // Compact AIMemorySnapshots to prevent infinite accumulation
+        // Keep only top 3 snapshots to provide baseline history but prevent accumulating too much memory
+        // which would cause context window overflow and forgetfulness.
+        let compactedSnapshots = Array(updatedArchive.memorySnapshots.sorted(by: { $0.createdAt > $1.createdAt }).prefix(3))
+        
+        let finalArchive = AIConversationArchive(
+            sessions: updatedArchive.sessions,
+            summaries: updatedArchive.summaries,
+            memorySnapshots: compactedSnapshots,
+            longFormReports: updatedArchive.longFormReports
+        )
+
+        try aiConversationArchiveStore.saveArchive(finalArchive)
+        aiConversationArchive = finalArchive
+        aiConversationHistory = finalArchive.summaries
+        latestAIMemorySnapshot = finalArchive.memorySnapshots.first
     }
 
     private func invalidateAIConversationOperations() {

@@ -50,6 +50,15 @@ private final class RecordingProviderConversationService: @unchecked Sendable, A
             content: "长文内容"
         )
     }
+
+    func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        lastConfiguration = configuration
+        return "• 会议偏多"
+    }
 }
 
 private final class RecordingProviderHTTPSender: @unchecked Sendable, AIAnalysisHTTPSending {

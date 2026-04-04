@@ -46,4 +46,16 @@ public struct DeepSeekConversationService: AIConversationServing, Sendable {
             configuration: configuration
         )
     }
+
+    public func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        try await implementation.compactMemory(
+            recentSummaries: recentSummaries,
+            existingMemory: existingMemory,
+            configuration: configuration
+        )
+    }
 }

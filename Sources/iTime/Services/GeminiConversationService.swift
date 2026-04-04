@@ -54,6 +54,23 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         )
     }
 
+    public func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String {
+        let content = try await sendRequest(
+            userPrompt: OpenAICompatibleAIConversationService.compactMemoryUserPrompt(
+                recentSummaries: recentSummaries,
+                existingMemory: existingMemory
+            ),
+            systemPrompt: OpenAICompatibleAIConversationService.compactMemorySystemPrompt,
+            configuration: configuration,
+            responseMimeType: "text/plain"
+        )
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     public func generateLongFormReport(
         session: AIConversationSession,
         summary: AIConversationSummary,
@@ -74,7 +91,8 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
     private func sendRequest(
         userPrompt: String,
         systemPrompt: String,
-        configuration: ResolvedAIProviderConfiguration
+        configuration: ResolvedAIProviderConfiguration,
+        responseMimeType: String = "application/json"
     ) async throws -> String {
         guard configuration.isComplete, let url = configuration.geminiGenerateContentURL else {
             throw AIAnalysisServiceError.invalidConfiguration
@@ -86,7 +104,7 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
             GeminiGenerateContentRequest(
                 systemInstruction: .init(parts: [.init(text: systemPrompt)]),
                 contents: [.init(role: "user", parts: [.init(text: userPrompt)])],
-                generationConfig: .init(responseMimeType: "application/json")
+                generationConfig: .init(responseMimeType: responseMimeType)
             )
         )
         let (data, response) = try await perform(request)

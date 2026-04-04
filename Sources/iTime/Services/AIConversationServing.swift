@@ -20,6 +20,12 @@ public protocol AIConversationServing: Sendable {
         summary: AIConversationSummary,
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationLongFormReportDraft
+
+    func compactMemory(
+        recentSummaries: [AIConversationSummary],
+        existingMemory: String?,
+        configuration: ResolvedAIProviderConfiguration
+    ) async throws -> String
 }
 
 public struct AIConversationSummaryDraft: Equatable, Sendable {

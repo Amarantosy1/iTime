@@ -405,3 +405,84 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let body = try #require(String(data: bodyData, encoding: .utf8))
     #expect(body.contains("response_mime_type"))
 }
+
+@Test func openAICompatibleConversationServiceCompactsMemoryAndReturnsPlainText() async throws {
+    let sender = ConversationRecordingAIHTTPSender(
+        responseData: Data(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "content": "• 会议占用大量时间\\n• 用户有意识地保护早晨深度工作"
+                  }
+                }
+              ]
+            }
+            """.utf8
+        )
+    )
+    let service = OpenAICompatibleAIConversationService(httpSender: sender)
+    let summaries = [
+        AIConversationSummary(
+            id: UUID(),
+            sessionID: UUID(),
+            serviceID: nil,
+            serviceDisplayName: "OpenAI",
+            provider: .openAI,
+            model: "gpt-5-mini",
+            range: .today,
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 86_400),
+            createdAt: Date(timeIntervalSince1970: 7_200),
+            headline: "今天以沟通为主",
+            summary: "今天大部分时间花在需求同步上。",
+            findings: [],
+            suggestions: [],
+            overviewSnapshot: AIOverviewSnapshot(
+                rangeTitle: "今天",
+                totalDurationText: "1小时",
+                totalEventCount: 1,
+                topCalendarNames: ["工作"]
+            )
+        )
+    ]
+    let configuration = ResolvedAIProviderConfiguration(
+        provider: .openAI,
+        baseURL: "https://example.com/v1",
+        model: "gpt-5-mini",
+        apiKey: "test-key",
+        isEnabled: true
+    )
+
+    let result = try await service.compactMemory(
+        recentSummaries: summaries,
+        existingMemory: "过去几轮都显示会议偏多。",
+        configuration: configuration
+    )
+
+    #expect(result == "• 会议占用大量时间\n• 用户有意识地保护早晨深度工作")
+
+    let body = try #require(sender.lastRequest?.httpBody)
+    let decoded = try JSONDecoder().decode(CompactMemoryRequestBody.self, from: body)
+    #expect(decoded.messages.contains { $0.role == "system" && $0.content.contains("时间记忆") })
+    #expect(decoded.messages.contains { $0.role == "user" && $0.content.contains("过去几轮都显示会议偏多") })
+    #expect(decoded.messages.contains { $0.role == "user" && $0.content.contains("今天以沟通为主") })
+    #expect(decoded.responseFormat.type == "text")
+}
+
+fileprivate struct CompactMemoryRequestBody: Decodable {
+    struct Message: Decodable {
+        let role: String
+        let content: String
+    }
+    struct ResponseFormat: Decodable {
+        let type: String
+    }
+    let messages: [Message]
+    let responseFormat: ResponseFormat
+    enum CodingKeys: String, CodingKey {
+        case messages
+        case responseFormat = "response_format"
+    }
+}
