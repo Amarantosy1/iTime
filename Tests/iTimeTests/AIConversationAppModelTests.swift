@@ -1091,3 +1091,39 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(conversationService.validatedConfigurations.first?.provider == .openAICompatible)
     #expect(conversationService.validatedConfigurations.first?.isEnabled == true)
 }
+
+@MainActor
+@Test func testAIServiceConnectionWorksWhenServiceIsDisabled() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [],
+        events: []
+    )
+    let conversationService = RecordingAIConversationService()
+    let service = AIServiceEndpoint.customOpenAICompatible(
+        displayName: "禁用服务",
+        baseURL: "https://api.example.com/v1",
+        models: ["gpt-4o-mini"],
+        defaultModel: "gpt-4o-mini",
+        isEnabled: false
+    )
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[service.id] = "example-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.saveAIService(service)
+    preferences.setDefaultAIServiceID(service.id)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.testAIServiceConnection(service.id)
+
+    #expect(model.aiServiceConnectionState(for: service.id) == .succeeded("连接成功"))
+    #expect(conversationService.validatedConfigurations.first?.provider == .openAICompatible)
+    #expect(conversationService.validatedConfigurations.first?.isEnabled == false)
+}

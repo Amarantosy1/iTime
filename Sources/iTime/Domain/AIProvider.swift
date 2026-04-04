@@ -159,7 +159,7 @@ public struct ResolvedAIProviderConfiguration: Equatable, Sendable {
     }
 
     public var isComplete: Bool {
-        isEnabled && !baseURL.isEmpty && !model.isEmpty && !apiKey.isEmpty
+        !baseURL.isEmpty && !model.isEmpty && !apiKey.isEmpty
     }
 
     public var openAICompatibleChatCompletionsURL: URL? {
