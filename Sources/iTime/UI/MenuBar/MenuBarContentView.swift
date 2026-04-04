@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 enum MenuBarBucketChartCopy {
     static let sectionTitle = "按日历分布"
@@ -62,7 +65,7 @@ struct MenuBarContentView: View {
                 .controlSize(.large)
 
                 Button {
-                    openWindow(id: "overview")
+                    openOverviewWindow()
                 } label: {
                     Label("查看详情", systemImage: "chart.bar.xaxis")
                         .frame(maxWidth: .infinity)
@@ -76,6 +79,23 @@ struct MenuBarContentView: View {
         .task {
             await model.refresh()
         }
+    }
+
+    @MainActor
+    private func openOverviewWindow() {
+        #if canImport(AppKit)
+        let application = NSApplication.shared
+        application.setActivationPolicy(.regular)
+        application.activate(ignoringOtherApps: true)
+        #endif
+
+        openWindow(id: OverviewWindowView.windowID)
+
+        #if canImport(AppKit)
+        DispatchQueue.main.async {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
+        #endif
     }
 
     @ViewBuilder

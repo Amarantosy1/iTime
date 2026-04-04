@@ -22,7 +22,7 @@ struct iTimeApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window("概览", id: "overview") {
+        Window("概览", id: OverviewWindowView.windowID) {
             OverviewWindowView(model: model)
                 .frame(minWidth: 760, minHeight: 560)
         }

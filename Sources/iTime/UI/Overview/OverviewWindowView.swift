@@ -1,6 +1,11 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct OverviewWindowView: View {
+    static let windowID = "overview"
+
     @Bindable var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
 
@@ -40,6 +45,23 @@ struct OverviewWindowView: View {
         }
         .task {
             await model.refresh()
+        }
+        .onAppear {
+            #if canImport(AppKit)
+            let application = NSApplication.shared
+            application.setActivationPolicy(.regular)
+            application.activate(ignoringOtherApps: true)
+            #endif
+        }
+        .onDisappear {
+            #if canImport(AppKit)
+            let hasVisibleMainWindow = NSApplication.shared.windows.contains { window in
+                window.isVisible && !window.title.isEmpty
+            }
+            if !hasVisibleMainWindow {
+                NSApplication.shared.setActivationPolicy(.accessory)
+            }
+            #endif
         }
     }
 
