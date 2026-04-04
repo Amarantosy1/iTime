@@ -190,8 +190,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - 前瞻与期盼：给出真诚、踏实的寄语
 
     语言要求：中文。必须使用平实、真诚的语言，像真实生活中的老朋友交谈。绝不要媚俗、不要牵强附会、绝不能矫情造作，避免过度渲染情绪和华而不实的词藻。
-    只返回严格 JSON（不加任何 Markdown 包裹）：
-    {"title":"...","content":"..."}
+    输出markdown格式
     """
 
     static func questionUserPrompt(

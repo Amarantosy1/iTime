@@ -923,10 +923,19 @@ public final class AppModel {
             return nil
         }
 
+        let memoryText: String?
+        if let memory = latestAIMemorySnapshot?.summary, !memory.isEmpty {
+            memoryText = memory
+        } else if let lastSummary = aiConversationHistory.max(by: { $0.createdAt < $1.createdAt }) {
+            memoryText = "上次复盘标题：\(lastSummary.headline)\n上次复盘概要：\(lastSummary.summary)"
+        } else {
+            memoryText = nil
+        }
+
         return overview.makeAIConversationContext(
             events: currentEvents,
             calendarLookup: Dictionary(uniqueKeysWithValues: availableCalendars.map { ($0.id, $0) }),
-            latestMemorySummary: latestAIMemorySnapshot?.summary
+            latestMemorySummary: memoryText
         )
     }
 
