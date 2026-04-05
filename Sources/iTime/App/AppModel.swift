@@ -825,7 +825,14 @@ public final class AppModel {
             }
 
         case .custom:
-            break
+            if let previous = nearestCustomSummary(
+                startDate: newSummary.startDate,
+                endDate: newSummary.endDate,
+                excludingSummaryID: newSummary.id,
+                summaries: allSummaries
+            ) {
+                appendUnique(previous)
+            }
         }
 
         if !summariesForCompaction.contains(where: { $0.id == newSummary.id }) {
@@ -1100,15 +1107,12 @@ public final class AppModel {
             }
 
         case .custom:
-            let duration = interval.duration
-            let previousStart = start.addingTimeInterval(-duration)
-            if let previous = summaries.first(where: {
-                if case .custom = $0.range {
-                    return abs($0.startDate.timeIntervalSince(previousStart)) < 3600 // Roughly matching
-                }
-                return false
-            }) {
-                parts.append("【上一段相同时长的复盘】标题：\(previous.headline)\n概要：\(previous.summary)")
+            if let previous = nearestCustomSummary(
+                startDate: start,
+                endDate: interval.end,
+                summaries: summaries
+            ) {
+                parts.append("【上一段自定义复盘】标题：\(previous.headline)\n概要：\(previous.summary)")
             }
         }
 
@@ -1140,6 +1144,43 @@ public final class AppModel {
         let normalizedStart = calendar.startOfDay(for: start)
         let normalizedEnd = calendar.startOfDay(for: end)
         return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
+    }
+
+    private func nearestCustomSummary(
+        startDate: Date,
+        endDate: Date,
+        excludingSummaryID: UUID? = nil,
+        summaries: [AIConversationSummary]
+    ) -> AIConversationSummary? {
+        let candidates = summaries.filter { summary in
+            guard summary.range == .custom else { return false }
+            if let excludingSummaryID {
+                return summary.id != excludingSummaryID
+            }
+            return true
+        }
+
+        return candidates.min { lhs, rhs in
+            let lhsDistance = customRangeDistanceScore(summary: lhs, startDate: startDate, endDate: endDate)
+            let rhsDistance = customRangeDistanceScore(summary: rhs, startDate: startDate, endDate: endDate)
+
+            if lhsDistance != rhsDistance {
+                return lhsDistance < rhsDistance
+            }
+            if lhs.createdAt != rhs.createdAt {
+                return lhs.createdAt > rhs.createdAt
+            }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    private func customRangeDistanceScore(
+        summary: AIConversationSummary,
+        startDate: Date,
+        endDate: Date
+    ) -> TimeInterval {
+        abs(summary.startDate.timeIntervalSince(startDate))
+            + abs(summary.endDate.timeIntervalSince(endDate))
     }
 
     private func currentSelectedAIService() -> AIServiceEndpoint? {

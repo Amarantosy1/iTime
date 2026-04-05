@@ -1431,6 +1431,194 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func customContextMemoryUsesNearestCustomSummaryOnly() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let customStart = calendar.startOfDay(for: fixedNow)
+    let customEnd = calendar.date(byAdding: .day, value: 2, to: customStart)!
+
+    let nearestCustomSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(byAdding: .day, value: -1, to: customStart)!,
+        calendar: calendar,
+        headline: "最近自定义",
+        summary: "最近一次自定义复盘",
+        endDateOverride: calendar.date(byAdding: .day, value: 2, to: customStart)!
+    )
+    let farCustomSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(from: DateComponents(year: 2026, month: 2, day: 1))!,
+        calendar: calendar,
+        headline: "远端自定义",
+        summary: "很久之前的自定义复盘"
+    )
+    let weekSummary = makeSummary(
+        range: .week,
+        startDate: calendar.dateInterval(of: .weekOfYear, for: customStart)!.start,
+        calendar: calendar,
+        headline: "周复盘",
+        summary: "周内容"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [farCustomSummary, nearestCustomSummary, weekSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let (model, conversationService) = makeConversationModel(
+        calendar: calendar,
+        now: fixedNow,
+        archiveStore: archiveStore
+    )
+    model.preferences.selectedRange = .custom
+    model.preferences.customStartDate = customStart
+    model.preferences.customEndDate = customEnd
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+    #expect(injectedMemory?.contains("【上一段自定义复盘】标题：最近自定义") == true)
+    #expect(injectedMemory?.contains("远端自定义") == false)
+    #expect(injectedMemory?.contains("上周的反思") == false)
+}
+
+@MainActor
+@Test func customContextMemoryPrefersLatestSummaryWhenDistanceTies() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let customStart = calendar.startOfDay(for: fixedNow)
+    let customEnd = customStart
+
+    let olderSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(byAdding: .day, value: -1, to: customStart)!,
+        calendar: calendar,
+        headline: "并列-旧",
+        summary: "并列候选旧",
+        createdAt: .init(timeIntervalSince1970: 100)
+    )
+    let newerSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(byAdding: .day, value: 1, to: customStart)!,
+        calendar: calendar,
+        headline: "并列-新",
+        summary: "并列候选新",
+        createdAt: .init(timeIntervalSince1970: 200)
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [olderSummary, newerSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let (model, conversationService) = makeConversationModel(
+        calendar: calendar,
+        now: fixedNow,
+        archiveStore: archiveStore
+    )
+    model.preferences.selectedRange = .custom
+    model.preferences.customStartDate = customStart
+    model.preferences.customEndDate = customEnd
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+    #expect(injectedMemory?.contains("【上一段自定义复盘】标题：并列-新") == true)
+    #expect(injectedMemory?.contains("并列-旧") == false)
+}
+
+@MainActor
+@Test func finishCustomConversationCompactsCurrentAndNearestPreviousCustomOnly() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let customStart = calendar.startOfDay(for: fixedNow)
+    let customEnd = calendar.date(byAdding: .day, value: 2, to: customStart)!
+
+    let nearestCustomSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(byAdding: .day, value: -1, to: customStart)!,
+        calendar: calendar,
+        headline: "最近自定义",
+        summary: "最近一次自定义复盘",
+        endDateOverride: calendar.date(byAdding: .day, value: 2, to: customStart)!
+    )
+    let farCustomSummary = makeSummary(
+        range: .custom,
+        startDate: calendar.date(from: DateComponents(year: 2026, month: 2, day: 1))!,
+        calendar: calendar,
+        headline: "远端自定义",
+        summary: "很久之前的自定义复盘"
+    )
+    let monthSummary = makeSummary(
+        range: .month,
+        startDate: calendar.dateInterval(of: .month, for: customStart)!.start,
+        calendar: calendar,
+        headline: "月复盘",
+        summary: "月内容"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [farCustomSummary, nearestCustomSummary, monthSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let conversationService = RecordingAIConversationService()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.selectedRange = .custom
+    preferences.customStartDate = customStart
+    preferences.customEndDate = customEnd
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: ConversationStubCalendarAccessService(
+            state: .authorized,
+            calendars: [
+                CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+            ],
+            events: [
+                CalendarEventRecord(
+                    id: "1",
+                    title: "深度工作",
+                    calendarID: "work",
+                    startDate: customStart,
+                    endDate: customStart.addingTimeInterval(3_600),
+                    isAllDay: false
+                ),
+            ]
+        ),
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore,
+        calendar: calendar,
+        now: { fixedNow }
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    await model.finishAIConversation()
+
+    let compacted = conversationService.compactedSummaries.first ?? []
+    #expect(compacted.count == 2)
+    #expect(compacted.allSatisfy { $0.range == .custom })
+    #expect(compacted.contains(where: { $0.headline == "最近自定义" }))
+    #expect(compacted.contains(where: { $0.headline == "远端自定义" }) == false)
+    #expect(compacted.contains(where: { $0.headline == "月复盘" }) == false)
+}
+
+@MainActor
 @Test func finishTodayConversationCompactsTrailingSevenDailySummariesOnly() async {
     let calendar = Calendar(identifier: .gregorian)
     let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
@@ -1558,19 +1746,22 @@ private func makeSummary(
     startDate: Date,
     calendar: Calendar,
     headline: String,
-    summary: String
+    summary: String,
+    endDateOverride: Date? = nil,
+    createdAt: Date? = nil
 ) -> AIConversationSummary {
-    let endDate: Date
-    switch range {
-    case .today:
-        endDate = calendar.date(byAdding: .day, value: 1, to: startDate) ?? startDate
-    case .week:
-        endDate = calendar.date(byAdding: .weekOfYear, value: 1, to: startDate) ?? startDate
-    case .month:
-        endDate = calendar.date(byAdding: .month, value: 1, to: startDate) ?? startDate
-    case .custom:
-        endDate = startDate.addingTimeInterval(86_400)
-    }
+    let endDate: Date = endDateOverride ?? {
+        switch range {
+        case .today:
+            return calendar.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+        case .week:
+            return calendar.date(byAdding: .weekOfYear, value: 1, to: startDate) ?? startDate
+        case .month:
+            return calendar.date(byAdding: .month, value: 1, to: startDate) ?? startDate
+        case .custom:
+            return startDate.addingTimeInterval(86_400)
+        }
+    }()
 
     return AIConversationSummary(
         id: UUID(),
@@ -1582,7 +1773,7 @@ private func makeSummary(
         range: range,
         startDate: startDate,
         endDate: endDate,
-        createdAt: startDate.addingTimeInterval(600),
+        createdAt: createdAt ?? startDate.addingTimeInterval(600),
         headline: headline,
         summary: summary,
         findings: [],
