@@ -263,13 +263,13 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "路线评审的结论是什么？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[AIProviderKind.anthropic.builtInServiceID] = "anthropic-key"
+    keyStore.values[AIProviderKind.gemini.builtInServiceID] = "gemini-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
-    preferences.defaultAIProvider = .anthropic
-    preferences.setAIProviderEnabled(true, for: .anthropic)
-    preferences.setAIProviderBaseURL("https://api.anthropic.com/v1", for: .anthropic)
-    preferences.setAIProviderModel("claude-sonnet-4-5", for: .anthropic)
+    preferences.defaultAIProvider = .gemini
+    preferences.setAIProviderEnabled(true, for: .gemini)
+    preferences.setAIProviderBaseURL("https://generativelanguage.googleapis.com/v1beta", for: .gemini)
+    preferences.setAIProviderModel("gemini-2.0-flash", for: .gemini)
     let model = AppModel(
         service: calendarService,
         preferences: preferences,
@@ -285,9 +285,9 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         Issue.record("Expected waitingForUser state")
         return
     }
-    #expect(session.provider == .anthropic)
-    #expect(conversationService.askedConfigurations.first?.provider == .anthropic)
-    #expect(conversationService.askedConfigurations.first?.model == "claude-sonnet-4-5")
+    #expect(session.provider == .gemini)
+    #expect(conversationService.askedConfigurations.first?.provider == .gemini)
+    #expect(conversationService.askedConfigurations.first?.model == "gemini-2.0-flash")
 }
 
 @MainActor
@@ -474,14 +474,14 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(nextQuestion: "还有哪些待办？")
     let keyStore = ConversationInMemoryAIKeyStore()
-    keyStore.values[AIProviderKind.anthropic.builtInServiceID] = "anthropic-key"
+    keyStore.values[AIProviderKind.gemini.builtInServiceID] = "gemini-key"
     keyStore.values[AIProviderKind.openAI.builtInServiceID] = "openai-key"
     let preferences = UserPreferences(storage: .inMemory)
     preferences.aiAnalysisEnabled = true
-    preferences.defaultAIProvider = .anthropic
-    preferences.setAIProviderEnabled(true, for: .anthropic)
-    preferences.setAIProviderBaseURL("https://api.anthropic.com/v1", for: .anthropic)
-    preferences.setAIProviderModel("claude-sonnet-4-5", for: .anthropic)
+    preferences.defaultAIProvider = .gemini
+    preferences.setAIProviderEnabled(true, for: .gemini)
+    preferences.setAIProviderBaseURL("https://generativelanguage.googleapis.com/v1beta", for: .gemini)
+    preferences.setAIProviderModel("gemini-2.0-flash", for: .gemini)
     preferences.setAIProviderEnabled(true, for: .openAI)
     preferences.setAIProviderBaseURL("https://api.openai.com/v1", for: .openAI)
     preferences.setAIProviderModel("gpt-5-mini", for: .openAI)
@@ -499,8 +499,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     await model.sendAIConversationReply("已经产出结论了。")
 
     #expect(conversationService.askedConfigurations.count == 2)
-    #expect(conversationService.askedConfigurations[0].provider == .anthropic)
-    #expect(conversationService.askedConfigurations[1].provider == .anthropic)
+    #expect(conversationService.askedConfigurations[0].provider == .gemini)
+    #expect(conversationService.askedConfigurations[1].provider == .gemini)
 }
 
 @MainActor
@@ -1284,4 +1284,314 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     let memoryLength = injectedMemory?.count ?? 0
     #expect(memoryLength <= 801)
     #expect(injectedMemory?.hasSuffix("…") == true)
+}
+
+@MainActor
+@Test func todayContextMemoryUsesYesterdayAndPreviousSevenDayCompact() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let todayStart = calendar.startOfDay(for: fixedNow)
+    let weekStart = calendar.dateInterval(of: .weekOfYear, for: todayStart)!.start
+    let monthStart = calendar.dateInterval(of: .month, for: todayStart)!.start
+
+    let previousSevenDailySummaries = (1...7).map { offset in
+        makeSummary(
+            range: .today,
+            startDate: calendar.date(byAdding: .day, value: -offset, to: todayStart)!,
+            calendar: calendar,
+            headline: "日复盘-\(offset)",
+            summary: "第\(offset)天的日复盘"
+        )
+    }
+
+    let weekSummary = makeSummary(
+        range: .week,
+        startDate: weekStart,
+        calendar: calendar,
+        headline: "本周全局",
+        summary: "本周总结"
+    )
+    let monthSummary = makeSummary(
+        range: .month,
+        startDate: monthStart,
+        calendar: calendar,
+        headline: "本月全局",
+        summary: "本月总结"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: previousSevenDailySummaries + [weekSummary, monthSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+
+    let (model, conversationService) = makeConversationModel(
+        calendar: calendar,
+        now: fixedNow,
+        archiveStore: archiveStore
+    )
+    model.preferences.selectedRange = .today
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+
+    #expect(injectedMemory?.contains("【昨天的反思】标题：日复盘-1") == true)
+    #expect(injectedMemory?.contains("【近七天日复盘压缩】") == true)
+    #expect(injectedMemory?.contains("日复盘-7") == true)
+    #expect(injectedMemory?.contains("本周的全局定调") == false)
+    #expect(injectedMemory?.contains("本月的全局定调") == false)
+}
+
+@MainActor
+@Test func weekContextMemoryUsesLastWeekOnly() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let weekStart = calendar.dateInterval(of: .weekOfYear, for: fixedNow)!.start
+    let monthStart = calendar.dateInterval(of: .month, for: fixedNow)!.start
+
+    let lastWeekSummary = makeSummary(
+        range: .week,
+        startDate: calendar.date(byAdding: .weekOfYear, value: -1, to: weekStart)!,
+        calendar: calendar,
+        headline: "上周复盘",
+        summary: "上周的内容"
+    )
+    let thisMonthSummary = makeSummary(
+        range: .month,
+        startDate: monthStart,
+        calendar: calendar,
+        headline: "本月复盘",
+        summary: "本月的内容"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [lastWeekSummary, thisMonthSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let (model, conversationService) = makeConversationModel(
+        calendar: calendar,
+        now: fixedNow,
+        archiveStore: archiveStore
+    )
+    model.preferences.selectedRange = .week
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+
+    #expect(injectedMemory?.contains("【上周的反思】标题：上周复盘") == true)
+    #expect(injectedMemory?.contains("本月的全局定调") == false)
+}
+
+@MainActor
+@Test func monthContextMemoryUsesLastMonthSummary() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let monthStart = calendar.dateInterval(of: .month, for: fixedNow)!.start
+    let lastMonthStart = calendar.date(byAdding: .month, value: -1, to: monthStart)!
+
+    let lastMonthSummary = makeSummary(
+        range: .month,
+        startDate: lastMonthStart,
+        calendar: calendar,
+        headline: "上月复盘",
+        summary: "上月内容"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [lastMonthSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let (model, conversationService) = makeConversationModel(
+        calendar: calendar,
+        now: fixedNow,
+        archiveStore: archiveStore
+    )
+    model.preferences.selectedRange = .month
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    let injectedMemory = conversationService.askedContexts.first?.latestMemorySummary
+    #expect(injectedMemory?.contains("【上个月的总结】标题：上月复盘") == true)
+}
+
+@MainActor
+@Test func finishTodayConversationCompactsTrailingSevenDailySummariesOnly() async {
+    let calendar = Calendar(identifier: .gregorian)
+    let fixedNow = calendar.date(from: DateComponents(year: 2026, month: 4, day: 8, hour: 10))!
+    let todayStart = calendar.startOfDay(for: fixedNow)
+    let weekStart = calendar.dateInterval(of: .weekOfYear, for: todayStart)!.start
+    let monthStart = calendar.dateInterval(of: .month, for: todayStart)!.start
+
+    let previousSevenDailySummaries = (1...7).map { offset in
+        makeSummary(
+            range: .today,
+            startDate: calendar.date(byAdding: .day, value: -offset, to: todayStart)!,
+            calendar: calendar,
+            headline: "历史日复盘-\(offset)",
+            summary: "历史第\(offset)天"
+        )
+    }
+    let weekSummary = makeSummary(
+        range: .week,
+        startDate: weekStart,
+        calendar: calendar,
+        headline: "周复盘",
+        summary: "周内容"
+    )
+    let monthSummary = makeSummary(
+        range: .month,
+        startDate: monthStart,
+        calendar: calendar,
+        headline: "月复盘",
+        summary: "月内容"
+    )
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: previousSevenDailySummaries + [weekSummary, monthSummary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let conversationService = RecordingAIConversationService()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.selectedRange = .today
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: ConversationStubCalendarAccessService(
+            state: .authorized,
+            calendars: [
+                CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+            ],
+            events: [
+                CalendarEventRecord(
+                    id: "1",
+                    title: "深度工作",
+                    calendarID: "work",
+                    startDate: todayStart,
+                    endDate: todayStart.addingTimeInterval(3_600),
+                    isAllDay: false
+                ),
+            ]
+        ),
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore,
+        calendar: calendar,
+        now: { fixedNow }
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+    await model.finishAIConversation()
+
+    let compacted = conversationService.compactedSummaries.first ?? []
+    #expect(compacted.count == 8)
+    #expect(compacted.allSatisfy { $0.range == .today })
+    #expect(compacted.contains(where: { $0.headline == "历史日复盘-1" }))
+    #expect(compacted.contains(where: { $0.headline == "历史日复盘-7" }))
+}
+
+@MainActor
+private func makeConversationModel(
+    calendar: Calendar,
+    now: Date,
+    archiveStore: InMemoryAIConversationArchiveStore
+) -> (AppModel, RecordingAIConversationService) {
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+
+    let conversationService = RecordingAIConversationService()
+
+    let model = AppModel(
+        service: ConversationStubCalendarAccessService(
+            state: .authorized,
+            calendars: [
+                CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+            ],
+            events: [
+                CalendarEventRecord(
+                    id: "1",
+                    title: "深度工作",
+                    calendarID: "work",
+                    startDate: calendar.startOfDay(for: now),
+                    endDate: calendar.startOfDay(for: now).addingTimeInterval(3_600),
+                    isAllDay: false
+                ),
+            ]
+        ),
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore,
+        calendar: calendar,
+        now: { now }
+    )
+
+    return (model, conversationService)
+}
+
+private func makeSummary(
+    range: TimeRangePreset,
+    startDate: Date,
+    calendar: Calendar,
+    headline: String,
+    summary: String
+) -> AIConversationSummary {
+    let endDate: Date
+    switch range {
+    case .today:
+        endDate = calendar.date(byAdding: .day, value: 1, to: startDate) ?? startDate
+    case .week:
+        endDate = calendar.date(byAdding: .weekOfYear, value: 1, to: startDate) ?? startDate
+    case .month:
+        endDate = calendar.date(byAdding: .month, value: 1, to: startDate) ?? startDate
+    case .custom:
+        endDate = startDate.addingTimeInterval(86_400)
+    }
+
+    return AIConversationSummary(
+        id: UUID(),
+        sessionID: UUID(),
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: range,
+        startDate: startDate,
+        endDate: endDate,
+        createdAt: startDate.addingTimeInterval(600),
+        headline: headline,
+        summary: summary,
+        findings: [],
+        suggestions: [],
+        overviewSnapshot: AIOverviewSnapshot(
+            rangeTitle: range.title,
+            totalDurationText: "1小时",
+            totalEventCount: 1,
+            topCalendarNames: ["工作"]
+        )
+    )
 }

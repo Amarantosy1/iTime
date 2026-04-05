@@ -73,7 +73,6 @@
 内置服务：
 
 - `OpenAI`
-- `Anthropic`
 - `Gemini`
 - `DeepSeek`
 

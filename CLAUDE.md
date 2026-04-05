@@ -36,7 +36,7 @@ No linter is configured. Use `swift-format` if needed.
 
 - **Protocol → Concrete** — Services are injected via protocols. `AppModel.init` accepts protocol-typed dependencies with production defaults, making tests straightforward.
 - **Testability** — Tests create `AppModel` with stub/mock implementations of service protocols. The `now` closure and `Calendar` are also injectable for deterministic time-based tests.
-- **AI multi-provider routing** — `AIConversationRoutingService` holds a `[AIProviderType: AIConversationServing]` dictionary. Each provider (OpenAI, Anthropic, Gemini, DeepSeek, OpenAI-compatible) has its own service implementation making direct HTTP calls.
+- **AI multi-provider routing** — `AIConversationRoutingService` holds a `[AIProviderType: AIConversationServing]` dictionary. Each provider (OpenAI, Gemini, DeepSeek, OpenAI-compatible) has its own service implementation making direct HTTP calls.
 - **Archive persistence** — Conversation history, summaries, and memory snapshots are serialized to a local file via `AIConversationArchiveStoring`.
 
 ### Scene structure (iTimeApp.swift)

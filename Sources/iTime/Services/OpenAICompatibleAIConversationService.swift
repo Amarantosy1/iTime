@@ -48,11 +48,15 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
             configuration: configuration
         )
         let payload = try decodePayload(SummaryPayload.self, from: content)
-        guard !payload.headline.isEmpty, !payload.summary.isEmpty else {
+        let normalizedHeadline = Self.normalizeSummaryHeadline(
+            payload.headline,
+            rangeTitle: context.range.title
+        )
+        guard !normalizedHeadline.isEmpty, !payload.summary.isEmpty else {
             throw AIAnalysisServiceError.invalidResponse
         }
         return AIConversationSummaryDraft(
-            headline: payload.headline,
+            headline: normalizedHeadline,
             summary: payload.summary,
             findings: Array(payload.findings.prefix(3)),
             suggestions: Array(payload.suggestions.prefix(3))
@@ -186,7 +190,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     把这次对话里你真正获取到的关于时间消耗、精力和任务执行相关的线索整理出来，像朋友之间真实的反馈：有你觉得事实的部分，也有你自己的观察和判断，有具体依据，有关于时间安排的实际建议——不走模板，不说空话，不聊无关琐事。
 
     写法：
-    - headline：一句话，明确指出用户在这段时间里时间或任务管理上最核心的特征或矛盾
+    - headline：不超过 10 个字，只做客观概述，不带评价，不使用“偏多、偏少、不足、问题、矛盾”等判断词
     - summary：必须分两段话。第一段为“客观总结”：不加评价地总结用户的日程安排和执行完成情况事实；第二段为“主观评价”：像你对朋友说"我觉得你这段时间的时间分配……"，带有你作为老朋友的诊断评估、建议或见解
     - findings：你注意到的关于时间使用规律或问题，结合具体聊天例子，说清楚为什么这值得关注
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
@@ -224,7 +228,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         let weeklyCount = recentSummaries.filter { $0.range == .week }.count
 
         var hierarchicalNote = ""
-        if dailyCount >= 5 {
+        if dailyCount >= 7 {
             hierarchicalNote = "\n注意：以上摘要已覆盖本周完整的工作日复盘，请在要点末尾额外加一条 • 本周总体记忆：…（一句话概括本周整体状态）"
         } else if weeklyCount >= 3 {
             hierarchicalNote = "\n注意：以上摘要已覆盖本月完整的周复盘，请在要点末尾额外加一条 • 本月总体记忆：…（一句话概括本月整体趋势）"
@@ -295,6 +299,39 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         只输出 JSON：{"title":"...","content":"..."}
         """
     }
+
+    static func normalizeSummaryHeadline(_ headline: String, rangeTitle: String) -> String {
+        let compacted = headline
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !compacted.isEmpty else {
+            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
+        }
+
+        if summaryHeadlineEvaluativeTerms.contains(where: { compacted.contains($0) }) {
+            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
+        }
+
+        let normalized = String(compacted.prefix(summaryHeadlineMaxLength))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else {
+            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
+        }
+        return normalized
+    }
+
+    static func fallbackSummaryHeadline(rangeTitle: String) -> String {
+        let trimmedRangeTitle = rangeTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = trimmedRangeTitle.isEmpty ? "时间概述" : "\(trimmedRangeTitle)时间概述"
+        return String(base.prefix(summaryHeadlineMaxLength))
+    }
+
+    static let summaryHeadlineMaxLength = 10
+
+    static let summaryHeadlineEvaluativeTerms = [
+        "偏多", "偏少", "不足", "过多", "过少", "问题", "矛盾",
+        "低效", "失衡", "糟糕", "优秀", "较差", "拖延", "浪费", "瓶颈"
+    ]
 
     static func eventLines(for events: [AIEventContext]) -> String {
         guard !events.isEmpty else { return "- 无事件" }

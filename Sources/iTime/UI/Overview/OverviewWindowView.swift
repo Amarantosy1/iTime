@@ -78,38 +78,50 @@ struct OverviewWindowView: View {
 
     private var customDateRangeControls: some View {
         LiquidGlassCard {
-            HStack(spacing: 16) {
-                DatePicker(
-                    "开始日期",
-                    selection: Binding(
-                        get: { model.preferences.customStartDate },
-                        set: { newValue in
-                            Task {
-                                await model.setCustomDateRange(
-                                    start: newValue,
-                                    end: model.preferences.customEndDate
-                                )
-                            }
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    ForEach(CustomDateRangePreset.allCases, id: \.self) { preset in
+                        Button(preset.title) {
+                            Task { await model.setCustomDateRange(preset: preset) }
                         }
-                    ),
-                    displayedComponents: .date
-                )
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
 
-                DatePicker(
-                    "结束日期",
-                    selection: Binding(
-                        get: { model.preferences.customEndDate },
-                        set: { newValue in
-                            Task {
-                                await model.setCustomDateRange(
-                                    start: model.preferences.customStartDate,
-                                    end: newValue
-                                )
+                HStack(spacing: 16) {
+                    DatePicker(
+                        "开始日期",
+                        selection: Binding(
+                            get: { model.preferences.customStartDate },
+                            set: { newValue in
+                                Task {
+                                    await model.setCustomDateRange(
+                                        start: newValue,
+                                        end: model.preferences.customEndDate
+                                    )
+                                }
                             }
-                        }
-                    ),
-                    displayedComponents: .date
-                )
+                        ),
+                        displayedComponents: .date
+                    )
+
+                    DatePicker(
+                        "结束日期",
+                        selection: Binding(
+                            get: { model.preferences.customEndDate },
+                            set: { newValue in
+                                Task {
+                                    await model.setCustomDateRange(
+                                        start: model.preferences.customStartDate,
+                                        end: newValue
+                                    )
+                                }
+                            }
+                        ),
+                        displayedComponents: .date
+                    )
+                }
             }
         }
     }

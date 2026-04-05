@@ -61,85 +61,25 @@ private final class RecordingProviderConversationService: @unchecked Sendable, A
     }
 }
 
-private final class RecordingProviderHTTPSender: @unchecked Sendable, AIAnalysisHTTPSending {
-    let responseData: Data
-    let statusCode: Int
-    private(set) var lastRequest: URLRequest?
-
-    init(responseData: Data, statusCode: Int = 200) {
-        self.responseData = responseData
-        self.statusCode = statusCode
-    }
-
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        lastRequest = request
-        let response = HTTPURLResponse(
-            url: try #require(request.url),
-            statusCode: statusCode,
-            httpVersion: nil,
-            headerFields: nil
-        )!
-        return (responseData, response)
-    }
-}
-
 @Test func conversationRouterUsesSelectedProvider() async throws {
     let openAI = RecordingProviderConversationService()
-    let anthropic = RecordingProviderConversationService()
+    let gemini = RecordingProviderConversationService()
     let router = AIConversationRoutingService(
         services: [
             .openAI: openAI,
-            .anthropic: anthropic,
+            .gemini: gemini,
         ]
     )
 
     _ = try await router.askQuestion(
         context: .fixture(),
         history: [],
-        configuration: .fixture(provider: .anthropic)
+        configuration: .fixture(provider: .gemini)
     )
 
     #expect(openAI.askCount == 0)
-    #expect(anthropic.askCount == 1)
-    #expect(anthropic.lastConfiguration?.provider == .anthropic)
-}
-
-@Test func anthropicConversationServiceBuildsMessagesRequestAndParsesQuestion() async throws {
-    let sender = RecordingProviderHTTPSender(
-        responseData: Data(
-            """
-            {
-              "content": [
-                {
-                  "type": "text",
-                  "text": "{\\"question\\":\\"周二的需求评审主要做了什么？\\"}"
-                }
-              ]
-            }
-            """.utf8
-        )
-    )
-    let service = AnthropicConversationService(httpSender: sender)
-
-    let message = try await service.askQuestion(
-        context: .fixture(),
-        history: [],
-        configuration: .fixture(
-            provider: .anthropic,
-            baseURL: "https://api.anthropic.com/v1",
-            model: "claude-sonnet-4-5"
-        )
-    )
-
-    let request = try #require(sender.lastRequest)
-    let body = try #require(request.httpBody.flatMap { String(data: $0, encoding: .utf8) })
-
-    #expect(request.url?.absoluteString == "https://api.anthropic.com/v1/messages")
-    #expect(request.value(forHTTPHeaderField: "x-api-key") == "secret-key")
-    #expect(request.value(forHTTPHeaderField: "anthropic-version") == "2023-06-01")
-    #expect(body.contains("\"model\":\"claude-sonnet-4-5\""))
-    #expect(body.contains("需求评审"))
-    #expect(message.content == "周二的需求评审主要做了什么？")
+    #expect(gemini.askCount == 1)
+    #expect(gemini.lastConfiguration?.provider == .gemini)
 }
 
 private extension AIConversationContext {

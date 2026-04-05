@@ -67,8 +67,8 @@ import Testing
     let preferences = UserPreferences(storage: .inMemory)
 
     let services = preferences.aiServiceEndpoints
-    #expect(services.count == 4)
-    #expect(services.map(\.providerKind) == [.openAI, .anthropic, .gemini, .deepSeek])
+    #expect(services.count == 3)
+    #expect(services.map(\.providerKind) == [.openAI, .gemini, .deepSeek])
     #expect(services.allSatisfy { $0.isBuiltIn })
     #expect(preferences.defaultAIService?.providerKind == .openAI)
 }

@@ -169,13 +169,34 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let request = try #require(sender.lastRequest)
     let bodyData = try #require(request.httpBody)
     let body = try #require(String(data: bodyData, encoding: .utf8))
+    #expect(body.contains("不超过 10 个字"))
     #expect(body.contains("关于时间使用规律或问题"))
     #expect(body.contains("具体建议，说清楚做什么"))
 
-    #expect(draft.headline == "本周工作会议偏多")
+    #expect(draft.headline == "本周时间概述")
     #expect(draft.summary == "你本周大量时间花在评审和同步上，深度工作时间不足。")
     #expect(draft.findings == ["会议集中在周二和周三"])
     #expect(draft.suggestions == ["给深度工作预留不可打断时段"])
+}
+
+@Test func normalizeSummaryHeadlineFallsBackWhenHeadlineContainsEvaluation() {
+    let normalized = OpenAICompatibleAIConversationService.normalizeSummaryHeadline(
+        "本周工作会议偏多",
+        rangeTitle: "本周"
+    )
+
+    #expect(normalized == "本周时间概述")
+    #expect(normalized.count <= 10)
+}
+
+@Test func normalizeSummaryHeadlineTruncatesToTenCharacters() {
+    let normalized = OpenAICompatibleAIConversationService.normalizeSummaryHeadline(
+        "本周时间分配与任务执行概述",
+        rangeTitle: "本周"
+    )
+
+    #expect(normalized == "本周时间分配与任务执")
+    #expect(normalized.count == 10)
 }
 
 @Test func openAICompatibleConversationServiceBuildsLongFormRequestUsingConversationMessages() async throws {
@@ -317,52 +338,6 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
 
     #expect(draft.title == "本周复盘")
     #expect(draft.content == "这是一篇文章。")
-}
-
-@Test func anthropicConversationServiceUsesHigherMaxTokensForLongFormReport() async throws {
-    let sender = ConversationRecordingAIHTTPSender(
-        responseData: Data(
-            """
-            {
-              "content": [
-                { "type": "text", "text": "{\\"title\\":\\"复盘\\",\\"content\\":\\"内容。\\"}" }
-              ]
-            }
-            """.utf8
-        )
-    )
-    let service = AnthropicConversationService(httpSender: sender)
-    let session = AIConversationSession(
-        id: UUID(), serviceID: nil, serviceDisplayName: "Anthropic", provider: .anthropic,
-        model: "claude-opus-4-6", range: .week,
-        startDate: Date(timeIntervalSince1970: 1_700_000_000),
-        endDate: Date(timeIntervalSince1970: 1_700_086_400),
-        startedAt: Date(timeIntervalSince1970: 1_700_000_000), completedAt: nil,
-        status: .completed,
-        overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "8h", totalEventCount: 4, topCalendarNames: []),
-        messages: []
-    )
-    let summary = AIConversationSummary(
-        id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "Anthropic",
-        provider: .anthropic, model: "claude-opus-4-6", range: .week,
-        startDate: session.startDate, endDate: session.endDate,
-        createdAt: session.endDate, headline: "标题",
-        summary: "摘要", findings: [], suggestions: [],
-        overviewSnapshot: session.overviewSnapshot
-    )
-
-    _ = try await service.generateLongFormReport(
-        session: session, summary: summary,
-        configuration: ResolvedAIProviderConfiguration(
-            provider: .anthropic, baseURL: "https://api.anthropic.com",
-            model: "claude-opus-4-6", apiKey: "key", isEnabled: true
-        )
-    )
-
-    let request = try #require(sender.lastRequest)
-    let bodyData = try #require(request.httpBody)
-    let body = try #require(String(data: bodyData, encoding: .utf8))
-    #expect(body.contains("4096"))
 }
 
 @Test func geminiConversationServiceIncludesJsonMimeTypeInRequest() async throws {

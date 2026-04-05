@@ -41,7 +41,6 @@ public final class AppModel {
         aiConversationService: AIConversationServing = AIConversationRoutingService(
             services: [
                 .openAI: OpenAIConversationService(),
-                .anthropic: AnthropicConversationService(),
                 .gemini: GeminiConversationService(),
                 .deepSeek: DeepSeekConversationService(),
                 .openAICompatible: OpenAIConversationService(),
@@ -215,6 +214,37 @@ public final class AppModel {
         let range = StatisticsDateRange(startDate: start, endDate: end)
         preferences.customStartDate = range.startDate
         preferences.customEndDate = range.endDate
+        await refresh()
+    }
+
+    public func setCustomDateRange(preset: CustomDateRangePreset) async {
+        let referenceDate = now()
+        switch preset {
+        case .lastWeek:
+            guard
+                let thisWeek = calendar.dateInterval(of: .weekOfYear, for: referenceDate),
+                let start = calendar.date(byAdding: .weekOfYear, value: -1, to: thisWeek.start),
+                let end = calendar.date(byAdding: .day, value: -1, to: thisWeek.start)
+            else {
+                return
+            }
+            preferences.selectedRange = .custom
+            preferences.customStartDate = calendar.startOfDay(for: start)
+            preferences.customEndDate = calendar.startOfDay(for: end)
+
+        case .lastMonth:
+            guard
+                let thisMonth = calendar.dateInterval(of: .month, for: referenceDate),
+                let start = calendar.date(byAdding: .month, value: -1, to: thisMonth.start),
+                let end = calendar.date(byAdding: .day, value: -1, to: thisMonth.start)
+            else {
+                return
+            }
+            preferences.selectedRange = .custom
+            preferences.customStartDate = calendar.startOfDay(for: start)
+            preferences.customEndDate = calendar.startOfDay(for: end)
+        }
+
         await refresh()
     }
 
@@ -754,27 +784,28 @@ public final class AppModel {
         let allSummaries = aiConversationHistory
         var summariesForCompaction: [AIConversationSummary] = []
 
+        func appendUnique(_ summary: AIConversationSummary) {
+            guard !summariesForCompaction.contains(where: { $0.id == summary.id }) else { return }
+            summariesForCompaction.append(summary)
+        }
+
         switch newSummary.range {
         case .today:
             if let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: newSummary.startDate),
                let yesterday = allSummaries.first(where: {
                    $0.range == .today && calendar.isDate($0.startDate, inSameDayAs: yesterdayStart)
                }) {
-                summariesForCompaction.append(yesterday)
+                appendUnique(yesterday)
             }
-            if let thisWeek = allSummaries.first(where: {
-                $0.range == .week && calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .weekOfYear)
-            }) {
-                summariesForCompaction.append(thisWeek)
-            }
-            let weekDailies = allSummaries.filter {
-                $0.range == .today && $0.id != newSummary.id &&
-                calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .weekOfYear)
-            }
-            if weekDailies.count >= 5 {
-                for s in weekDailies where !summariesForCompaction.contains(where: { $0.id == s.id }) {
-                    summariesForCompaction.append(s)
+
+            let trailingWeekDailySummaries = allSummaries
+                .filter {
+                    $0.range == .today &&
+                    isDate($0.startDate, inTrailingDaysEndingAt: newSummary.startDate, dayCount: 7)
                 }
+                .sorted { $0.startDate > $1.startDate }
+            for summary in trailingWeekDailySummaries {
+                appendUnique(summary)
             }
 
         case .week:
@@ -782,16 +813,7 @@ public final class AppModel {
                let lastWeek = allSummaries.first(where: {
                    $0.range == .week && calendar.isDate($0.startDate, equalTo: lastWeekStart, toGranularity: .weekOfYear)
                }) {
-                summariesForCompaction.append(lastWeek)
-            }
-            let monthWeeklies = allSummaries.filter {
-                $0.range == .week && $0.id != newSummary.id &&
-                calendar.isDate($0.startDate, equalTo: newSummary.startDate, toGranularity: .month)
-            }
-            if monthWeeklies.count >= 3 {
-                for s in monthWeeklies where !summariesForCompaction.contains(where: { $0.id == s.id }) {
-                    summariesForCompaction.append(s)
-                }
+                appendUnique(lastWeek)
             }
 
         case .month:
@@ -799,7 +821,7 @@ public final class AppModel {
                let lastMonth = allSummaries.first(where: {
                    $0.range == .month && calendar.isDate($0.startDate, equalTo: lastMonthStart, toGranularity: .month)
                }) {
-                summariesForCompaction.append(lastMonth)
+                appendUnique(lastMonth)
             }
 
         case .custom:
@@ -1040,7 +1062,7 @@ public final class AppModel {
         interval: DateInterval,
         summaries: [AIConversationSummary]
     ) -> String? {
-        let calendar = Calendar.current
+        let calendar = self.calendar
         let start = interval.start
         var parts: [String] = []
 
@@ -1050,20 +1072,25 @@ public final class AppModel {
                let yesterday = summaries.first(where: { $0.range == .today && calendar.isDate($0.startDate, inSameDayAs: yesterdayStart) }) {
                 parts.append("【昨天的反思】标题：\(yesterday.headline)\n概要：\(yesterday.summary)")
             }
-            if let thisWeek = summaries.first(where: { $0.range == .week && calendar.isDate($0.startDate, equalTo: start, toGranularity: .weekOfYear) }) {
-                parts.append("【本周的全局定调】标题：\(thisWeek.headline)\n概要：\(thisWeek.summary)")
-            }
-            if let thisMonth = summaries.first(where: { $0.range == .month && calendar.isDate($0.startDate, equalTo: start, toGranularity: .month) }) {
-                parts.append("【本月的全局定调】标题：\(thisMonth.headline)\n概要：\(thisMonth.summary)")
+            let trailingWeekDailySummaries = summaries
+                .filter {
+                    $0.range == .today &&
+                    isDate($0.startDate, inPreviousDaysBefore: start, dayCount: 7)
+                }
+                .sorted { $0.startDate > $1.startDate }
+            if !trailingWeekDailySummaries.isEmpty {
+                let compactLines = trailingWeekDailySummaries.map { summary in
+                    let comps = calendar.dateComponents([.month, .day], from: summary.startDate)
+                    let dateText = "\(comps.month ?? 0)/\(comps.day ?? 0)"
+                    return "• \(dateText)：\(summary.headline)"
+                }
+                parts.append("【近七天日复盘压缩】\n\(compactLines.joined(separator: "\\n"))")
             }
 
         case .week:
             if let lastWeekStart = calendar.date(byAdding: .weekOfYear, value: -1, to: start),
                let lastWeek = summaries.first(where: { $0.range == .week && calendar.isDate($0.startDate, equalTo: lastWeekStart, toGranularity: .weekOfYear) }) {
                 parts.append("【上周的反思】标题：\(lastWeek.headline)\n概要：\(lastWeek.summary)")
-            }
-            if let thisMonth = summaries.first(where: { $0.range == .month && calendar.isDate($0.startDate, equalTo: start, toGranularity: .month) }) {
-                parts.append("【本月的全局定调】标题：\(thisMonth.headline)\n概要：\(thisMonth.summary)")
             }
 
         case .month:
@@ -1086,6 +1113,33 @@ public final class AppModel {
         }
 
         return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
+    }
+
+    private func isDate(_ date: Date, inTrailingDaysEndingAt anchorDate: Date, dayCount: Int) -> Bool {
+        guard dayCount > 0,
+              let start = calendar.date(byAdding: .day, value: -(dayCount - 1), to: anchorDate)
+        else {
+            return false
+        }
+
+        let normalizedDate = calendar.startOfDay(for: date)
+        let normalizedStart = calendar.startOfDay(for: start)
+        let normalizedAnchor = calendar.startOfDay(for: anchorDate)
+        return normalizedDate >= normalizedStart && normalizedDate <= normalizedAnchor
+    }
+
+    private func isDate(_ date: Date, inPreviousDaysBefore anchorDate: Date, dayCount: Int) -> Bool {
+        guard dayCount > 0,
+              let start = calendar.date(byAdding: .day, value: -dayCount, to: anchorDate),
+              let end = calendar.date(byAdding: .day, value: -1, to: anchorDate)
+        else {
+            return false
+        }
+
+        let normalizedDate = calendar.startOfDay(for: date)
+        let normalizedStart = calendar.startOfDay(for: start)
+        let normalizedEnd = calendar.startOfDay(for: end)
+        return normalizedDate >= normalizedStart && normalizedDate <= normalizedEnd
     }
 
     private func currentSelectedAIService() -> AIServiceEndpoint? {

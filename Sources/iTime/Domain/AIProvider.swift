@@ -2,7 +2,6 @@ import Foundation
 
 public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
     case openAI
-    case anthropic
     case gemini
     case deepSeek
     case openAICompatible
@@ -11,8 +10,6 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .openAI:
             "OpenAI"
-        case .anthropic:
-            "Anthropic"
         case .gemini:
             "Gemini"
         case .deepSeek:
@@ -26,8 +23,6 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .openAI:
             "https://api.openai.com/v1"
-        case .anthropic:
-            "https://api.anthropic.com/v1"
         case .gemini:
             "https://generativelanguage.googleapis.com/v1beta"
         case .deepSeek:
@@ -41,8 +36,6 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .openAI:
             UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
-        case .anthropic:
-            UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
         case .gemini:
             UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
         case .deepSeek:
@@ -50,6 +43,17 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
         case .openAICompatible:
             UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
         }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        self = Self(rawValue: rawValue) ?? .openAICompatible
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -83,13 +87,6 @@ public enum AIProviderCatalog {
             kind: .openAI,
             title: AIProviderKind.openAI.title,
             defaultBaseURL: AIProviderKind.openAI.defaultBaseURL,
-            supportsCustomEndpoints: false,
-            isBuiltIn: true
-        ),
-        AIProviderCatalogItem(
-            kind: .anthropic,
-            title: AIProviderKind.anthropic.title,
-            defaultBaseURL: AIProviderKind.anthropic.defaultBaseURL,
             supportsCustomEndpoints: false,
             isBuiltIn: true
         ),
@@ -166,13 +163,6 @@ public struct ResolvedAIProviderConfiguration: Equatable, Sendable {
         guard var components = URLComponents(string: baseURL) else { return nil }
         let normalizedPath = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
         components.path = normalizedPath + "/chat/completions"
-        return components.url
-    }
-
-    public var anthropicMessagesURL: URL? {
-        guard var components = URLComponents(string: baseURL) else { return nil }
-        let normalizedPath = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
-        components.path = normalizedPath + "/messages"
         return components.url
     }
 

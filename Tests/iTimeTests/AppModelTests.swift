@@ -255,6 +255,64 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
 }
 
 @MainActor
+@Test func customRangePresetLastWeekResolvesToPreviousWeekInterval() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let calendar = makeCalendar()
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 15, minute: 30) }
+    )
+
+    await model.setCustomDateRange(preset: .lastWeek)
+
+    #expect(preferences.selectedRange == .custom)
+    #expect(preferences.customStartDate == makeDate(2026, 3, 23))
+    #expect(preferences.customEndDate == makeDate(2026, 3, 29))
+    #expect(service.fetchedIntervals.last == DateInterval(
+        start: makeDate(2026, 3, 23),
+        end: makeDate(2026, 3, 30)
+    ))
+}
+
+@MainActor
+@Test func customRangePresetLastMonthResolvesToPreviousMonthInterval() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let calendar = makeCalendar()
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 15, minute: 30) }
+    )
+
+    await model.setCustomDateRange(preset: .lastMonth)
+
+    #expect(preferences.selectedRange == .custom)
+    #expect(preferences.customStartDate == makeDate(2026, 3, 1))
+    #expect(preferences.customEndDate == makeDate(2026, 3, 31))
+    #expect(service.fetchedIntervals.last == DateInterval(
+        start: makeDate(2026, 3, 1),
+        end: makeDate(2026, 4, 1)
+    ))
+}
+
+@MainActor
 @Test func enablingReviewReminderRequestsPermissionAndSchedulesDailyNotification() async {
     let service = StubCalendarAccessService(state: .authorized, calendars: [], events: [])
     let preferences = UserPreferences(storage: .inMemory)

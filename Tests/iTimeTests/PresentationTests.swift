@@ -20,6 +20,11 @@ import Testing
     #expect(TimeRangePreset.custom.title == "自定义")
 }
 
+@Test func customRangePresetTitlesUseChineseStrings() {
+    #expect(CustomDateRangePreset.lastWeek.title == "上周")
+    #expect(CustomDateRangePreset.lastMonth.title == "上月")
+}
+
 @Test func overviewMetricTitlesUseChineseStrings() {
     #expect(OverviewMetricKind.totalDuration.title == "总时长")
     #expect(OverviewMetricKind.eventCount.title == "事件数")

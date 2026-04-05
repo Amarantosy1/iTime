@@ -61,7 +61,6 @@
 		A0000000000000000000013A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* AIProvider.swift */; };
 		A0000000000000000000013B /* AIProviderSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* AIProviderSettingsTests.swift */; };
 		A0000000000000000000013C /* AIConversationRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* AIConversationRoutingService.swift */; };
-		A0000000000000000000013D /* AnthropicConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000056 /* AnthropicConversationService.swift */; };
 		A0000000000000000000013E /* DeepSeekConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000057 /* DeepSeekConversationService.swift */; };
 		A0000000000000000000013F /* GeminiConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* GeminiConversationService.swift */; };
 		A00000000000000000000140 /* OpenAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* OpenAIConversationService.swift */; };
@@ -146,7 +145,6 @@
 		A00000000000000000000053 /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		A00000000000000000000054 /* AIProviderSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000055 /* AIConversationRoutingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationRoutingService.swift; sourceTree = "<group>"; };
-		A00000000000000000000056 /* AnthropicConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnthropicConversationService.swift; sourceTree = "<group>"; };
 		A00000000000000000000057 /* DeepSeekConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekConversationService.swift; sourceTree = "<group>"; };
 		A00000000000000000000058 /* GeminiConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiConversationService.swift; sourceTree = "<group>"; };
 		A00000000000000000000059 /* OpenAIConversationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIConversationService.swift; sourceTree = "<group>"; };
@@ -256,7 +254,6 @@
 				A00000000000000000000043 /* AIAnalysisServing.swift */,
 				A00000000000000000000055 /* AIConversationRoutingService.swift */,
 				A0000000000000000000004D /* AIConversationServing.swift */,
-				A00000000000000000000056 /* AnthropicConversationService.swift */,
 				A00000000000000000000017 /* CalendarAccessServing.swift */,
 				A00000000000000000000018 /* CalendarStatisticsAggregator.swift */,
 				A00000000000000000000057 /* DeepSeekConversationService.swift */,
@@ -515,7 +512,6 @@
 				A00000000000000000000136 /* AIConversationServing.swift in Sources */,
 				A00000000000000000000143 /* AIConversationComposerView.swift in Sources */,
 				A00000000000000000000141 /* AIConversationWindowView.swift in Sources */,
-				A0000000000000000000013D /* AnthropicConversationService.swift in Sources */,
 				A0000000000000000000013A /* AIProvider.swift in Sources */,
 				A00000000000000000000146 /* AIServiceEndpoint.swift in Sources */,
 				A00000000000000000000102 /* AppModel.swift in Sources */,

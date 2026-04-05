@@ -167,7 +167,8 @@ public final class UserPreferences {
         let storedServiceIDString = defaults.string(forKey: Keys.defaultAIServiceID)
             ?? defaults.string(forKey: Keys.defaultAIMountID)
         if let storedServiceIDString,
-           let storedServiceID = UUID(uuidString: storedServiceIDString) {
+           let storedServiceID = UUID(uuidString: storedServiceIDString),
+           self.aiServiceEndpoints.contains(where: { $0.id == storedServiceID }) {
             self.defaultAIServiceID = storedServiceID
         } else {
             self.defaultAIServiceID = self.aiServiceEndpoints.first(where: { $0.providerKind == self.defaultAIProvider })?.id

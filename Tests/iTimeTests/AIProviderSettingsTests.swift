@@ -18,21 +18,22 @@ private final class InMemoryScopedAIKeyStore: @unchecked Sendable, AIAPIKeyStori
     let suite = "iTime.tests.ai-services"
     let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
 
-    first.defaultAIProvider = .anthropic
+    first.defaultAIProvider = .openAI
     first.setAIProviderEnabled(true, for: .openAI)
     first.setAIProviderBaseURL("https://api.openai.com/v1", for: .openAI)
     first.setAIProviderModel("gpt-5", for: .openAI)
-    first.setAIProviderEnabled(true, for: .anthropic)
-    first.setAIProviderBaseURL("https://api.anthropic.com/v1", for: .anthropic)
-    first.setAIProviderModel("claude-sonnet-4-5", for: .anthropic)
+    first.setAIProviderEnabled(true, for: .gemini)
+    first.setAIProviderBaseURL("https://generativelanguage.googleapis.com/v1beta", for: .gemini)
+    first.setAIProviderModel("gemini-2.0-flash", for: .gemini)
 
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
 
     let services = second.aiServiceEndpoints
-    #expect(services.count == 4)
+    #expect(services.count == 3)
     #expect(services.first(where: { $0.providerKind == .openAI })?.defaultModel == "gpt-5")
-    #expect(services.first(where: { $0.providerKind == .anthropic })?.isEnabled == true)
-    #expect(second.defaultAIService?.providerKind == .anthropic)
+    #expect(services.first(where: { $0.providerKind == .gemini })?.isEnabled == true)
+    #expect(services.first(where: { $0.providerKind == .gemini })?.defaultModel == "gemini-2.0-flash")
+    #expect(second.defaultAIService?.providerKind == .openAI)
 }
 
 @Test func aiServicesAllowAddingAndDeletingCustomServices() {
@@ -72,12 +73,12 @@ private final class InMemoryScopedAIKeyStore: @unchecked Sendable, AIAPIKeyStori
 @Test func aiAPIKeyStoreReadsAndWritesKeysPerService() throws {
     let store = InMemoryScopedAIKeyStore()
     let openAIServiceID = UUID()
-    let anthropicServiceID = UUID()
+    let secondServiceID = UUID()
 
     try store.saveAPIKey("openai-key", for: openAIServiceID)
-    try store.saveAPIKey("anthropic-key", for: anthropicServiceID)
+    try store.saveAPIKey("another-key", for: secondServiceID)
 
     #expect(try store.loadAPIKey(for: openAIServiceID) == "openai-key")
-    #expect(try store.loadAPIKey(for: anthropicServiceID) == "anthropic-key")
+    #expect(try store.loadAPIKey(for: secondServiceID) == "another-key")
     #expect(try store.loadAPIKey(for: UUID()).isEmpty)
 }

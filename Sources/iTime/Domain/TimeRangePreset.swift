@@ -27,3 +27,17 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
         }
     }
 }
+
+public enum CustomDateRangePreset: String, CaseIterable, Sendable {
+    case lastWeek
+    case lastMonth
+
+    public var title: String {
+        switch self {
+        case .lastWeek:
+            "上周"
+        case .lastMonth:
+            "上月"
+        }
+    }
+}

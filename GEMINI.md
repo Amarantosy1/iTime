@@ -9,7 +9,7 @@
     - **Menu Bar Integration:** Quick-access snapshot of today's/this week's time distribution.
     - **Statistics Dashboard:** Detailed charts (stacked bars, pie charts) and metrics (total duration, event count, daily averages).
     - **AI Superpowers:** Multi-turn AI conversations to review specific schedules, generate summaries, and produce long-form reflection reports.
-    - **Provider Agility:** Built-in support for OpenAI, Anthropic, Gemini, DeepSeek, and custom OpenAI-compatible endpoints.
+    - **Provider Agility:** Built-in support for OpenAI, Gemini, DeepSeek, and custom OpenAI-compatible endpoints.
     - **Local-First:** All conversations, summaries, and time data are stored locally for privacy and persistence.
 
 ## Architecture & Project Structure
