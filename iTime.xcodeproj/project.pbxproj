@@ -150,11 +150,10 @@
 
 /* Begin PBXFileReference section */
 		118A2D188BE0A8FFA2A50AC1 /* SyncRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncRecord.swift; path = Sources/iTime/Domain/Sync/SyncRecord.swift; sourceTree = "<group>"; };
-		221488A8CE42802EE28474EA /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2316EFC88C45A12059BC6FA2 /* MultipeerTransport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultipeerTransport.swift; path = Sources/iTime/Services/Sync/MultipeerTransport.swift; sourceTree = "<group>"; };
 		29344E0069AB35DCBB13F777 /* iTimeIOSRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iTimeIOSRootView.swift; path = "iTime-iOS/UI/Root/iTimeIOSRootView.swift"; sourceTree = "<group>"; };
 		396FB73FB1762CAC73B0331C /* CryptoEnvelopeServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CryptoEnvelopeServiceTests.swift; path = Tests/iTimeTests/Sync/CryptoEnvelopeServiceTests.swift; sourceTree = "<group>"; };
-		47EB4E2E728D413D93763CA8 /* iTime-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "iTime-iOS.app"; path = "iTime-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		47EB4E2E728D413D93763CA8 /* iTime-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iTime-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncMessage.swift; path = Sources/iTime/Domain/Sync/SyncMessage.swift; sourceTree = "<group>"; };
 		61878F1E1BE7013D2514A7F0 /* SyncEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncEngineTests.swift; path = Tests/iTimeTests/Sync/SyncEngineTests.swift; sourceTree = "<group>"; };
 		633AE0A267045A8F671DF87D /* DevicePeer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DevicePeer.swift; path = Sources/iTime/Domain/Sync/DevicePeer.swift; sourceTree = "<group>"; };
@@ -295,7 +294,6 @@
 			children = (
 				7B136A40D9AE86BF687EECB8 /* App */,
 				A3F9455339838D237085FEAB /* UI */,
-				221488A8CE42802EE28474EA /* Assets.xcassets */,
 				9AB0AAF0E9324474B7E2589A /* Assets.xcassets */,
 			);
 			name = "iTime-iOS";
@@ -1105,7 +1103,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_OBJC_WEAK = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5H8QMXF6G9;
@@ -1114,6 +1112,8 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1136,7 +1136,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ENABLE_OBJC_WEAK = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5H8QMXF6G9;
@@ -1145,6 +1145,8 @@
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
