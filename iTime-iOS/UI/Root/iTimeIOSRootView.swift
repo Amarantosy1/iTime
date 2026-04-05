@@ -22,7 +22,6 @@ struct iTimeIOSRootView: View {
         }
         .task {
             await model.requestAccessIfNeeded()
-            await model.startDeviceDiscovery()
         }
     }
 }

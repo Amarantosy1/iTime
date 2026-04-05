@@ -764,6 +764,7 @@ public final class AppModel {
     public func stopDeviceDiscovery() async {
         discoveryTask?.cancel()
         discoveryTask = nil
+        discoveredPeers = []
         await stopResponderLoop()
         guard let syncCoordinator else { return }
         await syncCoordinator.stopDiscovery()
@@ -781,6 +782,7 @@ public final class AppModel {
         lastSyncStatus = .syncing
         do {
             try await syncCoordinator.syncNow(with: peerID)
+            reloadConversationArchiveFromStoreIfPossible()
             availableAIServices = preferences.aiServiceEndpoints
             synchronizeConversationSelection()
             lastSyncStatus = .succeeded
@@ -812,6 +814,7 @@ public final class AppModel {
                     guard let self else { return }
                     switch event {
                     case .completed:
+                        self.reloadConversationArchiveFromStoreIfPossible()
                         self.lastSyncStatus = .succeeded
                         self.availableAIServices = self.preferences.aiServiceEndpoints
                         self.synchronizeConversationSelection()
@@ -1426,6 +1429,13 @@ public final class AppModel {
         } catch {
             reviewReminderAuthorizationStatus = await reviewReminderScheduler.authorizationStatus()
         }
+    }
+
+    private func reloadConversationArchiveFromStoreIfPossible() {
+        guard let archive = try? aiConversationArchiveStore.loadArchive() else { return }
+        aiConversationArchive = archive
+        aiConversationHistory = archive.summaries.sorted(by: { $0.createdAt > $1.createdAt })
+        latestAIMemorySnapshot = archive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
     }
 
     private func saveConversationArchive(

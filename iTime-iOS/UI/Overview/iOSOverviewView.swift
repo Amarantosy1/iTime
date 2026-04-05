@@ -4,130 +4,169 @@ import UIKit
 
 struct iOSOverviewView: View {
     @Bindable var model: AppModel
+    private let cardSpacing: CGFloat = 16
 
     var body: some View {
         NavigationStack {
-            List {
-                rangeSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: cardSpacing) {
+                    rangeSection
 
-                if model.authorizationState == .authorized {
-                    if let overview = model.overview, !overview.buckets.isEmpty {
-                        metricsSection(overview)
-                        trendSection(overview)
-                        distributionSection(overview)
+                    if model.authorizationState == .authorized {
+                        if let overview = model.overview, !overview.buckets.isEmpty {
+                            metricsSection(overview)
+                            trendSection(overview)
+                            distributionSection(overview)
+                        } else {
+                            card(title: "暂无数据") {
+                                Text("当前时间范围内没有可统计的日程。")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     } else {
-                        Section {
-                            Text("当前时间范围内没有可统计的日程。")
+                        card(title: "日历权限") {
+                            Text(authorizationHint)
                                 .foregroundStyle(.secondary)
+                            Button("请求权限") {
+                                Task { await model.requestAccessIfNeeded() }
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
-                    }
-                } else {
-                    Section {
-                        Text(authorizationHint)
-                            .foregroundStyle(.secondary)
-                        Button("请求权限") {
-                            Task { await model.requestAccessIfNeeded() }
-                        }
-                        .buttonStyle(.borderedProminent)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
             }
             .navigationTitle("统计")
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 8)
+            }
             .task { await model.refresh() }
             .refreshable { await model.refresh() }
         }
     }
 
     private var rangeSection: some View {
-        Section("统计范围") {
-            Picker(
-                "统计周期",
-                selection: Binding(
-                    get: { model.liveSelectedRange },
-                    set: { newValue in
-                        Task { await model.setRange(newValue) }
+        card(title: "统计范围") {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker(
+                    "统计周期",
+                    selection: Binding(
+                        get: { model.liveSelectedRange },
+                        set: { newValue in
+                            Task { await model.setRange(newValue) }
+                        }
+                    )
+                ) {
+                    ForEach(TimeRangePreset.overviewCases, id: \.self) { range in
+                        Text(range.title).tag(range)
                     }
-                )
-            ) {
-                ForEach(TimeRangePreset.overviewCases, id: \.self) { range in
-                    Text(range.title).tag(range)
                 }
-            }
-            .pickerStyle(.segmented)
-            
-            if model.liveSelectedRange == .custom {
-                customDateRangeControls
+                .pickerStyle(.segmented)
+
+                if model.liveSelectedRange == .custom {
+                    customDateRangeControls
+                }
             }
         }
     }
 
     @ViewBuilder
     private var customDateRangeControls: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(CustomDateRangePreset.allCases, id: \.self) { preset in
-                    Button(preset.title) {
-                        Task { await model.setCustomDateRange(preset: preset) }
+        VStack(alignment: .leading, spacing: 12) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(CustomDateRangePreset.allCases, id: \.self) { preset in
+                        Button(preset.title) {
+                            Task { await model.setCustomDateRange(preset: preset) }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
                 }
             }
+
+            DatePicker(
+                "开始日期",
+                selection: Binding(
+                    get: { model.preferences.customStartDate },
+                    set: { newValue in
+                        Task {
+                            await model.setCustomDateRange(
+                                start: newValue,
+                                end: model.preferences.customEndDate
+                            )
+                        }
+                    }
+                ),
+                displayedComponents: .date
+            )
+
+            DatePicker(
+                "结束日期",
+                selection: Binding(
+                    get: { model.preferences.customEndDate },
+                    set: { newValue in
+                        Task {
+                            await model.setCustomDateRange(
+                                start: model.preferences.customStartDate,
+                                end: newValue
+                            )
+                        }
+                    }
+                ),
+                displayedComponents: .date
+            )
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
-
-        DatePicker(
-            "开始日期",
-            selection: Binding(
-                get: { model.preferences.customStartDate },
-                set: { newValue in
-                    Task {
-                        await model.setCustomDateRange(
-                            start: newValue,
-                            end: model.preferences.customEndDate
-                        )
-                    }
-                }
-            ),
-            displayedComponents: .date
-        )
-
-        DatePicker(
-            "结束日期",
-            selection: Binding(
-                get: { model.preferences.customEndDate },
-                set: { newValue in
-                    Task {
-                        await model.setCustomDateRange(
-                            start: model.preferences.customStartDate,
-                            end: newValue
-                        )
-                    }
-                }
-            ),
-            displayedComponents: .date
-        )
     }
 
     private func metricsSection(_ overview: TimeOverview) -> some View {
-        Section("关键指标") {
-            LabeledContent("总时长", value: overview.totalDuration.formattedDuration)
-            LabeledContent("事件数", value: "\(overview.totalEventCount)")
-            LabeledContent("日均时长", value: overview.averageDailyDuration.formattedDuration)
-            LabeledContent("最长单日", value: overview.longestDayDuration.formattedDuration)
+        card(title: "关键指标") {
+            VStack(spacing: 10) {
+                LabeledContent("总时长", value: overview.totalDuration.formattedDuration)
+                LabeledContent("事件数", value: "\(overview.totalEventCount)")
+                LabeledContent("日均时长", value: overview.averageDailyDuration.formattedDuration)
+                LabeledContent("最长单日", value: overview.longestDayDuration.formattedDuration)
+            }
         }
     }
 
     private func trendSection(_ overview: TimeOverview) -> some View {
-        Section(trendTitle(for: overview.stackedBucketResolution)) {
-            Chart(trendPoints(from: overview)) { point in
-                BarMark(
-                    x: .value("时间", point.bucketLabel),
-                    y: .value("时长", point.hours)
-                )
-                .foregroundStyle(color(from: point.colorHex))
+        card(title: trendTitle(for: overview.stackedBucketResolution)) {
+            GeometryReader { proxy in
+                let labels = overview.stackedBuckets.map(\.label)
+                let minBarWidth: CGFloat = 44
+                let minimumChartWidth = max(proxy.size.width - 8, CGFloat(max(labels.count, 1)) * minBarWidth)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Chart(trendPoints(from: overview)) { point in
+                        BarMark(
+                            x: .value("时间", point.bucketLabel),
+                            y: .value("时长", point.hours)
+                        )
+                        .foregroundStyle(color(from: point.colorHex))
+                    }
+                    .chartXScale(domain: labels)
+                    .chartXAxis {
+                        AxisMarks(values: visibleXAxisLabels(from: overview.stackedBuckets)) { value in
+                            AxisGridLine()
+                            AxisTick()
+                            AxisValueLabel {
+                                if let label = value.as(String.self) {
+                                    Text(label)
+                                        .font(.caption2)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                }
+                            }
+                        }
+                    }
+                    .frame(width: minimumChartWidth, height: 236)
+                    .padding(.horizontal, 4)
+                }
             }
-            .frame(height: 240)
+            .frame(height: 252)
 
             if let summary = trendSummary(for: overview) {
                 Text(summary)
@@ -138,31 +177,49 @@ struct iOSOverviewView: View {
     }
 
     private func distributionSection(_ overview: TimeOverview) -> some View {
-        Section("分类分布") {
-            Chart(overview.buckets) { bucket in
-                SectorMark(
-                    angle: .value("时长", bucket.totalDuration),
-                    innerRadius: .ratio(0.58),
-                    angularInset: 2
-                )
-                .foregroundStyle(color(from: bucket.colorHex))
-            }
-            .frame(height: 260)
+        card(title: "分类分布") {
+            VStack(spacing: 10) {
+                Chart(overview.buckets) { bucket in
+                    SectorMark(
+                        angle: .value("时长", bucket.totalDuration),
+                        innerRadius: .ratio(0.58),
+                        angularInset: 2
+                    )
+                    .foregroundStyle(color(from: bucket.colorHex))
+                }
+                .frame(height: 260)
 
-            ForEach(overview.buckets) { bucket in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(color(from: bucket.colorHex))
-                        .frame(width: 8, height: 8)
-                    Text(bucket.name)
-                    Spacer()
-                    Text(bucket.shareText)
-                        .foregroundStyle(.secondary)
-                    Text(bucket.totalDuration.formattedDuration)
-                        .foregroundStyle(.secondary)
+                ForEach(overview.buckets) { bucket in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(color(from: bucket.colorHex))
+                            .frame(width: 8, height: 8)
+                        Text(bucket.name)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Spacer()
+                        Text(bucket.shareText)
+                            .foregroundStyle(.secondary)
+                        Text(bucket.totalDuration.formattedDuration)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
+    }
+
+    private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+            content()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
     }
 
     private func trendTitle(for resolution: OverviewStackedBucketResolution) -> String {
@@ -209,6 +266,21 @@ struct iOSOverviewView: View {
                 )
             }
         }
+    }
+
+    private func visibleXAxisLabels(from buckets: [OverviewStackedBucket]) -> [String] {
+        let labels = buckets.map(\.label)
+        guard labels.count > 8 else { return labels }
+
+        let maxVisibleLabels = 8
+        let step = max(1, Int(ceil(Double(labels.count - 1) / Double(maxVisibleLabels - 1))))
+        var visible = stride(from: 0, to: labels.count, by: step).map { labels[$0] }
+
+        if let last = labels.last, visible.last != last {
+            visible.append(last)
+        }
+
+        return visible
     }
 
     private func color(from hex: String) -> Color {

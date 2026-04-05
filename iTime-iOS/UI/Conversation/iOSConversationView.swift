@@ -295,6 +295,9 @@ struct iOSConversationSummaryDetailView: View {
     @State private var summaryDraft = ""
     @State private var findingsDraft = ""
     @State private var suggestionsDraft = ""
+    @State private var isEditingLongForm = false
+    @State private var longFormTitleDraft = ""
+    @State private var longFormContentDraft = ""
     @State private var pendingDeletion = false
     
     @Environment(\.dismiss) private var dismiss
@@ -324,6 +327,8 @@ struct iOSConversationSummaryDetailView: View {
                         detailSection(title: "主要发现", items: summary.findings, draftText: $findingsDraft, isEditing: isEditing)
                         
                         detailSection(title: "改进建议", items: summary.suggestions, draftText: $suggestionsDraft, isEditing: isEditing)
+
+                        longFormSection(summary: summary)
                     }
                     .padding()
                 }
@@ -334,8 +339,7 @@ struct iOSConversationSummaryDetailView: View {
                         ToolbarItem(placement: .topBarTrailing) {
                             ShareLink(
                                 item: shareContent(for: summary),
-                                subject: Text(summary.headline),
-                                message: Text("来自 iTime 的复盘历史")
+                                subject: Text(summary.headline)
                             ) {
                                 Label("分享", systemImage: "square.and.arrow.up")
                             }
@@ -357,10 +361,7 @@ struct iOSConversationSummaryDetailView: View {
                         } else {
                             Menu {
                                 Button("编辑", systemImage: "pencil") {
-                                    headlineDraft = summary.headline
-                                    summaryDraft = summary.summary
-                                    findingsDraft = summary.findings.joined(separator: "\n")
-                                    suggestionsDraft = summary.suggestions.joined(separator: "\n")
+                                    synchronizeDrafts(from: summary)
                                     isEditing = true
                                 }
                                 Button("删除", systemImage: "trash", role: .destructive) {
@@ -374,10 +375,19 @@ struct iOSConversationSummaryDetailView: View {
                     if isEditing {
                         ToolbarItem(placement: .topBarLeading) {
                             Button("取消") {
+                                synchronizeDrafts(from: summary)
                                 isEditing = false
                             }
                         }
                     }
+                }
+                .onAppear {
+                    synchronizeDrafts(from: summary)
+                }
+                .onChange(of: summary.id) { _, _ in
+                    isEditing = false
+                    isEditingLongForm = false
+                    synchronizeDrafts(from: summary)
                 }
                 .alert("删除这条历史总结？", isPresented: $pendingDeletion) {
                     Button("删除", role: .destructive) {
@@ -439,6 +449,93 @@ struct iOSConversationSummaryDetailView: View {
             .filter { !$0.isEmpty }
     }
 
+    private func synchronizeDrafts(from summary: AIConversationSummary) {
+        headlineDraft = summary.headline
+        summaryDraft = summary.summary
+        findingsDraft = summary.findings.joined(separator: "\n")
+        suggestionsDraft = summary.suggestions.joined(separator: "\n")
+
+        if let report = model.longFormReport(for: summary.id) {
+            longFormTitleDraft = report.title
+            longFormContentDraft = report.content
+        } else {
+            longFormTitleDraft = ""
+            longFormContentDraft = ""
+        }
+    }
+
+    @ViewBuilder
+    private func longFormSection(summary: AIConversationSummary) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("长文复盘")
+                    .font(.headline)
+                Spacer()
+
+                if let report = model.longFormReport(for: summary.id) {
+                    if isEditingLongForm {
+                        Button("取消") {
+                            synchronizeDrafts(from: summary)
+                            isEditingLongForm = false
+                        }
+
+                        Button("保存长文") {
+                            model.updateLongFormReport(
+                                id: report.id,
+                                title: longFormTitleDraft,
+                                content: longFormContentDraft
+                            )
+                            isEditingLongForm = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Button("编辑长文") {
+                            synchronizeDrafts(from: summary)
+                            isEditingLongForm = true
+                        }
+                    }
+
+                    Button("重新生成长文") {
+                        Task { await model.generateLongFormReport(for: summary.id) }
+                    }
+                } else {
+                    Button("生成长文复盘") {
+                        Task { await model.generateLongFormReport(for: summary.id) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+
+            if let report = model.longFormReport(for: summary.id) {
+                if isEditingLongForm {
+                    TextField("长文标题", text: $longFormTitleDraft)
+                        .textFieldStyle(.roundedBorder)
+
+                    TextEditor(text: $longFormContentDraft)
+                        .frame(minHeight: 220)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
+                } else {
+                    Text(report.title)
+                        .font(.title3.weight(.semibold))
+                    Text(LocalizedStringKey(report.content))
+                }
+            } else {
+                Text("这条历史总结还没有生成长文复盘。")
+                    .foregroundStyle(.secondary)
+            }
+
+            switch model.aiLongFormState {
+            case .generating(let generatingSummaryID) where generatingSummaryID == summary.id:
+                ProgressView("AI 正在撰写长文复盘…")
+            case .failed(let failedSummaryID, let message) where failedSummaryID == summary.id:
+                Text(message)
+                    .foregroundStyle(.red)
+            default:
+                EmptyView()
+            }
+        }
+    }
+
     private func shareContent(for summary: AIConversationSummary) -> String {
         var lines: [String] = [
             summary.headline,
@@ -460,6 +557,14 @@ struct iOSConversationSummaryDetailView: View {
             lines.append("")
             lines.append("改进建议")
             lines.append(contentsOf: summary.suggestions.map { "- \($0)" })
+        }
+
+        if let report = model.longFormReport(for: summary.id) {
+            lines.append("")
+            lines.append("长文复盘")
+            lines.append(report.title)
+            lines.append("")
+            lines.append(report.content)
         }
 
         return lines.joined(separator: "\n")

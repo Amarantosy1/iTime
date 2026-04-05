@@ -17,6 +17,7 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
 
     public func makeManifest() async throws -> SyncManifest {
         let archive = try archiveStore.loadArchive()
+        let archiveData = try JSONEncoder().encode(archive)
         let payload = preferences.makeSyncPayload()
         let payloadData = try JSONEncoder().encode(payload)
 
@@ -28,7 +29,7 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
         }
 
         return SyncManifest(
-            archiveVersion: archive.versionSignature,
+            archiveVersion: Self.stableHash(for: archiveData),
             preferencesVersion: Self.stableHash(for: payloadData),
             apiKeyFingerprintByServiceID: apiKeyFingerprintByServiceID,
             generatedAt: Date()
@@ -38,6 +39,7 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
     public func buildPatch(since remote: SyncManifest) async throws -> SyncPatch {
         let archive = try archiveStore.loadArchive()
         let archiveData = try JSONEncoder().encode(archive)
+        let archiveVersion = Self.stableHash(for: archiveData)
         let payload = preferences.makeSyncPayload()
         let preferencesData = try JSONEncoder().encode(payload)
         let localServiceIDs = payload.aiServiceEndpoints.map(\.id)
@@ -50,9 +52,9 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
         )
 
         return SyncPatch(
-            archiveVersion: archive.versionSignature,
+            archiveVersion: archiveVersion,
             preferencesVersion: Self.stableHash(for: preferencesData),
-            archivePayload: archive.versionSignature > remote.archiveVersion ? archiveData : nil,
+            archivePayload: archiveVersion != remote.archiveVersion ? archiveData : nil,
             preferencesPayload: Self.stableHash(for: preferencesData) != remote.preferencesVersion ? preferencesData : nil,
             encryptedAPIKeysByServiceID: encryptedAPIKeysByServiceID
         )
@@ -112,11 +114,5 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
         data.reduce(0) { partialResult, byte in
             (partialResult &* 31) &+ Int(byte)
         }
-    }
-}
-
-private extension AIConversationArchive {
-    var versionSignature: Int {
-        sessions.count ^ summaries.count ^ memorySnapshots.count ^ longFormReports.count
     }
 }

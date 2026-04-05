@@ -88,7 +88,7 @@ private func makePatchFixture(
 @Test func syncPersistenceAdapterBuildsManifestFromArchiveAndPreferences() async throws {
     let fixture = makeSyncAdapterFixture()
     let manifest = try await fixture.adapter.makeManifest()
-    #expect(manifest.archiveVersion >= 0)
+    #expect(manifest.archiveVersion != 0)
     #expect(manifest.preferencesVersion != 0)
 }
 
@@ -98,7 +98,55 @@ private func makePatchFixture(
     let patch = try makePatchFixture(preferences: fixture.preferences, baseServiceID: serviceID)
     try await fixture.adapter.apply(patch: patch)
     let after = try await fixture.adapter.makeManifest()
-    #expect(after.archiveVersion >= 0)
+    #expect(after.archiveVersion != 0)
     #expect(fixture.preferences.selectedRange == .week)
     #expect(fixture.keyStore.values[serviceID] == "sk-remote")
+}
+
+@Test func syncPersistenceAdapterBuildPatchIncludesLongFormContentUpdates() async throws {
+    let fixture = makeSyncAdapterFixture()
+
+    let reportID = UUID()
+    let summaryID = UUID()
+    let sessionID = UUID()
+    let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+
+    fixture.archiveStore.archive = AIConversationArchive(
+        sessions: [],
+        summaries: [],
+        memorySnapshots: [],
+        longFormReports: [
+            AIConversationLongFormReport(
+                id: reportID,
+                sessionID: sessionID,
+                summaryID: summaryID,
+                createdAt: createdAt,
+                updatedAt: createdAt,
+                title: "初版长文",
+                content: "第一版内容"
+            )
+        ]
+    )
+
+    let remoteManifest = try await fixture.adapter.makeManifest()
+
+    fixture.archiveStore.archive = AIConversationArchive(
+        sessions: [],
+        summaries: [],
+        memorySnapshots: [],
+        longFormReports: [
+            AIConversationLongFormReport(
+                id: reportID,
+                sessionID: sessionID,
+                summaryID: summaryID,
+                createdAt: createdAt,
+                updatedAt: createdAt.addingTimeInterval(60),
+                title: "初版长文",
+                content: "第一版内容（已修订）"
+            )
+        ]
+    )
+
+    let patch = try await fixture.adapter.buildPatch(since: remoteManifest)
+    #expect(patch.archivePayload != nil)
 }

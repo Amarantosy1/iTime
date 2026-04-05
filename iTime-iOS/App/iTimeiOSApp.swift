@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct iTimeiOSApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model: AppModel
 
     init() {
@@ -29,6 +30,25 @@ struct iTimeiOSApp: App {
     var body: some Scene {
         WindowGroup {
             iTimeIOSRootView(model: model)
+                .task {
+                    await synchronizeDiscovery(with: scenePhase)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    Task {
+                        await synchronizeDiscovery(with: phase)
+                    }
+                }
+        }
+    }
+
+    private func synchronizeDiscovery(with phase: ScenePhase) async {
+        switch phase {
+        case .active:
+            await model.startDeviceDiscovery()
+        case .inactive, .background:
+            await model.stopDeviceDiscovery()
+        @unknown default:
+            await model.stopDeviceDiscovery()
         }
     }
 }

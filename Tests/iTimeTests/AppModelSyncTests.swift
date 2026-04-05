@@ -120,6 +120,45 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
     let fixture = makeSyncModelFixture()
     let model = fixture.model
     let transport = fixture.transport
+    let summaryID = UUID()
+
+    let remoteArchive = AIConversationArchive(
+        sessions: [],
+        summaries: [
+            AIConversationSummary(
+                id: summaryID,
+                sessionID: UUID(),
+                serviceID: AIProviderKind.openAI.builtInServiceID,
+                serviceDisplayName: "OpenAI",
+                provider: .openAI,
+                model: "gpt-5-mini",
+                range: .today,
+                startDate: Date(timeIntervalSince1970: 1_700_000_000),
+                endDate: Date(timeIntervalSince1970: 1_700_086_400),
+                createdAt: Date(timeIntervalSince1970: 1_700_100_000),
+                headline: "远端复盘",
+                summary: "来自远端设备",
+                findings: ["发现 1"],
+                suggestions: ["建议 1"],
+                overviewSnapshot: AIOverviewSnapshot(
+                    rangeTitle: "今天",
+                    totalDurationText: "2h",
+                    totalEventCount: 3,
+                    topCalendarNames: ["工作"]
+                )
+            )
+        ],
+        memorySnapshots: [
+            AIMemorySnapshot(
+                id: UUID(),
+                createdAt: Date(timeIntervalSince1970: 1_700_100_001),
+                sourceSummaryIDs: [summaryID],
+                summary: "远端 memory"
+            )
+        ],
+        longFormReports: []
+    )
+    let remoteArchivePayload = try JSONEncoder().encode(remoteArchive)
 
     // Keep responder loop idle during initiator test to avoid stream competition.
     #expect(model.discoveredPeers.isEmpty)
@@ -146,7 +185,7 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
                     SyncPatch(
                         archiveVersion: 0,
                         preferencesVersion: 0,
-                        archivePayload: nil,
+                        archivePayload: remoteArchivePayload,
                         preferencesPayload: nil,
                         encryptedAPIKeysByServiceID: [:]
                     )
@@ -157,6 +196,9 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
 
     try await model.syncNow(with: "peer-a")
     #expect(model.lastSyncStatus == .succeeded)
+    #expect(model.aiConversationHistory.count == 1)
+    #expect(model.aiConversationHistory.first?.id == summaryID)
+    #expect(model.latestAIMemorySnapshot?.summary == "远端 memory")
 }
 
 @MainActor
@@ -208,4 +250,17 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
     try await Task.sleep(nanoseconds: 150_000_000)
 
     #expect(model.lastSyncStatus == .succeeded)
+}
+
+@MainActor
+@Test func appModelStopDiscoveryClearsDiscoveredPeers() async throws {
+    let fixture = makeSyncModelFixture()
+    let model = fixture.model
+
+    await model.startDeviceDiscovery()
+    try await Task.sleep(nanoseconds: 50_000_000)
+    #expect(model.discoveredPeers.count == 1)
+
+    await model.stopDeviceDiscovery()
+    #expect(model.discoveredPeers.isEmpty)
 }
