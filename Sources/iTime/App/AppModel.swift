@@ -4,6 +4,13 @@ import Observation
 @MainActor
 @Observable
 public final class AppModel {
+    public enum DeviceSyncStatus: Equatable, Sendable {
+        case idle
+        case syncing
+        case succeeded
+        case failed(String)
+    }
+
     public private(set) var authorizationState: CalendarAuthorizationState
     public private(set) var availableCalendars: [CalendarSource]
     public private(set) var availableAIServices: [AIServiceEndpoint]
@@ -17,6 +24,8 @@ public final class AppModel {
     public private(set) var aiServiceConnectionStates: [UUID: AIServiceConnectionState]
     public private(set) var selectedConversationServiceID: UUID?
     public private(set) var selectedConversationModel: String
+    public private(set) var discoveredPeers: [DevicePeer]
+    public private(set) var lastSyncStatus: DeviceSyncStatus
 
     public var preferences: UserPreferences
 
@@ -26,6 +35,7 @@ public final class AppModel {
     private let aiKeyStore: AIAPIKeyStoring
     private let aiConversationArchiveStore: AIConversationArchiveStoring
     private let reviewReminderScheduler: ReviewReminderScheduling
+    private let syncCoordinator: SyncCoordinator?
     private let calendar: Calendar
     private let now: @Sendable () -> Date
     private var currentEvents: [CalendarEventRecord]
@@ -33,6 +43,7 @@ public final class AppModel {
     private var aiConversationOperationID: UUID
     private var aiLongFormOperationID: UUID
     private var aiAPIKeyOverrides: [UUID: String]
+    private var discoveryTask: Task<Void, Never>?
 
     public init(
         service: CalendarAccessServing,
@@ -51,6 +62,7 @@ public final class AppModel {
             directoryURL: FileAIConversationArchiveStore.defaultDirectoryURL
         ),
         reviewReminderScheduler: ReviewReminderScheduling = NoopReviewReminderScheduler(),
+        syncCoordinator: SyncCoordinator? = nil,
         calendar: Calendar = .current,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
@@ -62,6 +74,7 @@ public final class AppModel {
         self.aiKeyStore = aiKeyStore
         self.aiConversationArchiveStore = aiConversationArchiveStore
         self.reviewReminderScheduler = reviewReminderScheduler
+        self.syncCoordinator = syncCoordinator
         self.calendar = calendar
         self.now = now
         self.preferences = preferences
@@ -82,6 +95,8 @@ public final class AppModel {
         self.aiConversationOperationID = UUID()
         self.aiLongFormOperationID = UUID()
         self.aiAPIKeyOverrides = [:]
+        self.discoveredPeers = []
+        self.lastSyncStatus = .idle
         synchronizeConversationSelection()
     }
 
@@ -710,6 +725,47 @@ public final class AppModel {
             aiServiceConnectionStates[serviceID] = .failed(error.userMessage)
         } catch {
             aiServiceConnectionStates[serviceID] = .failed("连接失败，请检查配置。")
+        }
+    }
+
+    public func startDeviceDiscovery() async {
+        guard let syncCoordinator else { return }
+        await syncCoordinator.startDiscovery()
+        discoveryTask?.cancel()
+        discoveryTask = Task { [weak self] in
+            guard let self else { return }
+            for await peer in syncCoordinator.discoveredPeers() {
+                await MainActor.run {
+                    var merged = self.discoveredPeers.filter { $0.id != peer.id }
+                    merged.append(peer)
+                    merged.sort { $0.displayName.localizedCompare($1.displayName) == .orderedAscending }
+                    self.discoveredPeers = merged
+                }
+            }
+        }
+    }
+
+    public func stopDeviceDiscovery() async {
+        discoveryTask?.cancel()
+        discoveryTask = nil
+        guard let syncCoordinator else { return }
+        await syncCoordinator.stopDiscovery()
+    }
+
+    public func syncNow(with peerID: String) async throws {
+        guard let syncCoordinator else {
+            lastSyncStatus = .failed("同步服务未启用。")
+            return
+        }
+        lastSyncStatus = .syncing
+        do {
+            try await syncCoordinator.syncNow(with: peerID)
+            availableAIServices = preferences.aiServiceEndpoints
+            synchronizeConversationSelection()
+            lastSyncStatus = .succeeded
+        } catch {
+            lastSyncStatus = .failed("同步失败：\(error.localizedDescription)")
+            throw error
         }
     }
 

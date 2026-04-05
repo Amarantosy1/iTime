@@ -13,6 +13,7 @@ enum SettingsCopy {
     static let calendarReviewToggleDisabledHint = "先开启参与统计，才能配置是否参与复盘。"
     static let aiServicesSectionTitle = "AI 服务"
     static let reviewReminderSectionTitle = "复盘提醒"
+    static let deviceSyncSectionTitle = "设备互传"
 }
 
 enum SettingsLayout {
@@ -28,6 +29,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case calendars
     case aiServices
     case reviewReminder
+    case deviceSync
 
     var id: String { rawValue }
 
@@ -39,6 +41,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             SettingsCopy.aiServicesSectionTitle
         case .reviewReminder:
             SettingsCopy.reviewReminderSectionTitle
+        case .deviceSync:
+            SettingsCopy.deviceSyncSectionTitle
         }
     }
 
@@ -50,6 +54,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             "sparkles.rectangle.stack"
         case .reviewReminder:
             "bell.badge"
+        case .deviceSync:
+            "arrow.triangle.2.circlepath.icloud"
         }
     }
 
@@ -61,6 +67,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
             "管理默认服务、自定义服务与连接凭据。"
         case .reviewReminder:
             "安排每天的复盘提醒与通知权限。"
+        case .deviceSync:
+            "管理附近设备发现与手动数据同步。"
         }
     }
 }
@@ -167,6 +175,13 @@ struct SettingsView: View {
                 description: SettingsSection.reviewReminder.description
             ) {
                 reviewReminderSettingsContent
+            }
+        case .deviceSync:
+            settingsPage(
+                title: SettingsSection.deviceSync.title,
+                description: SettingsSection.deviceSync.description
+            ) {
+                DeviceSyncSettingsSection(model: model)
             }
         }
     }

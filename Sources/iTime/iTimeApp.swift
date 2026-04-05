@@ -13,8 +13,31 @@ struct iTimeApp: App {
     @State private var model = AppModel(
         service: EventKitCalendarAccessService(),
         preferences: UserPreferences(storage: .standard),
-        reviewReminderScheduler: SystemReviewReminderScheduler()
+        reviewReminderScheduler: SystemReviewReminderScheduler(),
+        syncCoordinator: nil
     )
+
+    init() {
+        let preferences = UserPreferences(storage: .standard)
+        let syncAdapter = SyncPersistenceAdapter(
+            archiveStore: FileAIConversationArchiveStore(
+                directoryURL: FileAIConversationArchiveStore.defaultDirectoryURL
+            ),
+            preferences: preferences,
+            apiKeyStore: KeychainAIAPIKeyStore()
+        )
+        _model = State(
+            initialValue: AppModel(
+                service: EventKitCalendarAccessService(),
+                preferences: preferences,
+                reviewReminderScheduler: SystemReviewReminderScheduler(),
+                syncCoordinator: SyncCoordinator(
+                    transport: MultipeerTransportService(serviceType: "itime-sync"),
+                    adapter: syncAdapter
+                )
+            )
+        )
+    }
 
     var body: some Scene {
         MenuBarExtra("iTime", systemImage: "clock.badge.checkmark") {
