@@ -128,4 +128,16 @@ public extension AIAPIKeyStoring {
     func saveAPIKey(_ apiKey: String) throws {
         try saveAPIKey(apiKey, for: .openAI)
     }
+
+    func exportAPIKeys(for serviceIDs: [UUID]) throws -> [UUID: String] {
+        try Dictionary(uniqueKeysWithValues: serviceIDs.map { serviceID in
+            (serviceID, try loadAPIKey(for: serviceID))
+        })
+    }
+
+    func importAPIKeys(_ apiKeys: [UUID: String]) throws {
+        for (serviceID, apiKey) in apiKeys where !apiKey.isEmpty {
+            try saveAPIKey(apiKey, for: serviceID)
+        }
+    }
 }

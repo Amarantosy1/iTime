@@ -8,6 +8,40 @@ public final class UserPreferences {
         case inMemory
     }
 
+    public struct SyncablePreferencesPayload: Codable, Equatable, Sendable {
+        public let selectedRange: TimeRangePreset
+        public let selectedCalendarIDs: [String]
+        public let reviewExcludedCalendarIDs: [String]
+        public let customStartDate: Date
+        public let customEndDate: Date
+        public let reviewReminderEnabled: Bool
+        public let reviewReminderTime: Date
+        public let aiServiceEndpoints: [AIServiceEndpoint]
+        public let defaultAIServiceID: UUID?
+
+        public init(
+            selectedRange: TimeRangePreset,
+            selectedCalendarIDs: [String],
+            reviewExcludedCalendarIDs: [String],
+            customStartDate: Date,
+            customEndDate: Date,
+            reviewReminderEnabled: Bool,
+            reviewReminderTime: Date,
+            aiServiceEndpoints: [AIServiceEndpoint],
+            defaultAIServiceID: UUID?
+        ) {
+            self.selectedRange = selectedRange
+            self.selectedCalendarIDs = selectedCalendarIDs
+            self.reviewExcludedCalendarIDs = reviewExcludedCalendarIDs
+            self.customStartDate = customStartDate
+            self.customEndDate = customEndDate
+            self.reviewReminderEnabled = reviewReminderEnabled
+            self.reviewReminderTime = reviewReminderTime
+            self.aiServiceEndpoints = aiServiceEndpoints
+            self.defaultAIServiceID = defaultAIServiceID
+        }
+    }
+
     private enum Keys {
         static let selectedRange = "selectedRange"
         static let selectedCalendarIDs = "selectedCalendarIDs"
@@ -274,6 +308,32 @@ public final class UserPreferences {
         } else {
             defaultAIServiceID = aiServiceEndpoints.first?.id
         }
+    }
+
+    public func makeSyncPayload() -> SyncablePreferencesPayload {
+        SyncablePreferencesPayload(
+            selectedRange: selectedRange,
+            selectedCalendarIDs: selectedCalendarIDs,
+            reviewExcludedCalendarIDs: reviewExcludedCalendarIDs,
+            customStartDate: customStartDate,
+            customEndDate: customEndDate,
+            reviewReminderEnabled: reviewReminderEnabled,
+            reviewReminderTime: reviewReminderTime,
+            aiServiceEndpoints: aiServiceEndpoints,
+            defaultAIServiceID: defaultAIServiceID
+        )
+    }
+
+    public func applySyncPayload(_ payload: SyncablePreferencesPayload) {
+        selectedRange = payload.selectedRange
+        selectedCalendarIDs = payload.selectedCalendarIDs
+        reviewExcludedCalendarIDs = payload.reviewExcludedCalendarIDs
+        customStartDate = payload.customStartDate
+        customEndDate = payload.customEndDate
+        reviewReminderEnabled = payload.reviewReminderEnabled
+        reviewReminderTime = payload.reviewReminderTime
+        aiServiceEndpoints = Self.normalizedBuiltInServices(payload.aiServiceEndpoints)
+        setDefaultAIServiceID(payload.defaultAIServiceID)
     }
 
     private static func decodeAIServiceEndpoints(from defaults: UserDefaults) -> [AIServiceEndpoint] {
