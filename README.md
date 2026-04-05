@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS-111111)](#)
 [![Swift](https://img.shields.io/badge/swift-6-orange)](#)
 [![UI](https://img.shields.io/badge/UI-SwiftUI-blue)](#)
-[![Version](https://img.shields.io/badge/version-1.0.0-brightgreen)](#)
+[![Version](https://img.shields.io/badge/version-1.0.1-brightgreen)](#)
 [![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen)](#)
 
 `iTime` 只回答一个问题：
