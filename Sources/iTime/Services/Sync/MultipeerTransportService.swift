@@ -19,7 +19,7 @@ public final class MultipeerTransportService: NSObject, MultipeerTransport {
     private var advertiser: MCNearbyServiceAdvertiser?
     #endif
 
-    public init(serviceType: String, localPeerID: String = Host.current().localizedName ?? "iTime") {
+    public init(serviceType: String, localPeerID: String = ProcessInfo.processInfo.hostName) {
         self.serviceType = serviceType
         self.localPeerID = localPeerID
 

@@ -15,7 +15,7 @@ public final class SyncCoordinator: @unchecked Sendable {
     public init(
         transport: MultipeerTransport,
         adapter: SyncPersistenceAdapter,
-        localDeviceName: String = Host.current().localizedName ?? "iTime",
+        localDeviceName: String = ProcessInfo.processInfo.hostName,
         timeoutNanoseconds: UInt64 = 10_000_000_000
     ) {
         self.transport = transport

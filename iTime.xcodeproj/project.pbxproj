@@ -7,6 +7,51 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		029D190EDF0AD5EDBC92DFD4 /* CryptoEnvelopeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8773E98C732A7EB0C95539CC /* CryptoEnvelopeService.swift */; };
+		043E6E5DEAC7FB61A9C37C47 /* AIAPIKeyStoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000045 /* AIAPIKeyStoring.swift */; };
+		04A6DACA748BE0964F7F67CE /* CalendarEventRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* CalendarEventRecord.swift */; };
+		04FC3EA7FC699B8ABC87CD71 /* SyncCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC31A641A9A090190D36D1D /* SyncCoordinatorTests.swift */; };
+		053BD936FDB246483035C07C /* DevicePeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633AE0A267045A8F671DF87D /* DevicePeer.swift */; };
+		06356EFC2BBEC446B31422F8 /* iTimeIOSRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29344E0069AB35DCBB13F777 /* iTimeIOSRootView.swift */; };
+		07EBDF1B7D4EABB6F1103A0B /* SyncMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */; };
+		0BDB6C448AD7D5C5B7460AF7 /* iOSConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F81A14A3F6EAEB907D7B1CB2 /* iOSConversationView.swift */; };
+		0E63489D3DA70D7BFA8A74A7 /* DeviceSyncSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E35403181ED52C20BFB5FC /* DeviceSyncSettingsSection.swift */; };
+		0FA4835FA62BD419B506FBE7 /* SyncPersistenceAdapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE933F83B43D2565E55356F9 /* SyncPersistenceAdapterTests.swift */; };
+		0FC14447AB305A67C4858278 /* OpenAICompatibleAIAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000044 /* OpenAICompatibleAIAnalysisService.swift */; };
+		10523E052132CAC42A885E18 /* CalendarAccessServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* CalendarAccessServing.swift */; };
+		10934A018610231487BA735E /* CalendarStatisticsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* CalendarStatisticsAggregator.swift */; };
+		13A2DD8A66F3181C457F3CDB /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* UserPreferences.swift */; };
+		176549F6FAD82C7EE0B05C8F /* ReviewReminderScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000093 /* ReviewReminderScheduling.swift */; };
+		1B61315819A1E0CCF04B3ED1 /* OverviewStackedBucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000034 /* OverviewStackedBucket.swift */; };
+		299D3D003A8B9D4B42BC05F5 /* AIServiceEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005F /* AIServiceEndpoint.swift */; };
+		36B4A4F37D4488E9B14BC5D1 /* CalendarSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* CalendarSource.swift */; };
+		36C50F789020368C417BDD54 /* StatisticsDateRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002D /* StatisticsDateRange.swift */; };
+		3A29A7F70C22DD0429A3C9F5 /* StatisticsAggregating.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* StatisticsAggregating.swift */; };
+		3DD202004E76581FA811DE18 /* CGColor+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* CGColor+Hex.swift */; };
+		3F6226A72F74DD5F8F98201B /* iOSOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8245488314A07779FFEEF0A4 /* iOSOverviewView.swift */; };
+		40DE22EF4A188FEF95F0F7B3 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* AppModel.swift */; };
+		434F3E21231A9C9A3B026019 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7CEA2882918C8EF4BA99C /* SyncEngine.swift */; };
+		4928228623E4A3EEA256FEFE /* FileAIConversationArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004A /* FileAIConversationArchiveStore.swift */; };
+		4A87DD8693948A2B891D7791 /* EventKitCalendarAccessService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* EventKitCalendarAccessService.swift */; };
+		4E85F26500755AA149DE89FA /* CryptoEnvelopeServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396FB73FB1762CAC73B0331C /* CryptoEnvelopeServiceTests.swift */; };
+		5581D8573C51889B1C3CE468 /* DeepSeekConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000057 /* DeepSeekConversationService.swift */; };
+		577AD3555963834BE08355BE /* SyncEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61878F1E1BE7013D2514A7F0 /* SyncEngineTests.swift */; };
+		5AC1AE0A1F8E8C56BA68BBB4 /* TimeOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* TimeOverview.swift */; };
+		5D0B4CD22B74FA7227AD968C /* iTimeiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8847E99F3017353F65B1F19A /* iTimeiOSApp.swift */; };
+		641C37FA4114B9D05DC2969A /* OpenAICompatibleAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004E /* OpenAICompatibleAIConversationService.swift */; };
+		66BF85AE2128A15B4F3C2022 /* MultipeerTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */; };
+		695A48B59A34821027D2CF49 /* SyncPersistenceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6EE150D809B7D6366E9F26 /* SyncPersistenceAdapter.swift */; };
+		72603E4A604CC5943A14DAC8 /* iOSDeviceSyncView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684B34E6CE4D88291457BC28 /* iOSDeviceSyncView.swift */; };
+		76E2A7BA4D46C95F28B2D967 /* iOSSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A858C7B4B2BFB6654A80AF6C /* iOSSettingsView.swift */; };
+		7C2C65E23D61B06BF36BB601 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7CEA2882918C8EF4BA99C /* SyncEngine.swift */; };
+		7CFDA4CD9C8143ECC4DB8E62 /* MultipeerTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */; };
+		8133E28C8672F769ABC0760D /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB2F40DC5FCDE5B22932AF4 /* SyncCoordinator.swift */; };
+		8228933830EDD6475731FDD6 /* GeminiConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* GeminiConversationService.swift */; };
+		82739ABEF42F5BBD340C5EC4 /* TimeRangePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* TimeRangePreset.swift */; };
+		82C4ED7E1A66EC62F886E73E /* AppModelSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB5476098A635E79969F96F /* AppModelSyncTests.swift */; };
+		881B703D4DE5B5DA14AE371D /* TimeInterval+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* TimeInterval+Formatting.swift */; };
+		9233860F53FADEEE007528C1 /* AIConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000049 /* AIConversation.swift */; };
+		9E1155506A1196F22CDFA499 /* SyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A2D188BE0A8FFA2A50AC1 /* SyncRecord.swift */; };
 		A00000000000000000000101 /* iTimeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000010 /* iTimeApp.swift */; };
 		A00000000000000000000102 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* AppModel.swift */; };
 		A00000000000000000000103 /* CalendarEventRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* CalendarEventRecord.swift */; };
@@ -72,7 +117,25 @@
 		A00000000000000000000146 /* AIServiceEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005F /* AIServiceEndpoint.swift */; };
 		A00000000000000000000147 /* ReviewReminderScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000093 /* ReviewReminderScheduling.swift */; };
 		A00000000000000000000148 /* ReviewReminderSchedulingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000094 /* ReviewReminderSchedulingTests.swift */; };
+		A198D1FB0F0EED8CA5CFD1D7 /* CryptoEnvelopeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8773E98C732A7EB0C95539CC /* CryptoEnvelopeService.swift */; };
+		A32CD762A6677E5127438BA8 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2316EFC88C45A12059BC6FA2 /* MultipeerTransport.swift */; };
+		A4EAF6A9C8B254524EEC0E0B /* AIConversationRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* AIConversationRoutingService.swift */; };
+		B1621A3EA8108FC2A6F19828 /* DevicePeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633AE0A267045A8F671DF87D /* DevicePeer.swift */; };
 		B5DE7FDB2F801742007C9D96 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = B5DE7FDA2F801742007C9D96 /* MarkdownUI */; };
+		B6BAC00CF7EC31ED6CD79F15 /* SyncMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */; };
+		C236B155E93C5D72763F67B7 /* SyncPersistenceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6EE150D809B7D6366E9F26 /* SyncPersistenceAdapter.swift */; };
+		C7ECAD571CA376954928160F /* OpenAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* OpenAIConversationService.swift */; };
+		C8A5438801E0BE2C97665712 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CF5093DFA3BDD04D8AE5E471 /* Foundation.framework */; };
+		CCE4114B9A22388DF0564D56 /* SyncRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118A2D188BE0A8FFA2A50AC1 /* SyncRecord.swift */; };
+		D1EB1BD99B46DDDE2AD5C4E3 /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB2F40DC5FCDE5B22932AF4 /* SyncCoordinator.swift */; };
+		D4D9948FE1FE2478BC830D35 /* AIAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000042 /* AIAnalysis.swift */; };
+		E4BF12FDB229243EAF18D85E /* DailyDurationSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002E /* DailyDurationSummary.swift */; };
+		E7C0ED7B6CBBC546D5617172 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2316EFC88C45A12059BC6FA2 /* MultipeerTransport.swift */; };
+		F22E300B61424E2F5E71D519 /* AIConversationServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004D /* AIConversationServing.swift */; };
+		F248278B0FA1C0B9149E2965 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9AB0AAF0E9324474B7E2589A /* Assets.xcassets */; };
+		F4DD1791B62CC12AD12C657B /* AIAnalysisServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000043 /* AIAnalysisServing.swift */; };
+		F605A4C5BCF13979468D89E9 /* TimeBucketSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* TimeBucketSummary.swift */; };
+		F8CECC89274EE81BC878BB18 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* AIProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,6 +149,21 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		118A2D188BE0A8FFA2A50AC1 /* SyncRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncRecord.swift; path = Sources/iTime/Domain/Sync/SyncRecord.swift; sourceTree = "<group>"; };
+		221488A8CE42802EE28474EA /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2316EFC88C45A12059BC6FA2 /* MultipeerTransport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultipeerTransport.swift; path = Sources/iTime/Services/Sync/MultipeerTransport.swift; sourceTree = "<group>"; };
+		29344E0069AB35DCBB13F777 /* iTimeIOSRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iTimeIOSRootView.swift; path = "iTime-iOS/UI/Root/iTimeIOSRootView.swift"; sourceTree = "<group>"; };
+		396FB73FB1762CAC73B0331C /* CryptoEnvelopeServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CryptoEnvelopeServiceTests.swift; path = Tests/iTimeTests/Sync/CryptoEnvelopeServiceTests.swift; sourceTree = "<group>"; };
+		47EB4E2E728D413D93763CA8 /* iTime-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "iTime-iOS.app"; path = "iTime-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncMessage.swift; path = Sources/iTime/Domain/Sync/SyncMessage.swift; sourceTree = "<group>"; };
+		61878F1E1BE7013D2514A7F0 /* SyncEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncEngineTests.swift; path = Tests/iTimeTests/Sync/SyncEngineTests.swift; sourceTree = "<group>"; };
+		633AE0A267045A8F671DF87D /* DevicePeer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DevicePeer.swift; path = Sources/iTime/Domain/Sync/DevicePeer.swift; sourceTree = "<group>"; };
+		684B34E6CE4D88291457BC28 /* iOSDeviceSyncView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSDeviceSyncView.swift; path = "iTime-iOS/UI/Sync/iOSDeviceSyncView.swift"; sourceTree = "<group>"; };
+		8245488314A07779FFEEF0A4 /* iOSOverviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSOverviewView.swift; path = "iTime-iOS/UI/Overview/iOSOverviewView.swift"; sourceTree = "<group>"; };
+		8773E98C732A7EB0C95539CC /* CryptoEnvelopeService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CryptoEnvelopeService.swift; path = Sources/iTime/Services/Sync/CryptoEnvelopeService.swift; sourceTree = "<group>"; };
+		8847E99F3017353F65B1F19A /* iTimeiOSApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iTimeiOSApp.swift; path = "iTime-iOS/App/iTimeiOSApp.swift"; sourceTree = "<group>"; };
+		9AB0AAF0E9324474B7E2589A /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = "iTime-iOS/Assets.xcassets"; sourceTree = "<group>"; };
+		9EB2F40DC5FCDE5B22932AF4 /* SyncCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncCoordinator.swift; path = Sources/iTime/Services/Sync/SyncCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000002 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		A00000000000000000000003 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		A00000000000000000000004 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
@@ -156,10 +234,28 @@
 		A0000000000000000000005F /* AIServiceEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceEndpoint.swift; sourceTree = "<group>"; };
 		A00000000000000000000093 /* ReviewReminderScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderScheduling.swift; sourceTree = "<group>"; };
 		A00000000000000000000094 /* ReviewReminderSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderSchedulingTests.swift; sourceTree = "<group>"; };
+		A1E35403181ED52C20BFB5FC /* DeviceSyncSettingsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceSyncSettingsSection.swift; path = Sources/iTime/UI/Settings/DeviceSyncSettingsSection.swift; sourceTree = "<group>"; };
+		A858C7B4B2BFB6654A80AF6C /* iOSSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSSettingsView.swift; path = "iTime-iOS/UI/Settings/iOSSettingsView.swift"; sourceTree = "<group>"; };
+		AAB5476098A635E79969F96F /* AppModelSyncTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppModelSyncTests.swift; path = Tests/iTimeTests/AppModelSyncTests.swift; sourceTree = "<group>"; };
+		B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultipeerTransportService.swift; path = Sources/iTime/Services/Sync/MultipeerTransportService.swift; sourceTree = "<group>"; };
 		B5DE7FDC2F8021BA007C9D96 /* iTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iTime.entitlements; sourceTree = "<group>"; };
+		CF5093DFA3BDD04D8AE5E471 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		CFC31A641A9A090190D36D1D /* SyncCoordinatorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncCoordinatorTests.swift; path = Tests/iTimeTests/Sync/SyncCoordinatorTests.swift; sourceTree = "<group>"; };
+		DB6EE150D809B7D6366E9F26 /* SyncPersistenceAdapter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncPersistenceAdapter.swift; path = Sources/iTime/Services/Sync/SyncPersistenceAdapter.swift; sourceTree = "<group>"; };
+		DE933F83B43D2565E55356F9 /* SyncPersistenceAdapterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncPersistenceAdapterTests.swift; path = Tests/iTimeTests/Sync/SyncPersistenceAdapterTests.swift; sourceTree = "<group>"; };
+		E3C7CEA2882918C8EF4BA99C /* SyncEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SyncEngine.swift; path = Sources/iTime/Services/Sync/SyncEngine.swift; sourceTree = "<group>"; };
+		F81A14A3F6EAEB907D7B1CB2 /* iOSConversationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSConversationView.swift; path = "iTime-iOS/UI/Conversation/iOSConversationView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4DC1A2F682B9AC271C8411E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C8A5438801E0BE2C97665712 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A00000000000000000000050 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -178,6 +274,65 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0E30A198F31F62D1BF4076F9 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A858C7B4B2BFB6654A80AF6C /* iOSSettingsView.swift */,
+			);
+			name = Settings;
+			sourceTree = "<group>";
+		};
+		17BC0CBE18437142A14DA8A5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C0122C12A72872698B547CFC /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		31AC40CBF050F9CDCAAAF3A5 /* iTime-iOS */ = {
+			isa = PBXGroup;
+			children = (
+				7B136A40D9AE86BF687EECB8 /* App */,
+				A3F9455339838D237085FEAB /* UI */,
+				221488A8CE42802EE28474EA /* Assets.xcassets */,
+				9AB0AAF0E9324474B7E2589A /* Assets.xcassets */,
+			);
+			name = "iTime-iOS";
+			sourceTree = "<group>";
+		};
+		7B136A40D9AE86BF687EECB8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				8847E99F3017353F65B1F19A /* iTimeiOSApp.swift */,
+			);
+			name = App;
+			sourceTree = "<group>";
+		};
+		85BC086692BE16963AC0ADD0 /* Overview */ = {
+			isa = PBXGroup;
+			children = (
+				8245488314A07779FFEEF0A4 /* iOSOverviewView.swift */,
+			);
+			name = Overview;
+			sourceTree = "<group>";
+		};
+		89156D20183106834CC938E9 /* Conversation */ = {
+			isa = PBXGroup;
+			children = (
+				F81A14A3F6EAEB907D7B1CB2 /* iOSConversationView.swift */,
+			);
+			name = Conversation;
+			sourceTree = "<group>";
+		};
+		93733BE89419440428AC326B /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				29344E0069AB35DCBB13F777 /* iTimeIOSRootView.swift */,
+			);
+			name = Root;
+			sourceTree = "<group>";
+		};
 		A00000000000000000000036 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -196,6 +351,23 @@
 				A00000000000000000000061 /* Sources */,
 				A00000000000000000000070 /* Tests */,
 				A00000000000000000000080 /* Products */,
+				17BC0CBE18437142A14DA8A5 /* Frameworks */,
+				31AC40CBF050F9CDCAAAF3A5 /* iTime-iOS */,
+				57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */,
+				633AE0A267045A8F671DF87D /* DevicePeer.swift */,
+				118A2D188BE0A8FFA2A50AC1 /* SyncRecord.swift */,
+				8773E98C732A7EB0C95539CC /* CryptoEnvelopeService.swift */,
+				2316EFC88C45A12059BC6FA2 /* MultipeerTransport.swift */,
+				E3C7CEA2882918C8EF4BA99C /* SyncEngine.swift */,
+				B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */,
+				DB6EE150D809B7D6366E9F26 /* SyncPersistenceAdapter.swift */,
+				9EB2F40DC5FCDE5B22932AF4 /* SyncCoordinator.swift */,
+				A1E35403181ED52C20BFB5FC /* DeviceSyncSettingsSection.swift */,
+				AAB5476098A635E79969F96F /* AppModelSyncTests.swift */,
+				396FB73FB1762CAC73B0331C /* CryptoEnvelopeServiceTests.swift */,
+				CFC31A641A9A090190D36D1D /* SyncCoordinatorTests.swift */,
+				61878F1E1BE7013D2514A7F0 /* SyncEngineTests.swift */,
+				DE933F83B43D2565E55356F9 /* SyncPersistenceAdapterTests.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -403,13 +575,59 @@
 			children = (
 				A00000000000000000000040 /* iTime.app */,
 				A00000000000000000000041 /* iTimeTests.xctest */,
+				47EB4E2E728D413D93763CA8 /* iTime-iOS.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A3F9455339838D237085FEAB /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				93733BE89419440428AC326B /* Root */,
+				85BC086692BE16963AC0ADD0 /* Overview */,
+				89156D20183106834CC938E9 /* Conversation */,
+				0E30A198F31F62D1BF4076F9 /* Settings */,
+				F3D2660F014B36D0067C2938 /* Sync */,
+			);
+			name = UI;
+			sourceTree = "<group>";
+		};
+		C0122C12A72872698B547CFC /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				CF5093DFA3BDD04D8AE5E471 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		F3D2660F014B36D0067C2938 /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				684B34E6CE4D88291457BC28 /* iOSDeviceSyncView.swift */,
+			);
+			name = Sync;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9F609D9BC22B67F8F88986C3 /* iTime-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6F757D061E5BAEE2ABC6A4F2 /* Build configuration list for PBXNativeTarget "iTime-iOS" */;
+			buildPhases = (
+				95A418605247C71B0776C179 /* Sources */,
+				4DC1A2F682B9AC271C8411E9 /* Frameworks */,
+				BAB943FAF9423D1931AD6B6A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "iTime-iOS";
+			productName = "iTime-iOS";
+			productReference = 47EB4E2E728D413D93763CA8 /* iTime-iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		A00000000000000000000032 /* iTime */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A000000000000000000000A0 /* Build configuration list for PBXNativeTarget "iTime" */;
@@ -482,6 +700,7 @@
 			targets = (
 				A00000000000000000000032 /* iTime */,
 				A00000000000000000000033 /* iTimeTests */,
+				9F609D9BC22B67F8F88986C3 /* iTime-iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -495,9 +714,70 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BAB943FAF9423D1931AD6B6A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F248278B0FA1C0B9149E2965 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		95A418605247C71B0776C179 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D0B4CD22B74FA7227AD968C /* iTimeiOSApp.swift in Sources */,
+				06356EFC2BBEC446B31422F8 /* iTimeIOSRootView.swift in Sources */,
+				3F6226A72F74DD5F8F98201B /* iOSOverviewView.swift in Sources */,
+				0BDB6C448AD7D5C5B7460AF7 /* iOSConversationView.swift in Sources */,
+				76E2A7BA4D46C95F28B2D967 /* iOSSettingsView.swift in Sources */,
+				72603E4A604CC5943A14DAC8 /* iOSDeviceSyncView.swift in Sources */,
+				40DE22EF4A188FEF95F0F7B3 /* AppModel.swift in Sources */,
+				1B61315819A1E0CCF04B3ED1 /* OverviewStackedBucket.swift in Sources */,
+				5AC1AE0A1F8E8C56BA68BBB4 /* TimeOverview.swift in Sources */,
+				E4BF12FDB229243EAF18D85E /* DailyDurationSummary.swift in Sources */,
+				9233860F53FADEEE007528C1 /* AIConversation.swift in Sources */,
+				D4D9948FE1FE2478BC830D35 /* AIAnalysis.swift in Sources */,
+				04A6DACA748BE0964F7F67CE /* CalendarEventRecord.swift in Sources */,
+				299D3D003A8B9D4B42BC05F5 /* AIServiceEndpoint.swift in Sources */,
+				F605A4C5BCF13979468D89E9 /* TimeBucketSummary.swift in Sources */,
+				36B4A4F37D4488E9B14BC5D1 /* CalendarSource.swift in Sources */,
+				36C50F789020368C417BDD54 /* StatisticsDateRange.swift in Sources */,
+				B6BAC00CF7EC31ED6CD79F15 /* SyncMessage.swift in Sources */,
+				053BD936FDB246483035C07C /* DevicePeer.swift in Sources */,
+				9E1155506A1196F22CDFA499 /* SyncRecord.swift in Sources */,
+				82739ABEF42F5BBD340C5EC4 /* TimeRangePreset.swift in Sources */,
+				F8CECC89274EE81BC878BB18 /* AIProvider.swift in Sources */,
+				3A29A7F70C22DD0429A3C9F5 /* StatisticsAggregating.swift in Sources */,
+				F22E300B61424E2F5E71D519 /* AIConversationServing.swift in Sources */,
+				C7ECAD571CA376954928160F /* OpenAIConversationService.swift in Sources */,
+				A4EAF6A9C8B254524EEC0E0B /* AIConversationRoutingService.swift in Sources */,
+				10934A018610231487BA735E /* CalendarStatisticsAggregator.swift in Sources */,
+				F4DD1791B62CC12AD12C657B /* AIAnalysisServing.swift in Sources */,
+				8228933830EDD6475731FDD6 /* GeminiConversationService.swift in Sources */,
+				641C37FA4114B9D05DC2969A /* OpenAICompatibleAIConversationService.swift in Sources */,
+				176549F6FAD82C7EE0B05C8F /* ReviewReminderScheduling.swift in Sources */,
+				4A87DD8693948A2B891D7791 /* EventKitCalendarAccessService.swift in Sources */,
+				5581D8573C51889B1C3CE468 /* DeepSeekConversationService.swift in Sources */,
+				0FC14447AB305A67C4858278 /* OpenAICompatibleAIAnalysisService.swift in Sources */,
+				029D190EDF0AD5EDBC92DFD4 /* CryptoEnvelopeService.swift in Sources */,
+				A32CD762A6677E5127438BA8 /* MultipeerTransport.swift in Sources */,
+				7C2C65E23D61B06BF36BB601 /* SyncEngine.swift in Sources */,
+				7CFDA4CD9C8143ECC4DB8E62 /* MultipeerTransportService.swift in Sources */,
+				C236B155E93C5D72763F67B7 /* SyncPersistenceAdapter.swift in Sources */,
+				8133E28C8672F769ABC0760D /* SyncCoordinator.swift in Sources */,
+				10523E052132CAC42A885E18 /* CalendarAccessServing.swift in Sources */,
+				881B703D4DE5B5DA14AE371D /* TimeInterval+Formatting.swift in Sources */,
+				3DD202004E76581FA811DE18 /* CGColor+Hex.swift in Sources */,
+				13A2DD8A66F3181C457F3CDB /* UserPreferences.swift in Sources */,
+				4928228623E4A3EEA256FEFE /* FileAIConversationArchiveStore.swift in Sources */,
+				043E6E5DEAC7FB61A9C37C47 /* AIAPIKeyStoring.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A00000000000000000000090 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -551,6 +831,16 @@
 				A00000000000000000000106 /* TimeOverview.swift in Sources */,
 				A00000000000000000000107 /* TimeRangePreset.swift in Sources */,
 				A00000000000000000000115 /* UserPreferences.swift in Sources */,
+				B1621A3EA8108FC2A6F19828 /* DevicePeer.swift in Sources */,
+				07EBDF1B7D4EABB6F1103A0B /* SyncMessage.swift in Sources */,
+				CCE4114B9A22388DF0564D56 /* SyncRecord.swift in Sources */,
+				A198D1FB0F0EED8CA5CFD1D7 /* CryptoEnvelopeService.swift in Sources */,
+				E7C0ED7B6CBBC546D5617172 /* MultipeerTransport.swift in Sources */,
+				66BF85AE2128A15B4F3C2022 /* MultipeerTransportService.swift in Sources */,
+				D1EB1BD99B46DDDE2AD5C4E3 /* SyncCoordinator.swift in Sources */,
+				434F3E21231A9C9A3B026019 /* SyncEngine.swift in Sources */,
+				695A48B59A34821027D2CF49 /* SyncPersistenceAdapter.swift in Sources */,
+				0E63489D3DA70D7BFA8A74A7 /* DeviceSyncSettingsSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -573,6 +863,11 @@
 				A00000000000000000000148 /* ReviewReminderSchedulingTests.swift in Sources */,
 				A00000000000000000000125 /* TimeOverviewTests.swift in Sources */,
 				A00000000000000000000126 /* UserPreferencesTests.swift in Sources */,
+				82C4ED7E1A66EC62F886E73E /* AppModelSyncTests.swift in Sources */,
+				4E85F26500755AA149DE89FA /* CryptoEnvelopeServiceTests.swift in Sources */,
+				04FC3EA7FC699B8ABC87CD71 /* SyncCoordinatorTests.swift in Sources */,
+				577AD3555963834BE08355BE /* SyncEngineTests.swift in Sources */,
+				0FA4835FA62BD419B506FBE7 /* SyncPersistenceAdapterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -806,9 +1101,80 @@
 			};
 			name = Release;
 		};
+		A6597B26E77E87DE0D13173F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5H8QMXF6G9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = iTime;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime.iOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		ECA85CD351230464F9BBD369 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5H8QMXF6G9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = iTime;
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amarantos.iTime.iOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6F757D061E5BAEE2ABC6A4F2 /* Build configuration list for PBXNativeTarget "iTime-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ECA85CD351230464F9BBD369 /* Release */,
+				A6597B26E77E87DE0D13173F /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A000000000000000000000A0 /* Build configuration list for PBXNativeTarget "iTime" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

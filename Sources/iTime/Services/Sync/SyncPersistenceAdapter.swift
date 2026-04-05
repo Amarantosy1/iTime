@@ -1,6 +1,6 @@
 import Foundation
 
-public final class SyncPersistenceAdapter {
+public final class SyncPersistenceAdapter: @unchecked Sendable {
     private let archiveStore: AIConversationArchiveStoring
     private let preferences: UserPreferences
     private let apiKeyStore: AIAPIKeyStoring

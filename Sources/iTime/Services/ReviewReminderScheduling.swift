@@ -3,6 +3,9 @@ import UserNotifications
 #if canImport(AppKit)
 import AppKit
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum ReviewReminderAuthorizationStatus: Equatable {
     case notDetermined
@@ -146,7 +149,7 @@ public struct SystemReviewReminderScheduler: @unchecked Sendable, ReviewReminder
         switch status {
         case .notDetermined:
             return .notDetermined
-        case .authorized, .provisional:
+        case .authorized, .provisional, .ephemeral:
             return .authorized
         case .denied:
             return .denied
@@ -161,6 +164,8 @@ private struct DefaultReviewReminderAppActivator: ReviewReminderAppActivating {
     func activateApp() async {
         #if canImport(AppKit)
         NSApplication.shared.activate(ignoringOtherApps: true)
+        #elseif canImport(UIKit)
+        _ = UIApplication.shared.applicationState
         #endif
     }
 }

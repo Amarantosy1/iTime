@@ -2,7 +2,7 @@
 
 > 一个原生的 macOS 菜单栏时间复盘应用，把系统日历变成你的个人时间仪表盘。
 
-[![Platform](https://img.shields.io/badge/platform-macOS-111111)](#)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20iOS-111111)](#)
 [![Swift](https://img.shields.io/badge/swift-6-orange)](#)
 [![UI](https://img.shields.io/badge/UI-SwiftUI-blue)](#)
 [![Version](https://img.shields.io/badge/version-1.0.1-brightgreen)](#)
@@ -22,7 +22,9 @@
 - 自动排除整天日程，避免污染时长统计
 - 独立主界面提供更完整的时间仪表盘
 - AI 复盘支持多轮追问、历史归档、长文复盘
-- 原生设置窗口支持日历选择、AI 服务配置、复盘提醒
+- 原生设置窗口支持日历选择、AI 服务配置、复盘提醒与设备互传
+- iOS 端支持统计、复盘与设置三大核心入口
+- 支持 Mac 与 iOS 在同一局域网下手动互传复盘数据与应用设置
 - 全中文界面，支持深色模式与本地持久化
 
 ## 适合谁
@@ -102,13 +104,28 @@ Tests/iTimeTests/
 Package.swift
 ```
 
+## iOS 版本与设备互传
+
+- iOS 最低支持版本：`iOS 17+`
+- iOS 提供与 macOS 对齐的核心入口：`统计 / 新建复盘 / 设置`
+- 设备互传基于本地网络发现与连接，不依赖 iCloud/CloudKit
+- 同步范围：复盘归档与应用设置（不包含原始日历事件）
+- 同步方式：手动触发（设置页中发现设备并点击同步）
+
 ## 快速开始
 
-### 用 Xcode 运行
+### 用 Xcode 运行（macOS）
 
 1. 打开 `iTime.xcodeproj`
 2. 选择 `iTime` scheme
 3. 目标设备选择 `My Mac`
+4. 使用 `Cmd + R` 运行
+
+### 用 Xcode 运行（iOS）
+
+1. 打开 `iTime.xcodeproj`
+2. 选择 `iTime-iOS` scheme
+3. 目标设备选择 iOS 模拟器或真机（`iOS 17+`）
 4. 使用 `Cmd + R` 运行
 
 ### 首次启动
@@ -146,6 +163,7 @@ swift build
 swift test
 xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' build
 xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test
+xcodebuild -project iTime.xcodeproj -scheme iTime-iOS -destination 'platform=iOS Simulator,name=iPhone 17' build
 ```
 
 当前验证状态：
