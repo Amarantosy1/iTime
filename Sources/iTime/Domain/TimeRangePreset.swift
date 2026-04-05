@@ -6,7 +6,7 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
     case month
     case custom
 
-    static var menuCases: [Self] { [.today, .week, .month] }
+    static var menuCases: [Self] { allCases }
     static var overviewCases: [Self] { allCases }
     static var runtimeCases: [Self] { menuCases }
 

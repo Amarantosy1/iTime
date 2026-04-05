@@ -9,7 +9,7 @@ import Testing
 }
 
 @Test func menuAndOverviewRangeOptionsAreSeparated() {
-    #expect(TimeRangePreset.menuCases == [.today, .week, .month])
+    #expect(TimeRangePreset.menuCases == [.today, .week, .month, .custom])
     #expect(TimeRangePreset.overviewCases == [.today, .week, .month, .custom])
 }
 
