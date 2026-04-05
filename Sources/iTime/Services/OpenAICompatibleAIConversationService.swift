@@ -48,15 +48,15 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
             configuration: configuration
         )
         let payload = try decodePayload(SummaryPayload.self, from: content)
-        let normalizedHeadline = Self.normalizeSummaryHeadline(
-            payload.headline,
-            rangeTitle: context.range.title
+        let dateHeadline = Self.formattedSummaryHeadline(
+            startDate: context.startDate,
+            endDate: context.endDate
         )
-        guard !normalizedHeadline.isEmpty, !payload.summary.isEmpty else {
+        guard !payload.summary.isEmpty else {
             throw AIAnalysisServiceError.invalidResponse
         }
         return AIConversationSummaryDraft(
-            headline: normalizedHeadline,
+            headline: dateHeadline,
             summary: payload.summary,
             findings: Array(payload.findings.prefix(3)),
             suggestions: Array(payload.suggestions.prefix(3))
@@ -180,6 +180,8 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - 结合具体的数据或用户谈及的情况，温和地追问，帮助用户发现自己的时间使用模式
     - 一次只问一个问题，语气亲切自然，不作说教、不作评价，像朋友喝茶时的探讨
     - 循序渐进，自然承接上一句对话，体现你在认真倾听
+    - 注意如果近期的memory里有相似的东西可以引用
+    - 如果发现该段时间复盘的事件与近期memory有很大不同，可以问为什么
 
     在内部完成推理，不输出推理过程。
     只返回严格 JSON：{"question":"..."}
@@ -189,22 +191,17 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     你是用户的一位博学老朋友，这次围绕时间管理和任务安排的复盘聊天快结束了。
 
     写法：
-    - headline：简洁明了概述复盘，不做分析评价，格式：“时间+内容”
     - summary：必须分两段话。第一段为“客观总结”：不加评价地总结用户的日程安排和执行完成情况事实；第二段为“主观评价”：像你对朋友说"我觉得你这段时间的时间分配……"，带有你作为老朋友的诊断评估、建议或见解
-    - findings：你注意到的关于时间使用规律或问题，结合具体聊天例子，说清楚为什么这值得关注
+    - findings：你注意到的关于时间使用规律或问题，结合具体聊天例子，说清楚为什么这值得关注。注意应用最近一段时间的非本次复盘的记录，发现近期的状态/变化。
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
 
     只返回严格 JSON：
-    {"headline":"...","summary":"...","findings":["..."],"suggestions":["..."]}
+    {"summary":"...","findings":["..."],"suggestions":["..."]}
     findings 和 suggestions 各 1 到 3 条。
     """
 
     static let longFormSystemPrompt = """
-    你是用户的一位老朋友，帮他/她写一篇复盘长文。
-    请你自由发散，必须总结对话中的所有核心内容，重点在于提供真实的共情与深层洞察。
-    注意：在短总结（summary）中已经有的数据罗列和生硬建议不必再次机械重复，聚焦于感受、状态与个人成长。
-    语言要求：中文。必须使用平实、真诚的语言。绝不要媚俗、不要牵强附会、绝不能矫情造作，避免渲染情绪和华而不实的词藻。
-    输出markdown格式
+    你是用户的一位朋友，帮他/她写一篇复盘长文流水账，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天。
     """
 
     static let compactMemorySystemPrompt = """
@@ -292,38 +289,43 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         """
     }
 
-    static func normalizeSummaryHeadline(_ headline: String, rangeTitle: String) -> String {
-        let compacted = headline
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !compacted.isEmpty else {
-            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
-        }
+    static func formattedSummaryHeadline(
+        startDate: Date,
+        endDate: Date,
+        timeZone: TimeZone = .autoupdatingCurrent,
+        calendar: Calendar = .autoupdatingCurrent
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = calendar
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
 
-        if summaryHeadlineEvaluativeTerms.contains(where: { compacted.contains($0) }) {
-            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
-        }
+        let normalizedStart = formatter.string(from: startDate)
+        let inclusiveEnd = endDate > startDate ? endDate.addingTimeInterval(-1) : startDate
+        let normalizedEnd = formatter.string(from: inclusiveEnd)
+        let candidate = normalizedStart == normalizedEnd
+            ? normalizedStart
+            : "\(normalizedStart) ~ \(normalizedEnd)"
 
-        let normalized = String(compacted.prefix(summaryHeadlineMaxLength))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else {
-            return fallbackSummaryHeadline(rangeTitle: rangeTitle)
-        }
-        return normalized
+        return normalizeSummaryHeadlineRange(candidate)
     }
 
-    static func fallbackSummaryHeadline(rangeTitle: String) -> String {
-        let trimmedRangeTitle = rangeTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = trimmedRangeTitle.isEmpty ? "时间概述" : "\(trimmedRangeTitle)时间概述"
-        return String(base.prefix(summaryHeadlineMaxLength))
+    static func normalizeSummaryHeadlineRange(_ candidate: String) -> String {
+        let compacted = candidate
+            .replacingOccurrences(of: "\\s+", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "至", with: "~")
+
+        if compacted.range(of: #"^\\d{4}-\\d{2}-\\d{2}$"#, options: .regularExpression) != nil {
+            return compacted
+        }
+
+        if compacted.range(of: #"^\\d{4}-\\d{2}-\\d{2}~\\d{4}-\\d{2}-\\d{2}$"#, options: .regularExpression) != nil {
+            return compacted
+        }
+
+        return compacted
     }
-
-    static let summaryHeadlineMaxLength = 10
-
-    static let summaryHeadlineEvaluativeTerms = [
-        "偏多", "偏少", "不足", "过多", "过少", "问题", "矛盾",
-        "低效", "失衡", "糟糕", "优秀", "较差", "拖延", "浪费", "瓶颈"
-    ]
 
     static func eventLines(for events: [AIEventContext]) -> String {
         guard !events.isEmpty else { return "- 无事件" }
@@ -379,7 +381,6 @@ private struct QuestionPayload: Decodable {
 }
 
 private struct SummaryPayload: Decodable {
-    let headline: String
     let summary: String
     let findings: [String]
     let suggestions: [String]

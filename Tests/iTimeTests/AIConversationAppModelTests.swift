@@ -1744,10 +1744,11 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     await model.finishAIConversation()
 
     let compacted = conversationService.compactedSummaries.first ?? []
-    #expect(compacted.count == 8)
+    #expect(compacted.count == 7)
     #expect(compacted.allSatisfy { $0.range == .today })
     #expect(compacted.contains(where: { $0.headline == "历史日复盘-1" }))
-    #expect(compacted.contains(where: { $0.headline == "历史日复盘-7" }))
+    #expect(compacted.contains(where: { $0.headline == "历史日复盘-6" }))
+    #expect(compacted.contains(where: { $0.headline == "历史日复盘-7" }) == false)
 }
 
 @MainActor

@@ -43,15 +43,15 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
             configuration: configuration
         )
         let payload = try decodePayload(GeminiSummaryPayload.self, from: content)
-        let normalizedHeadline = OpenAICompatibleAIConversationService.normalizeSummaryHeadline(
-            payload.headline,
-            rangeTitle: context.range.title
+        let dateHeadline = OpenAICompatibleAIConversationService.formattedSummaryHeadline(
+            startDate: context.startDate,
+            endDate: context.endDate
         )
-        guard !normalizedHeadline.isEmpty, !payload.summary.isEmpty else {
+        guard !payload.summary.isEmpty else {
             throw AIAnalysisServiceError.invalidResponse
         }
         return AIConversationSummaryDraft(
-            headline: normalizedHeadline,
+            headline: dateHeadline,
             summary: payload.summary,
             findings: Array(payload.findings.prefix(3)),
             suggestions: Array(payload.suggestions.prefix(3))
@@ -204,7 +204,6 @@ private struct GeminiQuestionPayload: Decodable {
 }
 
 private struct GeminiSummaryPayload: Decodable {
-    let headline: String
     let summary: String
     let findings: [String]
     let suggestions: [String]

@@ -169,34 +169,67 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let request = try #require(sender.lastRequest)
     let bodyData = try #require(request.httpBody)
     let body = try #require(String(data: bodyData, encoding: .utf8))
-    #expect(body.contains("不超过 10 个字"))
+    #expect(body.contains("\"headline\"") == false)
     #expect(body.contains("关于时间使用规律或问题"))
     #expect(body.contains("具体建议，说清楚做什么"))
 
-    #expect(draft.headline == "本周时间概述")
+    #expect(draft.headline == OpenAICompatibleAIConversationService.formattedSummaryHeadline(
+        startDate: context.startDate,
+        endDate: context.endDate
+    ))
     #expect(draft.summary == "你本周大量时间花在评审和同步上，深度工作时间不足。")
     #expect(draft.findings == ["会议集中在周二和周三"])
     #expect(draft.suggestions == ["给深度工作预留不可打断时段"])
 }
 
-@Test func normalizeSummaryHeadlineFallsBackWhenHeadlineContainsEvaluation() {
-    let normalized = OpenAICompatibleAIConversationService.normalizeSummaryHeadline(
-        "本周工作会议偏多",
-        rangeTitle: "本周"
+@Test func formattedSummaryHeadlineUsesYYYYMMDDFormat() {
+    let calendar = Calendar(identifier: .gregorian)
+    let timezone = TimeZone(secondsFromGMT: 0)!
+    var components = DateComponents()
+    components.calendar = calendar
+    components.timeZone = timezone
+    components.year = 2026
+    components.month = 4
+    components.day = 5
+    let date = components.date!
+
+    let headline = OpenAICompatibleAIConversationService.formattedSummaryHeadline(
+        startDate: date,
+        endDate: date.addingTimeInterval(86_400),
+        timeZone: timezone,
+        calendar: calendar
     )
 
-    #expect(normalized == "本周时间概述")
-    #expect(normalized.count <= 10)
+    #expect(headline == "2026-04-05")
 }
 
-@Test func normalizeSummaryHeadlineTruncatesToTenCharacters() {
-    let normalized = OpenAICompatibleAIConversationService.normalizeSummaryHeadline(
-        "本周时间分配与任务执行概述",
-        rangeTitle: "本周"
+@Test func formattedSummaryHeadlineUsesDateRangeWhenSpansMultipleDays() {
+    let calendar = Calendar(identifier: .gregorian)
+    let timezone = TimeZone(secondsFromGMT: 0)!
+    var startComponents = DateComponents()
+    startComponents.calendar = calendar
+    startComponents.timeZone = timezone
+    startComponents.year = 2026
+    startComponents.month = 4
+    startComponents.day = 1
+    let start = startComponents.date!
+
+    var endComponents = DateComponents()
+    endComponents.calendar = calendar
+    endComponents.timeZone = timezone
+    endComponents.year = 2026
+    endComponents.month = 4
+    endComponents.day = 4
+    let end = endComponents.date!
+
+    let headline = OpenAICompatibleAIConversationService.formattedSummaryHeadline(
+        startDate: start,
+        endDate: end,
+        timeZone: timezone,
+        calendar: calendar
     )
 
-    #expect(normalized == "本周时间分配与任务执")
-    #expect(normalized.count == 10)
+    #expect(headline == "2026-04-01~2026-04-03")
 }
 
 @Test func openAICompatibleConversationServiceBuildsLongFormRequestUsingConversationMessages() async throws {
@@ -285,8 +318,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("周二下午的需求评审主要产出了什么？"))
     #expect(body.contains("主要在对齐需求变更和下周排期。"))
     #expect(body.contains("这段文字不该成为长文的主输入。") == false)
-    #expect(body.contains("必须总结对话中的所有核心内容"))
-    #expect(body.contains("事实与接纳"))
+    #expect(body.contains("复盘长文流水账"))
+    #expect(body.contains("不要渲染感情"))
     #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
     #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
     #expect(draft.content == "这是一篇正式长文复盘。")
