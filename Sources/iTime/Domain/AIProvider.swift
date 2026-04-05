@@ -32,6 +32,19 @@ public enum AIProviderKind: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    public var recommendedDefaultModel: String {
+        switch self {
+        case .openAI:
+            "gpt-5-mini"
+        case .gemini:
+            "gemini-2.0-flash"
+        case .deepSeek:
+            "deepseek-chat"
+        case .openAICompatible:
+            ""
+        }
+    }
+
     public var builtInServiceID: UUID {
         switch self {
         case .openAI:

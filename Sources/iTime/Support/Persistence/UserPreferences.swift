@@ -378,6 +378,17 @@ public final class UserPreferences {
             }
         }
 
+        for item in AIProviderCatalog.builtInItems {
+            let builtInID = item.kind.builtInServiceID
+            guard let current = merged[builtInID] else { continue }
+            let defaultModel = current.defaultModel.isEmpty ? item.kind.recommendedDefaultModel : current.defaultModel
+            let models = current.models.isEmpty && !defaultModel.isEmpty ? [defaultModel] : current.models
+            merged[builtInID] = current.updating(
+                models: models,
+                defaultModel: defaultModel
+            )
+        }
+
         let builtIns = AIProviderCatalog.builtInItems.compactMap { merged[$0.kind.builtInServiceID] }
         let customServices = merged.values
             .filter { !$0.isBuiltIn }

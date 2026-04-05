@@ -75,6 +75,24 @@ private final class CoordinatorInMemoryKeyStore: @unchecked Sendable, AIAPIKeySt
     }
 }
 
+private actor SyncResponderEventRecorder {
+    private var completedPeerIDs: [String] = []
+    private var failedPeerIDs: [String] = []
+
+    func record(_ event: SyncCoordinator.SyncResponderEvent) {
+        switch event {
+        case .completed(let peerID):
+            completedPeerIDs.append(peerID)
+        case .failed(let peerID, _):
+            failedPeerIDs.append(peerID)
+        }
+    }
+
+    func snapshot() -> (completed: [String], failed: [String]) {
+        (completedPeerIDs, failedPeerIDs)
+    }
+}
+
 @Test func syncCoordinatorRunsHelloManifestPatchResultFlow() async throws {
     let archive = AIConversationArchive(
         sessions: [],
@@ -146,4 +164,76 @@ private final class CoordinatorInMemoryKeyStore: @unchecked Sendable, AIAPIKeySt
         if case .result = $0 { return true }
         return false
     }))
+}
+
+@Test func syncCoordinatorResponderHandlesFullFlow() async throws {
+    let archiveStore = CoordinatorInMemoryArchiveStore(archive: AIConversationArchive(
+        sessions: [], summaries: [], memorySnapshots: [], longFormReports: []
+    ))
+    let preferences = UserPreferences(storage: .inMemory)
+    let keyStore = CoordinatorInMemoryKeyStore(values: [:])
+    let adapter = SyncPersistenceAdapter(
+        archiveStore: archiveStore, preferences: preferences, apiKeyStore: keyStore
+    )
+    let transport = FakeTransport()
+    let coordinator = SyncCoordinator(
+        transport: transport, adapter: adapter,
+        localDeviceName: "Responder", timeoutNanoseconds: 2_000_000_000
+    )
+
+    let recorder = SyncResponderEventRecorder()
+
+    let respondingTask = Task {
+        await coordinator.startResponding { event in
+            await recorder.record(event)
+        }
+    }
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        peerID: "initiator",
+        message: .hello(SyncHello(protocolVersion: 1, deviceName: "Initiator"))
+    )
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        peerID: "initiator",
+        message: .manifest(SyncManifest(
+            archiveVersion: 0,
+            preferencesVersion: 0,
+            apiKeyFingerprintByServiceID: [:],
+            generatedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        ))
+    )
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        peerID: "initiator",
+        message: .patch(SyncPatch(
+            archiveVersion: 0,
+            preferencesVersion: 0,
+            archivePayload: nil,
+            preferencesPayload: nil,
+            encryptedAPIKeysByServiceID: [:]
+        ))
+    )
+    try await Task.sleep(nanoseconds: 100_000_000)
+
+    respondingTask.cancel()
+    let snapshot = await recorder.snapshot()
+
+    #expect(transport.sentMessages.contains(where: {
+        if case .hello = $0 { return true }
+        return false
+    }))
+    #expect(transport.sentMessages.contains(where: {
+        if case .manifest = $0 { return true }
+        return false
+    }))
+    #expect(transport.sentMessages.contains(where: {
+        if case .patch = $0 { return true }
+        return false
+    }))
+    #expect(snapshot.completed == ["initiator"])
+    #expect(snapshot.failed.isEmpty)
 }

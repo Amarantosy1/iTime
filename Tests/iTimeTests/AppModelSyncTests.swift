@@ -121,9 +121,8 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
     let model = fixture.model
     let transport = fixture.transport
 
-    await model.startDeviceDiscovery()
-    try? await Task.sleep(nanoseconds: 100_000_000)
-    #expect(!model.discoveredPeers.isEmpty)
+    // Keep responder loop idle during initiator test to avoid stream competition.
+    #expect(model.discoveredPeers.isEmpty)
 
     Task {
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -157,5 +156,56 @@ private func makeSyncModelFixture() -> (model: AppModel, transport: SyncTestTran
     }
 
     try await model.syncNow(with: "peer-a")
+    #expect(model.lastSyncStatus == .succeeded)
+}
+
+@MainActor
+@Test func appModelStartDiscoveryAlsoStartsResponder() async throws {
+    let fixture = makeSyncModelFixture()
+    let model = fixture.model
+    let transport = fixture.transport
+
+    await model.startDeviceDiscovery()
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        (
+            peerID: "remote-initiator",
+            message: .hello(SyncHello(protocolVersion: 1, deviceName: "Remote"))
+        )
+    )
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        (
+            peerID: "remote-initiator",
+            message: .manifest(
+                SyncManifest(
+                    archiveVersion: 0,
+                    preferencesVersion: 0,
+                    apiKeyFingerprintByServiceID: [:],
+                    generatedAt: Date()
+                )
+            )
+        )
+    )
+    try await Task.sleep(nanoseconds: 50_000_000)
+
+    transport.pushIncoming(
+        (
+            peerID: "remote-initiator",
+            message: .patch(
+                SyncPatch(
+                    archiveVersion: 0,
+                    preferencesVersion: 0,
+                    archivePayload: nil,
+                    preferencesPayload: nil,
+                    encryptedAPIKeysByServiceID: [:]
+                )
+            )
+        )
+    )
+    try await Task.sleep(nanoseconds: 150_000_000)
+
     #expect(model.lastSyncStatus == .succeeded)
 }

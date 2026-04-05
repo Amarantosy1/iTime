@@ -341,6 +341,51 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func startAIConversationFallsBackToEnabledServiceWhenDefaultServiceDisabled() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "路线评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "路线评审产出了什么？")
+    let keyStore = ConversationInMemoryAIKeyStore()
+    keyStore.values[AIProviderKind.gemini.builtInServiceID] = "gemini-key"
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.setDefaultAIServiceID(AIProviderKind.openAI.builtInServiceID)
+    preferences.setAIProviderEnabled(true, for: .gemini)
+    preferences.setAIProviderBaseURL("https://generativelanguage.googleapis.com/v1beta", for: .gemini)
+    preferences.setAIProviderModel("gemini-2.0-flash", for: .gemini)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    guard case .waitingForUser(let session) = model.aiConversationState else {
+        Issue.record("Expected waitingForUser state when a non-default enabled service is configured")
+        return
+    }
+    #expect(session.provider == .gemini)
+    #expect(conversationService.askedConfigurations.first?.provider == .gemini)
+}
+
+@MainActor
 @Test func startAIConversationBindsSelectedServiceAndModel() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,
@@ -394,6 +439,48 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(session.model == "gpt-5")
     #expect(conversationService.askedConfigurations.first?.baseURL == "https://proxy.example.com/v1")
     #expect(conversationService.askedConfigurations.first?.model == "gpt-5")
+}
+
+@MainActor
+@Test func startAIConversationWorksAfterEnablingBuiltInOpenAIServiceWithoutManualModelInput() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "本次评审主要结论是什么？")
+    let preferences = UserPreferences(storage: .inMemory)
+    let keyStore = ConversationInMemoryAIKeyStore(value: "openai-key")
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: keyStore,
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    let openAIService = try #require(model.availableAIServices.first(where: { $0.providerKind == .openAI }))
+    model.updateAIService(openAIService.updating(isEnabled: true))
+    await model.startAIConversation()
+
+    guard case .waitingForUser = model.aiConversationState else {
+        Issue.record("Expected waitingForUser state after enabling OpenAI built-in service")
+        return
+    }
+    #expect(conversationService.askedConfigurations.first?.provider == .openAI)
+    #expect((conversationService.askedConfigurations.first?.model.isEmpty ?? true) == false)
 }
 
 @MainActor
@@ -1096,6 +1183,50 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     #expect(model.aiConversationHistory.isEmpty)
     #expect(archiveStore.archive.summaries.isEmpty)
     #expect(archiveStore.archive.sessions.contains(where: { $0.id == sessionID }) == false)
+}
+
+@MainActor
+@Test func activeConversationStateFlagsMatchConversationLifecycle() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: InMemoryAIConversationArchiveStore()
+    )
+
+    await model.refresh()
+    #expect(model.hasActiveAIConversation == false)
+    #expect(model.canAdjustConversationRange == true)
+
+    await model.startAIConversation()
+    #expect(model.hasActiveAIConversation == true)
+    #expect(model.canAdjustConversationRange == false)
+
+    model.discardCurrentAIConversation()
+    #expect(model.hasActiveAIConversation == false)
+    #expect(model.canAdjustConversationRange == true)
 }
 
 @MainActor

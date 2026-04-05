@@ -3,16 +3,24 @@ import SwiftUI
 struct iOSConversationView: View {
     @Bindable var model: AppModel
     @State private var reply = ""
+    @State private var showsDiscardConfirmation = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
+                rangeSection
+
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
                         switch model.aiConversationState {
                         case .waitingForUser(let session), .responding(let session), .summarizing(let session):
                             ForEach(session.messages, id: \.id) { item in
                                 messageBubble(item)
+                            }
+                            if case .responding = model.aiConversationState {
+                                ProgressView("AI 正在继续追问…")
+                            } else if case .summarizing = model.aiConversationState {
+                                ProgressView("AI 正在整理总结…")
                             }
                         case .completed(let summary):
                             Text(summary.headline)
@@ -26,7 +34,7 @@ struct iOSConversationView: View {
                             Text(availability.message)
                                 .foregroundStyle(.secondary)
                         case .idle:
-                            Text("点击右上角“新建”开始复盘")
+                            Text("点击右上角“开始新复盘”")
                                 .foregroundStyle(.secondary)
                         case .asking:
                             ProgressView("AI 正在准备问题…")
@@ -39,7 +47,7 @@ struct iOSConversationView: View {
 
                 if canReply {
                     HStack(spacing: 8) {
-                        TextField("输入你的补充信息…", text: $reply, axis: .vertical)
+                        TextField("补充这个日程具体做了什么", text: $reply, axis: .vertical)
                             .textFieldStyle(.roundedBorder)
                             .lineLimit(1...4)
 
@@ -57,23 +65,129 @@ struct iOSConversationView: View {
                     }
                     .padding(.horizontal)
 
-                    Button("结束并生成总结") {
+                    Button("结束复盘") {
                         Task { await model.finishAIConversation() }
                     }
                     .buttonStyle(.bordered)
                     .padding(.bottom, 12)
                 }
             }
-            .navigationTitle("新建复盘")
+            .navigationTitle("AI 复盘")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 10) {
+                        if model.hasActiveAIConversation {
+                            Button("退出不保存") {
+                                showsDiscardConfirmation = true
+                            }
+                            .foregroundStyle(.red)
+                        }
+
+                        NavigationLink(destination: iOSConversationHistoryView(model: model)) {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("新建") {
+                    Button("开始新复盘") {
                         Task { await model.startAIConversation() }
                     }
                     .disabled(!canStart)
                 }
             }
+            .alert("放弃这轮复盘？", isPresented: $showsDiscardConfirmation) {
+                Button("退出", role: .destructive) {
+                    model.discardCurrentAIConversation()
+                    reply = ""
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("退出后不会生成报告，这一轮未完成对话也不会进入历史。")
+            }
         }
+    }
+
+    private var rangeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("复盘范围")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+
+            Picker(
+                "复盘范围",
+                selection: Binding(
+                    get: { model.liveSelectedRange },
+                    set: { range in
+                        Task { await model.setRange(range) }
+                    }
+                )
+            ) {
+                ForEach(TimeRangePreset.overviewCases, id: \.self) { range in
+                    Text(range.title).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .disabled(!model.canAdjustConversationRange)
+
+            if model.liveSelectedRange == .custom {
+                customDateRangeControls
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var customDateRangeControls: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(CustomDateRangePreset.allCases, id: \.self) { preset in
+                    Button(preset.title) {
+                        Task { await model.setCustomDateRange(preset: preset) }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(!model.canAdjustConversationRange)
+                }
+            }
+            .padding(.horizontal)
+        }
+
+        DatePicker(
+            "开始日期",
+            selection: Binding(
+                get: { model.preferences.customStartDate },
+                set: { start in
+                    Task {
+                        await model.setCustomDateRange(
+                            start: start,
+                            end: model.preferences.customEndDate
+                        )
+                    }
+                }
+            ),
+            displayedComponents: .date
+        )
+        .padding(.horizontal)
+        .disabled(!model.canAdjustConversationRange)
+
+        DatePicker(
+            "结束日期",
+            selection: Binding(
+                get: { model.preferences.customEndDate },
+                set: { end in
+                    Task {
+                        await model.setCustomDateRange(
+                            start: model.preferences.customStartDate,
+                            end: end
+                        )
+                    }
+                }
+            ),
+            displayedComponents: .date
+        )
+        .padding(.horizontal)
+        .disabled(!model.canAdjustConversationRange)
     }
 
     private var canStart: Bool {
@@ -126,5 +240,228 @@ private extension AIConversationMessageRole {
         case .user:
             return "你"
         }
+    }
+}
+
+
+
+struct iOSConversationHistoryView: View {
+    @Bindable var model: AppModel
+    
+    var body: some View {
+        Group {
+            if model.aiConversationHistory.isEmpty {
+                Text("还没有历史总结。")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            } else {
+                List {
+                    ForEach(model.aiConversationHistory, id: \.id) { summary in
+                        NavigationLink(destination: iOSConversationSummaryDetailView(model: model, summaryID: summary.id)) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(summary.headline)
+                                    .font(.headline)
+                                    .lineLimit(2)
+                                
+                                Text(summary.displayPeriodText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .onDelete(perform: deleteItems)
+                }
+            }
+        }
+        .navigationTitle("复盘历史")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func deleteItems(at offsets: IndexSet) {
+        for index in offsets {
+            let summary = model.aiConversationHistory[index]
+            model.deleteAIConversationSummary(id: summary.id)
+        }
+    }
+}
+
+struct iOSConversationSummaryDetailView: View {
+    @Bindable var model: AppModel
+    let summaryID: UUID
+    
+    @State private var isEditing = false
+    @State private var headlineDraft = ""
+    @State private var summaryDraft = ""
+    @State private var findingsDraft = ""
+    @State private var suggestionsDraft = ""
+    @State private var pendingDeletion = false
+    
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Group {
+            if let summary = model.aiConversationHistory.first(where: { $0.id == summaryID }) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if isEditing {
+                                TextField("标题", text: $headlineDraft)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.title2.weight(.semibold))
+                            } else {
+                                Text(summary.headline)
+                                    .font(.title2.weight(.semibold))
+                            }
+                            
+                            Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        editorOrText(text: $summaryDraft, readOnlyText: summary.summary, isEditing: isEditing, title: "总结")
+                        
+                        detailSection(title: "主要发现", items: summary.findings, draftText: $findingsDraft, isEditing: isEditing)
+                        
+                        detailSection(title: "改进建议", items: summary.suggestions, draftText: $suggestionsDraft, isEditing: isEditing)
+                    }
+                    .padding()
+                }
+                .navigationTitle(isEditing ? "编辑复盘" : "复盘详情")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    if !isEditing {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ShareLink(
+                                item: shareContent(for: summary),
+                                subject: Text(summary.headline),
+                                message: Text("来自 iTime 的复盘历史")
+                            ) {
+                                Label("分享", systemImage: "square.and.arrow.up")
+                            }
+                        }
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if isEditing {
+                            Button("保存") {
+                                model.updateAIConversationSummary(
+                                    id: summary.id,
+                                    headline: headlineDraft,
+                                    summary: summaryDraft,
+                                    findings: parseLines(from: findingsDraft),
+                                    suggestions: parseLines(from: suggestionsDraft)
+                                )
+                                isEditing = false
+                            }
+                        } else {
+                            Menu {
+                                Button("编辑", systemImage: "pencil") {
+                                    headlineDraft = summary.headline
+                                    summaryDraft = summary.summary
+                                    findingsDraft = summary.findings.joined(separator: "\n")
+                                    suggestionsDraft = summary.suggestions.joined(separator: "\n")
+                                    isEditing = true
+                                }
+                                Button("删除", systemImage: "trash", role: .destructive) {
+                                    pendingDeletion = true
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                            }
+                        }
+                    }
+                    if isEditing {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("取消") {
+                                isEditing = false
+                            }
+                        }
+                    }
+                }
+                .alert("删除这条历史总结？", isPresented: $pendingDeletion) {
+                    Button("删除", role: .destructive) {
+                        model.deleteAIConversationSummary(id: summary.id)
+                        dismiss()
+                    }
+                    Button("取消", role: .cancel) {}
+                } message: {
+                    Text("删除后会同时移除关联会话记录和依赖它的 memory。")
+                }
+            } else {
+                Text("内容不存在或已被删除")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func editorOrText(text: Binding<String>, readOnlyText: String, isEditing: Bool, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.headline)
+            if isEditing {
+                TextEditor(text: text)
+                    .frame(minHeight: 100)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
+            } else {
+                Text(LocalizedStringKey(readOnlyText))
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func detailSection(title: String, items: [String], draftText: Binding<String>, isEditing: Bool) -> some View {
+        if !items.isEmpty || isEditing {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).font(.headline)
+                
+                if isEditing {
+                    TextEditor(text: draftText)
+                        .frame(minHeight: 100)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(items, id: \.self) { item in
+                            HStack(alignment: .top) {
+                                Text("•")
+                                Text(LocalizedStringKey(item))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func parseLines(from text: String) -> [String] {
+        text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func shareContent(for summary: AIConversationSummary) -> String {
+        var lines: [String] = [
+            summary.headline,
+            "",
+            "服务：\(summary.serviceDisplayName)",
+            "时间范围：\(summary.displayPeriodText)",
+            "",
+            "总结",
+            summary.summary
+        ]
+
+        if !summary.findings.isEmpty {
+            lines.append("")
+            lines.append("主要发现")
+            lines.append(contentsOf: summary.findings.map { "- \($0)" })
+        }
+
+        if !summary.suggestions.isEmpty {
+            lines.append("")
+            lines.append("改进建议")
+            lines.append(contentsOf: summary.suggestions.map { "- \($0)" })
+        }
+
+        return lines.joined(separator: "\n")
     }
 }

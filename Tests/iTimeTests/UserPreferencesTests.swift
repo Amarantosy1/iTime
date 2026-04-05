@@ -83,6 +83,21 @@ import Testing
     #expect(preferences.defaultAIService?.providerKind == .openAI)
 }
 
+@Test func builtInAIServiceDefaultsContainRecommendedModel() {
+    let preferences = UserPreferences(storage: .inMemory)
+
+    let openAI = preferences.aiServiceEndpoints.first(where: { $0.providerKind == .openAI })
+    let gemini = preferences.aiServiceEndpoints.first(where: { $0.providerKind == .gemini })
+    let deepSeek = preferences.aiServiceEndpoints.first(where: { $0.providerKind == .deepSeek })
+
+    #expect(openAI?.defaultModel == "gpt-5-mini")
+    #expect(openAI?.models.contains("gpt-5-mini") == true)
+    #expect(gemini?.defaultModel == "gemini-2.0-flash")
+    #expect(gemini?.models.contains("gemini-2.0-flash") == true)
+    #expect(deepSeek?.defaultModel == "deepseek-chat")
+    #expect(deepSeek?.models.contains("deepseek-chat") == true)
+}
+
 @Test func defaultReviewReminderPreferencesAreDisabledWithNightDefaultTime() {
     let preferences = UserPreferences(storage: .inMemory)
     let components = Calendar.current.dateComponents([.hour, .minute], from: preferences.reviewReminderTime)

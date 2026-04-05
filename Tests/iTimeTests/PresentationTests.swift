@@ -215,6 +215,7 @@ import Testing
     #expect(AIConversationWindowCopy.editSummaryAction == "编辑总结")
     #expect(AIConversationWindowCopy.discardConversationAccessibilityLabel == "退出本轮复盘")
     #expect(AIConversationWindowCopy.discardConfirmationTitle == "放弃这轮复盘？")
+    #expect(AIConversationWindowCopy.discardConfirmationMessage == "退出后不会生成报告，这一轮未完成对话也不会进入历史。")
     #expect(AIConversationWindowCopy.longFormTitle == "长文复盘")
     #expect(AIConversationWindowCopy.generateLongFormAction == "生成长文复盘")
     #expect(AIConversationWindowCopy.regenerateLongFormAction == "重新生成长文")

@@ -44,6 +44,7 @@ public final class AppModel {
     private var aiLongFormOperationID: UUID
     private var aiAPIKeyOverrides: [UUID: String]
     private var discoveryTask: Task<Void, Never>?
+    private var respondingTask: Task<Void, Never>?
 
     public init(
         service: CalendarAccessServing,
@@ -123,6 +124,19 @@ public final class AppModel {
         case .unavailable, .idle, .asking, .completed, .failed:
             return nil
         }
+    }
+
+    public var hasActiveAIConversation: Bool {
+        switch aiConversationState {
+        case .asking, .responding, .waitingForUser, .summarizing:
+            return true
+        case .unavailable, .idle, .completed, .failed:
+            return false
+        }
+    }
+
+    public var canAdjustConversationRange: Bool {
+        !hasActiveAIConversation
     }
 
     private var activeRange: TimeRangePreset {
@@ -743,11 +757,14 @@ public final class AppModel {
                 }
             }
         }
+        await stopResponderLoop()
+        startResponderLoop(using: syncCoordinator)
     }
 
     public func stopDeviceDiscovery() async {
         discoveryTask?.cancel()
         discoveryTask = nil
+        await stopResponderLoop()
         guard let syncCoordinator else { return }
         await syncCoordinator.stopDiscovery()
     }
@@ -757,6 +774,10 @@ public final class AppModel {
             lastSyncStatus = .failed("同步服务未启用。")
             return
         }
+        let shouldResumeResponder = respondingTask != nil
+        if shouldResumeResponder {
+            await stopResponderLoop()
+        }
         lastSyncStatus = .syncing
         do {
             try await syncCoordinator.syncNow(with: peerID)
@@ -765,7 +786,40 @@ public final class AppModel {
             lastSyncStatus = .succeeded
         } catch {
             lastSyncStatus = .failed("同步失败：\(error.localizedDescription)")
+            if shouldResumeResponder {
+                startResponderLoop(using: syncCoordinator)
+            }
             throw error
+        }
+        if shouldResumeResponder {
+            startResponderLoop(using: syncCoordinator)
+        }
+    }
+
+    private func stopResponderLoop() async {
+        guard let task = respondingTask else { return }
+        task.cancel()
+        respondingTask = nil
+        await task.value
+    }
+
+    private func startResponderLoop(using syncCoordinator: SyncCoordinator) {
+        respondingTask?.cancel()
+        respondingTask = Task { [weak self] in
+            guard let self else { return }
+            await syncCoordinator.startResponding { [weak self] event in
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    switch event {
+                    case .completed:
+                        self.lastSyncStatus = .succeeded
+                        self.availableAIServices = self.preferences.aiServiceEndpoints
+                        self.synchronizeConversationSelection()
+                    case .failed(_, let message):
+                        self.lastSyncStatus = .failed("同步失败：\(message)")
+                    }
+                }
+            }
         }
     }
 
@@ -1307,8 +1361,20 @@ public final class AppModel {
 
     private func currentSelectedAIService() -> AIServiceEndpoint? {
         let services = availableAIServices
-        if let selectedConversationServiceID, let service = services.first(where: { $0.id == selectedConversationServiceID }) {
-            return service
+        let selectedService = selectedConversationServiceID.flatMap { id in
+            services.first(where: { $0.id == id })
+        }
+        if let selectedService, selectedService.isEnabled {
+            return selectedService
+        }
+        if let defaultService = preferences.defaultAIService, defaultService.isEnabled {
+            return defaultService
+        }
+        if let firstEnabledService = services.first(where: \.isEnabled) {
+            return firstEnabledService
+        }
+        if let selectedService {
+            return selectedService
         }
         if let defaultService = preferences.defaultAIService {
             return defaultService

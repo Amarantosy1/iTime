@@ -7,6 +7,17 @@ public enum SyncCoordinatorError: Error, Equatable {
 }
 
 public final class SyncCoordinator: @unchecked Sendable {
+    public enum SyncResponderEvent: Equatable, Sendable {
+        case completed(peerID: String)
+        case failed(peerID: String, message: String)
+    }
+
+    private enum SyncResponderState: Sendable {
+        case idle
+        case awaitingManifest
+        case awaitingPatch
+    }
+
     private let transport: MultipeerTransport
     private let adapter: SyncPersistenceAdapter
     private let localDeviceName: String
@@ -61,6 +72,57 @@ public final class SyncCoordinator: @unchecked Sendable {
 
     public func discoveredPeers() -> AsyncStream<DevicePeer> {
         transport.discoveredPeers
+    }
+
+    public func startResponding(
+        onEvent: @escaping @Sendable (SyncResponderEvent) async -> Void
+    ) async {
+        var stateByPeerID: [String: SyncResponderState] = [:]
+
+        for await (peerID, message) in transport.incomingMessages() {
+            if Task.isCancelled { return }
+
+            let currentState = stateByPeerID[peerID] ?? .idle
+
+            do {
+                switch (currentState, message) {
+                case (.idle, .hello):
+                    try await transport.send(
+                        .hello(SyncHello(protocolVersion: 1, deviceName: localDeviceName)),
+                        to: peerID
+                    )
+                    let localManifest = try await adapter.makeManifest()
+                    try await transport.send(.manifest(localManifest), to: peerID)
+                    stateByPeerID[peerID] = .awaitingManifest
+
+                case (.awaitingManifest, .manifest(let remoteManifest)):
+                    let localPatch = try await adapter.buildPatch(since: remoteManifest)
+                    try await transport.send(.patch(localPatch), to: peerID)
+                    stateByPeerID[peerID] = .awaitingPatch
+
+                case (.awaitingPatch, .patch(let remotePatch)):
+                    try await adapter.apply(patch: remotePatch)
+                    let appliedManifest = try await adapter.makeManifest()
+                    let result = SyncResult(
+                        status: .success,
+                        appliedArchiveVersion: appliedManifest.archiveVersion,
+                        appliedPreferencesVersion: appliedManifest.preferencesVersion,
+                        message: nil
+                    )
+                    try await transport.send(.result(result), to: peerID)
+                    stateByPeerID[peerID] = .idle
+                    await onEvent(.completed(peerID: peerID))
+
+                case (.idle, .manifest), (.idle, .patch), (.idle, .result),
+                    (.awaitingManifest, .hello), (.awaitingManifest, .patch), (.awaitingManifest, .result),
+                    (.awaitingPatch, .hello), (.awaitingPatch, .manifest), (.awaitingPatch, .result):
+                    continue
+                }
+            } catch {
+                stateByPeerID[peerID] = .idle
+                await onEvent(.failed(peerID: peerID, message: error.localizedDescription))
+            }
+        }
     }
 
     private func waitForManifest(from peerID: String) async throws -> SyncManifest {

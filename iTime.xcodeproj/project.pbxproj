@@ -989,6 +989,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iTime.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = iTime;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -1028,6 +1029,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iTime.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = iTime;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -1108,6 +1110,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5H8QMXF6G9;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iTime-iOS/ExtraInfo.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = iTime;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1141,6 +1144,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5H8QMXF6G9;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iTime-iOS/ExtraInfo.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = iTime;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iTime 需要访问日历以分析时间分布。";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

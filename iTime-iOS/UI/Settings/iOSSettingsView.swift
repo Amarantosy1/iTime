@@ -2,60 +2,57 @@ import SwiftUI
 
 struct iOSSettingsView: View {
     @Bindable var model: AppModel
-    @State private var apiKey = ""
+    @State private var apiKeys: [UUID: String] = [:]
 
     var body: some View {
         NavigationStack {
             List {
                 Section("AI 服务") {
-                    if !model.availableAIServices.isEmpty {
-                        Picker(
-                            "当前服务",
-                            selection: Binding(
-                                get: { model.selectedConversationServiceID ?? model.availableAIServices[0].id },
-                                set: { model.selectConversationService(id: $0) }
+                    ForEach(model.availableAIServices) { service in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle(
+                                service.displayName,
+                                isOn: Binding(
+                                    get: { service.isEnabled },
+                                    set: { enabled in
+                                        model.updateAIService(service.updating(isEnabled: enabled))
+                                    }
+                                )
                             )
-                        ) {
-                            ForEach(model.availableAIServices) { service in
-                                Text(service.displayName).tag(service.id)
+
+                            if service.isEnabled {
+                                SecureField(
+                                    "API Key",
+                                    text: Binding(
+                                        get: { apiKeys[service.id] ?? "" },
+                                        set: { newValue in
+                                            apiKeys[service.id] = newValue
+                                            model.updateAIAPIKey(newValue, for: service.id)
+                                        }
+                                    )
+                                )
+                                .textContentType(.password)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
                             }
                         }
-                    }
-
-                    if let selectedService {
-                        SecureField("API Key", text: $apiKey)
-                            .textContentType(.password)
-                            .autocorrectionDisabled()
-                            .onChange(of: apiKey) { _, value in
-                                model.updateAIAPIKey(value, for: selectedService.id)
-                            }
+                        .padding(.vertical, 2)
                     }
                 }
 
                 iOSDeviceSyncView(model: model)
             }
             .navigationTitle("设置")
-            .onAppear {
-                reloadAPIKey()
-            }
-            .onChange(of: model.selectedConversationServiceID) { _, _ in
-                reloadAPIKey()
+            .onAppear { loadAPIKeys() }
+            .onChange(of: model.availableAIServices.map(\.id)) { _, _ in
+                loadAPIKeys()
             }
         }
     }
 
-    private var selectedService: AIServiceEndpoint? {
-        if let selectedID = model.selectedConversationServiceID {
-            return model.availableAIServices.first(where: { $0.id == selectedID })
+    private func loadAPIKeys() {
+        for service in model.availableAIServices {
+            apiKeys[service.id] = model.loadAIAPIKey(for: service.id)
         }
-        return model.availableAIServices.first
-    }
-
-    private func reloadAPIKey() {
-        guard let selectedService else {
-            apiKey = ""
-            return
-        }
-        apiKey = model.loadAIAPIKey(for: selectedService.id)
     }
 }
