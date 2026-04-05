@@ -140,6 +140,7 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
     #expect(Set(model.availableCalendars.map(\.id)) == ["work", "life"])
     #expect(Set(preferences.selectedCalendarIDs) == ["work", "life"])
     #expect(model.availableCalendars.allSatisfy { $0.isSelected })
+    #expect(model.availableCalendars.allSatisfy { $0.isIncludedInReview })
 }
 
 @MainActor
@@ -160,6 +161,32 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
 
     #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isSelected == false)
     #expect(Set(preferences.selectedCalendarIDs) == ["work"])
+}
+
+@MainActor
+@Test func updatingCalendarReviewParticipationUpdatesStoredExclusion() async {
+    let service = StubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: false),
+            CalendarSource(id: "life", name: "生活", colorHex: "#50E3C2", isSelected: false),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.refresh()
+    await model.setCalendarReviewParticipation(id: "life", isIncludedInReview: false)
+
+    #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isSelected == true)
+    #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isIncludedInReview == false)
+    #expect(Set(preferences.reviewExcludedCalendarIDs) == ["life"])
+
+    await model.setCalendarReviewParticipation(id: "life", isIncludedInReview: true)
+
+    #expect(model.availableCalendars.first(where: { $0.id == "life" })?.isIncludedInReview == true)
+    #expect(preferences.reviewExcludedCalendarIDs.isEmpty)
 }
 
 @MainActor
@@ -280,6 +307,35 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
     #expect(service.fetchedIntervals.last == DateInterval(
         start: makeDate(2026, 3, 23),
         end: makeDate(2026, 3, 30)
+    ))
+}
+
+@MainActor
+@Test func customRangePresetYesterdayResolvesToPreviousDayInterval() async {
+    let service = RecordingCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "Work", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: []
+    )
+    let calendar = makeCalendar()
+    let preferences = UserPreferences(storage: .inMemory)
+    let model = AppModel(
+        service: service,
+        preferences: preferences,
+        calendar: calendar,
+        now: { makeDate(2026, 4, 3, hour: 15, minute: 30) }
+    )
+
+    await model.setCustomDateRange(preset: .yesterday)
+
+    #expect(preferences.selectedRange == .custom)
+    #expect(preferences.customStartDate == makeDate(2026, 4, 2))
+    #expect(preferences.customEndDate == makeDate(2026, 4, 2))
+    #expect(service.fetchedIntervals.last == DateInterval(
+        start: makeDate(2026, 4, 2),
+        end: makeDate(2026, 4, 3)
     ))
 }
 

@@ -21,6 +21,7 @@ import Testing
 }
 
 @Test func customRangePresetTitlesUseChineseStrings() {
+    #expect(CustomDateRangePreset.yesterday.title == "昨日")
     #expect(CustomDateRangePreset.lastWeek.title == "上周")
     #expect(CustomDateRangePreset.lastMonth.title == "上月")
 }
@@ -238,6 +239,8 @@ import Testing
 @Test func settingsNavigationUsesClassicSidebarSections() {
     #expect(SettingsCopy.navigationTitle == "设置")
     #expect(SettingsCopy.calendarSectionTitle == "统计日历")
+    #expect(SettingsCopy.calendarStatsToggleTitle == "参与统计")
+    #expect(SettingsCopy.calendarReviewToggleTitle == "参与 AI 复盘")
     #expect(SettingsCopy.aiServicesSectionTitle == "AI 服务")
     #expect(SettingsCopy.reviewReminderSectionTitle == "复盘提醒")
     #expect(SettingsSection.allCases == [.calendars, .aiServices, .reviewReminder])
@@ -253,7 +256,7 @@ import Testing
 }
 
 @Test func settingsSectionsExposeNotesStyleDescriptions() {
-    #expect(SettingsSection.calendars.description == "选择参与统计的日历。")
+    #expect(SettingsSection.calendars.description == "选择参与统计与 AI 复盘的日历。")
     #expect(SettingsSection.aiServices.description == "管理默认服务、自定义服务与连接凭据。")
     #expect(SettingsSection.reviewReminder.description == "安排每天的复盘提醒与通知权限。")
 }

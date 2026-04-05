@@ -7,6 +7,7 @@ import Testing
 
     #expect(preferences.selectedRange == .today)
     #expect(preferences.selectedCalendarIDs.isEmpty)
+    #expect(preferences.reviewExcludedCalendarIDs.isEmpty)
 }
 
 @Test func defaultPreferencesSeedCustomDatesAroundToday() {
@@ -25,6 +26,15 @@ import Testing
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
     #expect(second.customStartDate == Date(timeIntervalSince1970: 86_400))
     #expect(second.customEndDate == Date(timeIntervalSince1970: 172_800))
+}
+
+@Test func reviewExcludedCalendarsPersistAcrossPreferenceInstances() {
+    let suite = "iTime.tests.review-excluded-calendars"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    first.replaceReviewExcludedCalendars(with: ["private"])
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.reviewExcludedCalendarIDs == ["private"])
 }
 
 @Test func customPresetRestoresAsDormantSelectionGroundwork() {

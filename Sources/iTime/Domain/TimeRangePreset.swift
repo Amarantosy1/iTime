@@ -29,11 +29,14 @@ public enum TimeRangePreset: String, CaseIterable, Codable, Sendable {
 }
 
 public enum CustomDateRangePreset: String, CaseIterable, Sendable {
+    case yesterday
     case lastWeek
     case lastMonth
 
     public var title: String {
         switch self {
+        case .yesterday:
+            "昨日"
         case .lastWeek:
             "上周"
         case .lastMonth:

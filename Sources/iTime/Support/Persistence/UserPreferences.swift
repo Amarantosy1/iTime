@@ -11,6 +11,7 @@ public final class UserPreferences {
     private enum Keys {
         static let selectedRange = "selectedRange"
         static let selectedCalendarIDs = "selectedCalendarIDs"
+        static let reviewExcludedCalendarIDs = "reviewExcludedCalendarIDs"
         static let customStartDate = "customStartDate"
         static let customEndDate = "customEndDate"
         static let reviewReminderEnabled = "reviewReminderEnabled"
@@ -50,6 +51,10 @@ public final class UserPreferences {
 
     public var selectedCalendarIDs: [String] {
         didSet { defaults.set(selectedCalendarIDs, forKey: Keys.selectedCalendarIDs) }
+    }
+
+    public var reviewExcludedCalendarIDs: [String] {
+        didSet { defaults.set(reviewExcludedCalendarIDs, forKey: Keys.reviewExcludedCalendarIDs) }
     }
 
     public var customStartDate: Date {
@@ -145,6 +150,7 @@ public final class UserPreferences {
 
         self.selectedRange = TimeRangePreset(rawValue: defaults.string(forKey: Keys.selectedRange) ?? "") ?? .today
         self.selectedCalendarIDs = defaults.stringArray(forKey: Keys.selectedCalendarIDs) ?? []
+        self.reviewExcludedCalendarIDs = defaults.stringArray(forKey: Keys.reviewExcludedCalendarIDs) ?? []
 
         let now = Date()
         let calendar = Calendar.current
@@ -189,6 +195,10 @@ public final class UserPreferences {
 
     public func replaceSelectedCalendars(with ids: [String]) {
         selectedCalendarIDs = ids
+    }
+
+    public func replaceReviewExcludedCalendars(with ids: [String]) {
+        reviewExcludedCalendarIDs = ids
     }
 
     public func aiProviderConfiguration(for provider: AIProviderKind) -> AIProviderConfiguration {

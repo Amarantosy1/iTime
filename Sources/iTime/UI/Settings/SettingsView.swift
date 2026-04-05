@@ -7,6 +7,10 @@ enum SettingsCopy {
     static let navigationTitle = "设置"
     static let calendarSectionTitle = "统计日历"
     static let noCalendarsText = "当前没有可用日历。"
+    static let calendarStatsToggleTitle = "参与统计"
+    static let calendarReviewToggleTitle = "参与 AI 复盘"
+    static let calendarReviewToggleHint = "关闭后该日历仍计入统计，但不会传给 AI 复盘。"
+    static let calendarReviewToggleDisabledHint = "先开启参与统计，才能配置是否参与复盘。"
     static let aiServicesSectionTitle = "AI 服务"
     static let reviewReminderSectionTitle = "复盘提醒"
 }
@@ -52,7 +56,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .calendars:
-            "选择参与统计的日历。"
+            "选择参与统计与 AI 复盘的日历。"
         case .aiServices:
             "管理默认服务、自定义服务与连接凭据。"
         case .reviewReminder:
@@ -179,14 +183,34 @@ struct SettingsView: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(model.availableCalendars) { calendar in
-                        Toggle(isOn: binding(for: calendar)) {
+                        VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 10) {
                                 Circle()
                                     .fill(Color(hex: calendar.colorHex))
                                     .frame(width: 8, height: 8)
                                 Text(calendar.name)
+                                    .font(.headline)
                             }
+
+                            Toggle(SettingsCopy.calendarStatsToggleTitle, isOn: statsBinding(for: calendar))
+
+                            Toggle(SettingsCopy.calendarReviewToggleTitle, isOn: reviewBinding(for: calendar))
+                                .disabled(!calendar.isSelected)
+
+                            Text(calendar.isSelected ? SettingsCopy.calendarReviewToggleHint : SettingsCopy.calendarReviewToggleDisabledHint)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.secondary.opacity(0.08))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
+                        )
+                        .padding(.vertical, 2)
                     }
                 }
             }
@@ -465,11 +489,27 @@ struct SettingsView: View {
         return model.availableAIServices.first(where: { $0.id == selectedServiceID })
     }
 
-    private func binding(for calendar: CalendarSource) -> Binding<Bool> {
+    private func statsBinding(for calendar: CalendarSource) -> Binding<Bool> {
         Binding(
             get: { calendar.isSelected },
-            set: { _ in
+            set: { isSelected in
+                guard isSelected != calendar.isSelected else { return }
                 Task { await model.toggleCalendarSelection(id: calendar.id) }
+            }
+        )
+    }
+
+    private func reviewBinding(for calendar: CalendarSource) -> Binding<Bool> {
+        Binding(
+            get: { calendar.isIncludedInReview },
+            set: { isIncludedInReview in
+                guard isIncludedInReview != calendar.isIncludedInReview else { return }
+                Task {
+                    await model.setCalendarReviewParticipation(
+                        id: calendar.id,
+                        isIncludedInReview: isIncludedInReview
+                    )
+                }
             }
         )
     }

@@ -159,22 +159,37 @@ public final class AppModel {
         }
 
         var fetchedCalendars = service.fetchCalendars()
-        let selectedIDs = preferences.selectedCalendarIDs
+        let selectedIDs = Set(preferences.selectedCalendarIDs)
+        let reviewExcludedIDs = Set(preferences.reviewExcludedCalendarIDs)
 
         if selectedIDs.isEmpty {
-            fetchedCalendars = fetchedCalendars.map {
-                CalendarSource(id: $0.id, name: $0.name, colorHex: $0.colorHex, isSelected: true)
-            }
-            preferences.replaceSelectedCalendars(with: fetchedCalendars.map(\.id))
-        } else {
             fetchedCalendars = fetchedCalendars.map {
                 CalendarSource(
                     id: $0.id,
                     name: $0.name,
                     colorHex: $0.colorHex,
-                    isSelected: selectedIDs.contains($0.id)
+                    isSelected: true,
+                    isIncludedInReview: !reviewExcludedIDs.contains($0.id)
                 )
             }
+            preferences.replaceSelectedCalendars(with: fetchedCalendars.map(\.id))
+        } else {
+            fetchedCalendars = fetchedCalendars.map {
+                let isSelected = selectedIDs.contains($0.id)
+                return CalendarSource(
+                    id: $0.id,
+                    name: $0.name,
+                    colorHex: $0.colorHex,
+                    isSelected: isSelected,
+                    isIncludedInReview: isSelected && !reviewExcludedIDs.contains($0.id)
+                )
+            }
+        }
+
+        let knownCalendarIDs = Set(fetchedCalendars.map(\.id))
+        let normalizedReviewExcludedIDs = preferences.reviewExcludedCalendarIDs.filter { knownCalendarIDs.contains($0) }
+        if normalizedReviewExcludedIDs.count != preferences.reviewExcludedCalendarIDs.count {
+            preferences.replaceReviewExcludedCalendars(with: normalizedReviewExcludedIDs)
         }
 
         availableCalendars = fetchedCalendars
@@ -220,6 +235,15 @@ public final class AppModel {
     public func setCustomDateRange(preset: CustomDateRangePreset) async {
         let referenceDate = now()
         switch preset {
+        case .yesterday:
+            let todayStart = calendar.startOfDay(for: referenceDate)
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: todayStart) else {
+                return
+            }
+            preferences.selectedRange = .custom
+            preferences.customStartDate = calendar.startOfDay(for: yesterday)
+            preferences.customEndDate = calendar.startOfDay(for: yesterday)
+
         case .lastWeek:
             guard
                 let thisWeek = calendar.dateInterval(of: .weekOfYear, for: referenceDate),
@@ -256,6 +280,17 @@ public final class AppModel {
             updated.insert(id)
         }
         preferences.replaceSelectedCalendars(with: Array(updated))
+        await refresh()
+    }
+
+    public func setCalendarReviewParticipation(id: String, isIncludedInReview: Bool) async {
+        var excluded = Set(preferences.reviewExcludedCalendarIDs)
+        if isIncludedInReview {
+            excluded.remove(id)
+        } else {
+            excluded.insert(id)
+        }
+        preferences.replaceReviewExcludedCalendars(with: Array(excluded))
         await refresh()
     }
 
@@ -1017,6 +1052,16 @@ public final class AppModel {
             return
         }
 
+        let reviewEnabledCalendarIDs = Set(
+            availableCalendars
+                .filter { $0.isSelected && $0.isIncludedInReview }
+                .map(\.id)
+        )
+        if reviewEnabledCalendarIDs.isEmpty || !currentEvents.contains(where: { reviewEnabledCalendarIDs.contains($0.calendarID) }) {
+            aiConversationState = .unavailable(.noData)
+            return
+        }
+
         let configuration = currentAIConversationConfiguration()
         if !configuration.isEnabled {
             aiConversationState = .unavailable(.disabled)
@@ -1042,9 +1087,30 @@ public final class AppModel {
             return nil
         }
 
+        let reviewEnabledCalendarIDs = Set(
+            availableCalendars
+                .filter { $0.isSelected && $0.isIncludedInReview }
+                .map(\.id)
+        )
+        guard !reviewEnabledCalendarIDs.isEmpty else {
+            aiConversationState = .unavailable(.noData)
+            return nil
+        }
+
+        let reviewEvents = currentEvents.filter { reviewEnabledCalendarIDs.contains($0.calendarID) }
+        let calendarLookup = Dictionary(uniqueKeysWithValues: availableCalendars.map { ($0.id, $0) })
+        let reviewOverview = CalendarStatisticsAggregator(
+            calendarLookup: calendarLookup,
+            calendar: calendar
+        ).makeOverview(range: overview.range, interval: overview.interval, events: reviewEvents)
+        guard !reviewOverview.buckets.isEmpty else {
+            aiConversationState = .unavailable(.noData)
+            return nil
+        }
+
         var memoryText = computeContextMemory(
-            range: overview.range,
-            interval: overview.interval,
+            range: reviewOverview.range,
+            interval: reviewOverview.interval,
             summaries: aiConversationHistory
         )
         
@@ -1057,9 +1123,9 @@ public final class AppModel {
             memoryText = String(text.prefix(memoryBudget)) + "…"
         }
 
-        return overview.makeAIConversationContext(
-            events: currentEvents,
-            calendarLookup: Dictionary(uniqueKeysWithValues: availableCalendars.map { ($0.id, $0) }),
+        return reviewOverview.makeAIConversationContext(
+            events: reviewEvents,
+            calendarLookup: calendarLookup,
             latestMemorySummary: memoryText
         )
     }

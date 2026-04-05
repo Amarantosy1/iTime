@@ -244,6 +244,56 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func startAIConversationExcludesReviewDisabledCalendarsFromContext() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: CalendarAuthorizationState.authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+            CalendarSource(id: "private", name: "私人", colorHex: "#F5A623", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "1",
+                title: "需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+            CalendarEventRecord(
+                id: "2",
+                title: "家庭安排",
+                calendarID: "private",
+                startDate: .init(timeIntervalSince1970: 7_200),
+                endDate: .init(timeIntervalSince1970: 9_000),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(nextQuestion: "今天最值得关注的安排是什么？")
+    let archiveStore = InMemoryAIConversationArchiveStore()
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.aiAnalysisEnabled = true
+    preferences.aiBaseURL = "https://example.com/v1"
+    preferences.aiModel = "gpt-5-mini"
+    preferences.replaceReviewExcludedCalendars(with: ["private"])
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.startAIConversation()
+
+    #expect(conversationService.askedContexts.first?.events.map(\.title) == ["需求评审"])
+    #expect(conversationService.askedContexts.first?.overviewSnapshot.totalEventCount == 1)
+    #expect(conversationService.askedContexts.first?.overviewSnapshot.topCalendarNames == ["工作"])
+}
+
+@MainActor
 @Test func startAIConversationBindsSessionToSelectedProvider() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: CalendarAuthorizationState.authorized,
