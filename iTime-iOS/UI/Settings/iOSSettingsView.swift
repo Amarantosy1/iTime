@@ -135,7 +135,11 @@ struct iOSSettingsView: View {
 private struct iOSThemeSettingsDetailView: View {
     @Bindable var model: AppModel
     @State private var selectedTab: ThemeSettingsTab = .builtIn
+    @State private var isPhotoPickerPresented = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var editingPresetID: UUID?
+    @State private var draftThemeName: String = ""
+    @State private var draftImageName: String?
     @State private var previewImage: UIImage?
     @State private var cropScale: Double = 1.12
     @State private var cropOffsetX: Double = 0
@@ -164,18 +168,10 @@ private struct iOSThemeSettingsDetailView: View {
         .task {
             syncThemeEditorStateFromPreferences()
         }
+        .photosPicker(isPresented: $isPhotoPickerPresented, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, item in
             guard let item else { return }
             Task { await handlePhotoSelection(item) }
-        }
-        .onChange(of: cropScale) { _, _ in
-            persistCropTransform()
-        }
-        .onChange(of: cropOffsetX) { _, _ in
-            persistCropTransform()
-        }
-        .onChange(of: cropOffsetY) { _, _ in
-            persistCropTransform()
         }
     }
 
@@ -205,76 +201,112 @@ private struct iOSThemeSettingsDetailView: View {
     }
 
     private var customThemeSection: some View {
-        Section("自定义主题") {
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Label("上传背景图片", systemImage: "photo.on.rectangle")
-            }
-
-            if let previewImage {
-                CustomThemeGestureCropper(
-                    image: previewImage,
-                    scale: $cropScale,
-                    offsetX: $cropOffsetX,
-                    offsetY: $cropOffsetY
-                )
-
-                Text("手势裁切：单指拖动位置，双指缩放；双击预览可重置。")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 12) {
-                    Label(String(format: "缩放 %.2fx", cropScale), systemImage: "plus.magnifyingglass")
-                        .font(.footnote)
-                    Label(String(format: "X %.2f", cropOffsetX), systemImage: "arrow.left.and.right")
-                        .font(.footnote)
-                    Label(String(format: "Y %.2f", cropOffsetY), systemImage: "arrow.up.and.down")
-                        .font(.footnote)
-                }
-                .foregroundStyle(.secondary)
-
-                HStack(spacing: 10) {
-                    Button("应用自定义主题") {
-                        model.preferences.interfaceTheme = .custom
+        Group {
+            Section("我的自定义主题") {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    Button {
+                        beginCreatingPreset()
+                    } label: {
+                        AddCustomThemeCard()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
 
-                    Button("重置裁切") {
-                        cropScale = 1.12
-                        cropOffsetX = 0
-                        cropOffsetY = 0
-                        persistCropTransform()
+                    ForEach(model.preferences.customThemePresets) { preset in
+                        Button {
+                            selectPreset(preset)
+                        } label: {
+                            CustomThemePresetCard(
+                                preset: preset,
+                                image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
+                                isSelected: editingPresetID == preset.id
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.bordered)
                 }
+                .padding(.vertical, 2)
 
-                Button("移除背景图片", role: .destructive) {
-                    removeCustomThemeImage()
-                }
-
-                if model.preferences.interfaceTheme != .custom {
-                    Text("已保存图片与裁切，点击“应用自定义主题”后生效。")
+                if model.preferences.customThemePresets.isEmpty {
+                    Text("点击加号，新建你的第一个自定义主题。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("主题编辑") {
+                TextField("主题名称", text: $draftThemeName)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button {
+                    isPhotoPickerPresented = true
+                } label: {
+                    Label(draftImageName == nil ? "选择背景图片" : "更换背景图片", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.bordered)
+
+                if let previewImage {
+                    CustomThemeGestureCropper(
+                        image: previewImage,
+                        scale: $cropScale,
+                        offsetX: $cropOffsetX,
+                        offsetY: $cropOffsetY
+                    )
+
+                    Text("手势裁切：单指拖动位置，双指缩放；双击预览可重置。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 12) {
+                        Label(String(format: "缩放 %.2fx", cropScale), systemImage: "plus.magnifyingglass")
+                            .font(.footnote)
+                        Label(String(format: "X %.2f", cropOffsetX), systemImage: "arrow.left.and.right")
+                            .font(.footnote)
+                        Label(String(format: "Y %.2f", cropOffsetY), systemImage: "arrow.up.and.down")
+                            .font(.footnote)
+                    }
+                    .foregroundStyle(.secondary)
+
+                    HStack(spacing: 10) {
+                        Button("保存主题") {
+                            saveCurrentPreset()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(draftImageName == nil)
+
+                        Button("重置裁切") {
+                            cropScale = 1.12
+                            cropOffsetX = 0
+                            cropOffsetY = 0
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    if editingPresetID != nil {
+                        Text("保存后会覆盖当前选中的主题卡片。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("保存后会新增一个主题卡片。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
-                    Text("已实时保存当前裁切。")
+                    Text("先选择一张图片，再保存为自定义主题。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-            } else {
-                Text("先上传一张图片作为背景。")
+
+                if let uploadErrorText {
+                    Text(uploadErrorText)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+
+                Text("支持：从卡片选择历史主题；点击加号新增主题；编辑后点击“保存主题”写入主题库。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-
-            if let uploadErrorText {
-                Text(uploadErrorText)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-
-            Text("参考成熟项目：Mantis（1.2k⭐）和 ImageCropper（SwiftUI 原生），当前实现采用本地图片 + 手动裁切参数，便于和现有主题系统集成。")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -291,16 +323,12 @@ private struct iOSThemeSettingsDetailView: View {
 
     private func syncThemeEditorStateFromPreferences() {
         selectedTab = model.preferences.interfaceTheme == .custom ? .custom : .builtIn
-        cropScale = model.preferences.customThemeScale
-        cropOffsetX = model.preferences.customThemeOffsetX
-        cropOffsetY = model.preferences.customThemeOffsetY
-        previewImage = CustomThemeBackgroundImageStore.loadImage(named: model.preferences.customThemeImageName)
-    }
-
-    private func persistCropTransform() {
-        model.preferences.customThemeScale = min(max(cropScale, 1.0), 4.0)
-        model.preferences.customThemeOffsetX = min(max(cropOffsetX, -1.0), 1.0)
-        model.preferences.customThemeOffsetY = min(max(cropOffsetY, -1.0), 1.0)
+        if let selectedID = model.preferences.selectedCustomThemePresetID,
+           let preset = model.preferences.customThemePresets.first(where: { $0.id == selectedID }) {
+            selectPreset(preset)
+        } else {
+            beginCreatingPreset(shouldOpenPicker: false)
+        }
     }
 
     @MainActor
@@ -311,15 +339,17 @@ private struct iOSThemeSettingsDetailView: View {
                 return
             }
 
-            let oldImageName = model.preferences.customThemeImageName
-            let newImageName = try CustomThemeBackgroundImageStore.saveImageData(data, replacing: oldImageName)
+            let oldDraftImageName = draftImageName
+            let newImageName = try CustomThemeBackgroundImageStore.saveImageData(data, replacing: nil)
 
-            model.preferences.customThemeImageName = newImageName
-            model.preferences.customThemeScale = cropScale
-            model.preferences.customThemeOffsetX = cropOffsetX
-            model.preferences.customThemeOffsetY = cropOffsetY
-            model.preferences.interfaceTheme = .custom
+            // Replace unsaved draft assets to avoid accumulating temporary files.
+            if let oldDraftImageName,
+               oldDraftImageName != newImageName,
+               !model.preferences.customThemePresets.contains(where: { $0.imageName == oldDraftImageName }) {
+                CustomThemeBackgroundImageStore.removeImage(named: oldDraftImageName)
+            }
 
+            draftImageName = newImageName
             previewImage = CustomThemeBackgroundImageStore.loadImage(named: newImageName)
             uploadErrorText = nil
         } catch {
@@ -327,17 +357,135 @@ private struct iOSThemeSettingsDetailView: View {
         }
     }
 
-    private func removeCustomThemeImage() {
-        CustomThemeBackgroundImageStore.removeImage(named: model.preferences.customThemeImageName)
-        model.preferences.customThemeImageName = nil
+    private func beginCreatingPreset(shouldOpenPicker: Bool = true) {
+        editingPresetID = nil
+        draftThemeName = defaultThemeName
+        draftImageName = nil
         previewImage = nil
+        cropScale = 1.12
+        cropOffsetX = 0
+        cropOffsetY = 0
+        uploadErrorText = nil
 
-        if model.preferences.interfaceTheme == .custom {
-            model.preferences.interfaceTheme = .pure
-            selectedTab = .builtIn
+        if shouldOpenPicker {
+            isPhotoPickerPresented = true
+        }
+    }
+
+    private func selectPreset(_ preset: CustomThemePreset) {
+        editingPresetID = preset.id
+        draftThemeName = preset.displayName
+        draftImageName = preset.imageName
+        previewImage = CustomThemeBackgroundImageStore.loadImage(named: preset.imageName)
+        cropScale = preset.scale
+        cropOffsetX = preset.offsetX
+        cropOffsetY = preset.offsetY
+        model.preferences.applyCustomThemePreset(id: preset.id)
+        selectedTab = .custom
+        uploadErrorText = nil
+    }
+
+    private func saveCurrentPreset() {
+        guard let draftImageName else {
+            uploadErrorText = "请先选择背景图片。"
+            return
         }
 
+        let previousImageName: String?
+        if let editingPresetID,
+           let existingPreset = model.preferences.customThemePresets.first(where: { $0.id == editingPresetID }) {
+            previousImageName = existingPreset.imageName
+        } else {
+            previousImageName = nil
+        }
+
+        let savedID = model.preferences.saveCustomThemePreset(
+            id: editingPresetID,
+            displayName: draftThemeName,
+            imageName: draftImageName,
+            scale: cropScale,
+            offsetX: cropOffsetX,
+            offsetY: cropOffsetY
+        )
+
+        if let previousImageName,
+           previousImageName != draftImageName,
+           !model.preferences.customThemePresets.contains(where: { $0.imageName == previousImageName }) {
+            CustomThemeBackgroundImageStore.removeImage(named: previousImageName)
+        }
+
+        editingPresetID = savedID
         uploadErrorText = nil
+    }
+
+    private var defaultThemeName: String {
+        "我的主题 \(model.preferences.customThemePresets.count + 1)"
+    }
+}
+
+private struct AddCustomThemeCard: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.secondary.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                }
+
+            VStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .semibold))
+                Text("新增主题")
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(.secondary)
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
+private struct CustomThemePresetCard: View {
+    let preset: CustomThemePreset
+    let image: UIImage?
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.secondary.opacity(0.12))
+
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.55)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            Text(preset.displayName)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(10)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 

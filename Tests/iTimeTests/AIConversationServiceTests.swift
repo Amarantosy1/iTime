@@ -334,10 +334,13 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("季度预算复盘"))
     #expect(body.contains("这段文字不该成为流水账的主输入。") == false)
     #expect(body.contains("具体日程："))
+    #expect(body.contains("时间"))
+    #expect(body.contains("时长 1小时"))
     #expect(body.contains("必须同时依据具体日程数据和对话记录"))
     #expect(body.contains("若对话内容与具体日程冲突，以具体日程数据为准"))
-    #expect(body.contains("流水账复盘"))
-    #expect(body.contains("不要渲染感情"))
+    #expect(body.contains("只做事实化记录，不做反思、不做升华、不做主观推断"))
+    #expect(body.contains("不是汇报，是反思") == false)
+    #expect(body.contains("不要逐条转写聊天") == false)
     #expect(body.contains("节点式流程图") == false)
     #expect(body.contains("\"flowchart\"") == false)
     #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
@@ -413,6 +416,17 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
                 startedAt: Date(timeIntervalSince1970: 0), completedAt: nil,
                 status: .completed,
                 overviewSnapshot: AIOverviewSnapshot(rangeTitle: "今天", totalDurationText: "3h", totalEventCount: 2, topCalendarNames: ["工作"]),
+                events: [
+                    AIEventContext(
+                        id: "ev-flow-1",
+                        title: "真实事件A",
+                        calendarID: "work",
+                        calendarName: "工作",
+                        startDate: Date(timeIntervalSince1970: 28_800),
+                        endDate: Date(timeIntervalSince1970: 30_600),
+                        durationText: "30分钟"
+                    ),
+                ],
                 messages: []
         )
         let summary = AIConversationSummary(
@@ -430,6 +444,11 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
                         model: "gpt-5-mini", apiKey: "key", isEnabled: true
                 )
         )
+        let request = try #require(sender.lastRequest)
+        let bodyData = try #require(request.httpBody)
+        let body = try #require(String(data: bodyData, encoding: .utf8))
+        #expect(body.contains("真实事件A"))
+        #expect(body.contains("禁止合并、拆分、改写事件时间或时长"))
         #expect(draft.flowchart?.nodes.count == 2)
         #expect(draft.flowchart?.nodes.first?.id == "n1")
         #expect(draft.flowchart?.nodes.first?.title == "早会")

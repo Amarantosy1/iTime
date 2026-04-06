@@ -30,6 +30,37 @@ public enum AppDisplayTheme: String, Codable, CaseIterable, Identifiable, Sendab
     }
 }
 
+public struct CustomThemePreset: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public var displayName: String
+    public var imageName: String
+    public var scale: Double
+    public var offsetX: Double
+    public var offsetY: Double
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    public init(
+        id: UUID,
+        displayName: String,
+        imageName: String,
+        scale: Double,
+        offsetX: Double,
+        offsetY: Double,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.displayName = displayName
+        self.imageName = imageName
+        self.scale = scale
+        self.offsetX = offsetX
+        self.offsetY = offsetY
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 @Observable
 public final class UserPreferences {
     public enum Storage {
@@ -50,6 +81,8 @@ public final class UserPreferences {
         public let customThemeScale: Double?
         public let customThemeOffsetX: Double?
         public let customThemeOffsetY: Double?
+        public let customThemePresets: [CustomThemePreset]?
+        public let selectedCustomThemePresetID: UUID?
         public let aiServiceEndpoints: [AIServiceEndpoint]
         public let defaultAIServiceID: UUID?
 
@@ -66,6 +99,8 @@ public final class UserPreferences {
             customThemeScale: Double? = nil,
             customThemeOffsetX: Double? = nil,
             customThemeOffsetY: Double? = nil,
+            customThemePresets: [CustomThemePreset]? = nil,
+            selectedCustomThemePresetID: UUID? = nil,
             aiServiceEndpoints: [AIServiceEndpoint],
             defaultAIServiceID: UUID?
         ) {
@@ -81,6 +116,8 @@ public final class UserPreferences {
             self.customThemeScale = customThemeScale
             self.customThemeOffsetX = customThemeOffsetX
             self.customThemeOffsetY = customThemeOffsetY
+            self.customThemePresets = customThemePresets
+            self.selectedCustomThemePresetID = selectedCustomThemePresetID
             self.aiServiceEndpoints = aiServiceEndpoints
             self.defaultAIServiceID = defaultAIServiceID
         }
@@ -99,6 +136,8 @@ public final class UserPreferences {
         static let customThemeScale = "customThemeScale"
         static let customThemeOffsetX = "customThemeOffsetX"
         static let customThemeOffsetY = "customThemeOffsetY"
+        static let customThemePresets = "customThemePresets"
+        static let selectedCustomThemePresetID = "selectedCustomThemePresetID"
         static let aiAnalysisEnabled = "aiAnalysisEnabled"
         static let defaultAIProvider = "defaultAIProvider"
         static let aiBaseURL = "aiBaseURL"
@@ -179,6 +218,18 @@ public final class UserPreferences {
     public var customThemeOffsetY: Double {
         didSet {
             defaults.set(Self.clampCustomThemeOffset(customThemeOffsetY), forKey: Keys.customThemeOffsetY)
+        }
+    }
+
+    public private(set) var customThemePresets: [CustomThemePreset] {
+        didSet {
+            persistCustomThemePresets()
+        }
+    }
+
+    public var selectedCustomThemePresetID: UUID? {
+        didSet {
+            defaults.set(selectedCustomThemePresetID?.uuidString.lowercased(), forKey: Keys.selectedCustomThemePresetID)
         }
     }
 
@@ -269,17 +320,60 @@ public final class UserPreferences {
         self.reviewReminderEnabled = defaults.object(forKey: Keys.reviewReminderEnabled) as? Bool ?? false
         self.reviewReminderTime = defaults.object(forKey: Keys.reviewReminderTime) as? Date
             ?? Self.defaultReviewReminderTime(calendar: calendar, referenceDate: now)
-        self.interfaceTheme = AppDisplayTheme(rawValue: defaults.string(forKey: Keys.interfaceTheme) ?? "") ?? .flowing
-        self.customThemeImageName = defaults.string(forKey: Keys.customThemeImageName)
-        self.customThemeScale = Self.clampCustomThemeScale(
+
+        let storedCustomThemeImageName = defaults.string(forKey: Keys.customThemeImageName)
+        let storedCustomThemeScale = Self.clampCustomThemeScale(
             defaults.object(forKey: Keys.customThemeScale) as? Double ?? 1.12
         )
-        self.customThemeOffsetX = Self.clampCustomThemeOffset(
+        let storedCustomThemeOffsetX = Self.clampCustomThemeOffset(
             defaults.object(forKey: Keys.customThemeOffsetX) as? Double ?? 0
         )
-        self.customThemeOffsetY = Self.clampCustomThemeOffset(
+        let storedCustomThemeOffsetY = Self.clampCustomThemeOffset(
             defaults.object(forKey: Keys.customThemeOffsetY) as? Double ?? 0
         )
+
+        let decodedCustomThemePresets = Self.decodeCustomThemePresets(from: defaults)
+        let initialCustomThemePresets: [CustomThemePreset]
+        if decodedCustomThemePresets.isEmpty, let legacyImageName = storedCustomThemeImageName {
+            let now = Date()
+            initialCustomThemePresets = [
+                CustomThemePreset(
+                    id: UUID(),
+                    displayName: "我的主题",
+                    imageName: legacyImageName,
+                    scale: storedCustomThemeScale,
+                    offsetX: storedCustomThemeOffsetX,
+                    offsetY: storedCustomThemeOffsetY,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            ]
+        } else {
+            initialCustomThemePresets = decodedCustomThemePresets
+        }
+
+        let storedCustomThemePresetID = defaults.string(forKey: Keys.selectedCustomThemePresetID)
+            .flatMap { UUID(uuidString: $0) }
+        let resolvedSelectedCustomThemePresetID: UUID?
+        if let storedCustomThemePresetID,
+           initialCustomThemePresets.contains(where: { $0.id == storedCustomThemePresetID }) {
+            resolvedSelectedCustomThemePresetID = storedCustomThemePresetID
+        } else {
+            resolvedSelectedCustomThemePresetID = initialCustomThemePresets.first?.id
+        }
+
+        let activeCustomThemePreset = resolvedSelectedCustomThemePresetID
+            .flatMap { selectedID in
+                initialCustomThemePresets.first(where: { $0.id == selectedID })
+            }
+
+        self.interfaceTheme = AppDisplayTheme(rawValue: defaults.string(forKey: Keys.interfaceTheme) ?? "") ?? .flowing
+        self.customThemeImageName = activeCustomThemePreset?.imageName ?? storedCustomThemeImageName
+        self.customThemeScale = Self.clampCustomThemeScale(activeCustomThemePreset?.scale ?? storedCustomThemeScale)
+        self.customThemeOffsetX = Self.clampCustomThemeOffset(activeCustomThemePreset?.offsetX ?? storedCustomThemeOffsetX)
+        self.customThemeOffsetY = Self.clampCustomThemeOffset(activeCustomThemePreset?.offsetY ?? storedCustomThemeOffsetY)
+        self.customThemePresets = initialCustomThemePresets
+        self.selectedCustomThemePresetID = resolvedSelectedCustomThemePresetID
 
         self.aiAnalysisEnabled = defaults.object(forKey: Keys.aiAnalysisEnabled) as? Bool ?? false
         self.defaultAIProvider = AIProviderKind(rawValue: defaults.string(forKey: Keys.defaultAIProvider) ?? "") ?? .openAI
@@ -418,6 +512,8 @@ public final class UserPreferences {
             customThemeScale: customThemeScale,
             customThemeOffsetX: customThemeOffsetX,
             customThemeOffsetY: customThemeOffsetY,
+            customThemePresets: customThemePresets,
+            selectedCustomThemePresetID: selectedCustomThemePresetID,
             aiServiceEndpoints: aiServiceEndpoints,
             defaultAIServiceID: defaultAIServiceID
         )
@@ -436,8 +532,92 @@ public final class UserPreferences {
         customThemeScale = Self.clampCustomThemeScale(payload.customThemeScale ?? customThemeScale)
         customThemeOffsetX = Self.clampCustomThemeOffset(payload.customThemeOffsetX ?? customThemeOffsetX)
         customThemeOffsetY = Self.clampCustomThemeOffset(payload.customThemeOffsetY ?? customThemeOffsetY)
+        if let incomingCustomThemePresets = payload.customThemePresets {
+            customThemePresets = incomingCustomThemePresets.sorted { $0.updatedAt > $1.updatedAt }
+        }
+        if let incomingSelectedPresetID = payload.selectedCustomThemePresetID,
+           customThemePresets.contains(where: { $0.id == incomingSelectedPresetID }) {
+            selectedCustomThemePresetID = incomingSelectedPresetID
+        } else if !customThemePresets.contains(where: { $0.id == selectedCustomThemePresetID }) {
+            selectedCustomThemePresetID = customThemePresets.first?.id
+        }
+
+        if let selectedCustomThemePresetID,
+           let selectedPreset = customThemePresets.first(where: { $0.id == selectedCustomThemePresetID }) {
+            customThemeImageName = selectedPreset.imageName
+            customThemeScale = Self.clampCustomThemeScale(selectedPreset.scale)
+            customThemeOffsetX = Self.clampCustomThemeOffset(selectedPreset.offsetX)
+            customThemeOffsetY = Self.clampCustomThemeOffset(selectedPreset.offsetY)
+        }
         aiServiceEndpoints = Self.normalizedBuiltInServices(payload.aiServiceEndpoints)
         setDefaultAIServiceID(payload.defaultAIServiceID)
+    }
+
+    @discardableResult
+    public func saveCustomThemePreset(
+        id: UUID? = nil,
+        displayName: String,
+        imageName: String,
+        scale: Double,
+        offsetX: Double,
+        offsetY: Double
+    ) -> UUID {
+        let now = Date()
+        let normalizedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedDisplayName = normalizedDisplayName.isEmpty ? "我的主题" : normalizedDisplayName
+        let clampedScale = Self.clampCustomThemeScale(scale)
+        let clampedOffsetX = Self.clampCustomThemeOffset(offsetX)
+        let clampedOffsetY = Self.clampCustomThemeOffset(offsetY)
+
+        let resolvedID: UUID
+        if let id, let index = customThemePresets.firstIndex(where: { $0.id == id }) {
+            let createdAt = customThemePresets[index].createdAt
+            customThemePresets[index] = CustomThemePreset(
+                id: id,
+                displayName: resolvedDisplayName,
+                imageName: imageName,
+                scale: clampedScale,
+                offsetX: clampedOffsetX,
+                offsetY: clampedOffsetY,
+                createdAt: createdAt,
+                updatedAt: now
+            )
+            resolvedID = id
+        } else {
+            let newID = id ?? UUID()
+            customThemePresets.append(
+                CustomThemePreset(
+                    id: newID,
+                    displayName: resolvedDisplayName,
+                    imageName: imageName,
+                    scale: clampedScale,
+                    offsetX: clampedOffsetX,
+                    offsetY: clampedOffsetY,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            )
+            resolvedID = newID
+        }
+
+        customThemePresets.sort { $0.updatedAt > $1.updatedAt }
+        selectedCustomThemePresetID = resolvedID
+        customThemeImageName = imageName
+        customThemeScale = clampedScale
+        customThemeOffsetX = clampedOffsetX
+        customThemeOffsetY = clampedOffsetY
+        interfaceTheme = .custom
+        return resolvedID
+    }
+
+    public func applyCustomThemePreset(id: UUID) {
+        guard let preset = customThemePresets.first(where: { $0.id == id }) else { return }
+        selectedCustomThemePresetID = preset.id
+        customThemeImageName = preset.imageName
+        customThemeScale = Self.clampCustomThemeScale(preset.scale)
+        customThemeOffsetX = Self.clampCustomThemeOffset(preset.offsetX)
+        customThemeOffsetY = Self.clampCustomThemeOffset(preset.offsetY)
+        interfaceTheme = .custom
     }
 
     private static func decodeAIServiceEndpoints(from defaults: UserDefaults) -> [AIServiceEndpoint] {
@@ -448,6 +628,17 @@ public final class UserPreferences {
             return []
         }
         return services
+    }
+
+    private static func decodeCustomThemePresets(from defaults: UserDefaults) -> [CustomThemePreset] {
+        guard
+            let data = defaults.data(forKey: Keys.customThemePresets),
+            let presets = try? JSONDecoder().decode([CustomThemePreset].self, from: data)
+        else {
+            return []
+        }
+
+        return presets.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     private static func legacyBuiltInServices(from defaults: UserDefaults) -> [AIServiceEndpoint] {
@@ -503,6 +694,11 @@ public final class UserPreferences {
     private func persistAIServiceEndpoints() {
         guard let data = try? JSONEncoder().encode(aiServiceEndpoints) else { return }
         defaults.set(data, forKey: Keys.aiServiceEndpoints)
+    }
+
+    private func persistCustomThemePresets() {
+        guard let data = try? JSONEncoder().encode(customThemePresets) else { return }
+        defaults.set(data, forKey: Keys.customThemePresets)
     }
 
     private func synchronizeLegacyProviderFromDefaultService() {
