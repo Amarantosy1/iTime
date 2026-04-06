@@ -320,6 +320,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("这段文字不该成为流水账的主输入。") == false)
     #expect(body.contains("流水账复盘"))
     #expect(body.contains("不要渲染感情"))
+    #expect(body.contains("节点式流程图") == false)
+    #expect(body.contains("\"flowchart\"") == false)
     #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
     #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
     #expect(draft.content == "这是一篇正式流水账复盘。")
@@ -458,6 +460,46 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
         #expect(draft.flowchart == nil)
 }
 
+    @Test func openAICompatibleLongFormReportDropsFlowchartForNonDailyRange() async throws {
+        let responseJSON = """
+        {
+            "choices": [{
+            "message": {
+                "content": "{\\\"title\\\":\\\"本周复盘\\\",\\\"content\\\":\\\"流水账正文。\\\",\\\"flowchart\\\":{\\\"nodes\\\":[{\\\"id\\\":\\\"n1\\\",\\\"timeRange\\\":\\\"09:00-09:30\\\",\\\"title\\\":\\\"早会\\\",\\\"calendarName\\\":\\\"工作\\\"}],\\\"edges\\\":[{\\\"from\\\":\\\"n1\\\",\\\"to\\\":\\\"n2\\\"}]}}"
+            }
+            }]
+        }
+        """
+        let sender = ConversationRecordingAIHTTPSender(responseData: Data(responseJSON.utf8))
+        let service = OpenAICompatibleAIConversationService(httpSender: sender)
+        let session = AIConversationSession(
+            id: UUID(), serviceID: nil, serviceDisplayName: "OpenAI", provider: .openAI,
+            model: "gpt-5-mini", range: .week,
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 86_400 * 7),
+            startedAt: Date(timeIntervalSince1970: 0), completedAt: nil,
+            status: .completed,
+            overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "12h", totalEventCount: 8, topCalendarNames: ["工作"]),
+            messages: []
+        )
+        let summary = AIConversationSummary(
+            id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "OpenAI",
+            provider: .openAI, model: "gpt-5-mini", range: .week,
+            startDate: session.startDate, endDate: session.endDate,
+            createdAt: session.endDate, headline: "标题",
+            summary: "摘要", findings: [], suggestions: [],
+            overviewSnapshot: session.overviewSnapshot
+        )
+        let draft = try await service.generateLongFormReport(
+            session: session, summary: summary,
+            configuration: ResolvedAIProviderConfiguration(
+                provider: .openAI, baseURL: "https://example.com/v1",
+                model: "gpt-5-mini", apiKey: "key", isEnabled: true
+            )
+        )
+        #expect(draft.flowchart == nil)
+    }
+
 @Test func geminiConversationServiceIncludesJsonMimeTypeInRequest() async throws {
     let sender = ConversationRecordingAIHTTPSender(
         responseData: Data(
@@ -497,6 +539,61 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let bodyData = try #require(request.httpBody)
     let body = try #require(String(data: bodyData, encoding: .utf8))
     #expect(body.contains("response_mime_type"))
+}
+
+@Test func geminiLongFormReportDropsFlowchartForNonDailyRange() async throws {
+        let sender = ConversationRecordingAIHTTPSender(
+                responseData: Data(
+                        """
+                        {
+                            "candidates": [
+                                {
+                                    "content": {
+                                        "parts": [
+                                            {
+                                                "text": "{\\\"title\\\":\\\"本周复盘\\\",\\\"content\\\":\\\"流水账正文。\\\",\\\"flowchart\\\":{\\\"nodes\\\":[{\\\"id\\\":\\\"n1\\\",\\\"timeRange\\\":\\\"09:00-09:30\\\",\\\"title\\\":\\\"早会\\\",\\\"calendarName\\\":\\\"工作\\\"}],\\\"edges\\\":[{\\\"from\\\":\\\"n1\\\",\\\"to\\\":\\\"n2\\\"}]}}"
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                        """.utf8
+                )
+        )
+        let service = GeminiConversationService(httpSender: sender)
+        let session = AIConversationSession(
+                id: UUID(), serviceID: nil, serviceDisplayName: "Gemini", provider: .gemini,
+                model: "gemini-2.0-flash", range: .week,
+                startDate: Date(timeIntervalSince1970: 0),
+                endDate: Date(timeIntervalSince1970: 86_400 * 7),
+                startedAt: Date(timeIntervalSince1970: 0), completedAt: nil,
+                status: .completed,
+                overviewSnapshot: AIOverviewSnapshot(rangeTitle: "本周", totalDurationText: "12h", totalEventCount: 8, topCalendarNames: ["工作"]),
+                messages: []
+        )
+        let summary = AIConversationSummary(
+                id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "Gemini",
+                provider: .gemini, model: "gemini-2.0-flash", range: .week,
+                startDate: session.startDate, endDate: session.endDate,
+                createdAt: session.endDate, headline: "标题",
+                summary: "摘要", findings: [], suggestions: [],
+                overviewSnapshot: session.overviewSnapshot
+        )
+
+        let draft = try await service.generateLongFormReport(
+                session: session,
+                summary: summary,
+                configuration: ResolvedAIProviderConfiguration(
+                        provider: .gemini,
+                        baseURL: "https://generativelanguage.googleapis.com",
+                        model: "gemini-2.0-flash",
+                        apiKey: "key",
+                        isEnabled: true
+                )
+        )
+
+        #expect(draft.flowchart == nil)
 }
 
 @Test func openAICompatibleConversationServiceCompactsMemoryAndReturnsPlainText() async throws {

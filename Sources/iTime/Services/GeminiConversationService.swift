@@ -80,16 +80,25 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         summary: AIConversationSummary,
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationLongFormReportDraft {
+        let shouldIncludeFlowchart = OpenAICompatibleAIConversationService.shouldIncludeLongFormFlowchart(for: session)
         let content = try await sendRequest(
-            userPrompt: OpenAICompatibleAIConversationService.longFormUserPrompt(for: session, summary: summary),
-            systemPrompt: OpenAICompatibleAIConversationService.longFormSystemPrompt,
+            userPrompt: OpenAICompatibleAIConversationService.longFormUserPrompt(
+                for: session,
+                summary: summary,
+                includeFlowchart: shouldIncludeFlowchart
+            ),
+            systemPrompt: OpenAICompatibleAIConversationService.longFormSystemPrompt(includeFlowchart: shouldIncludeFlowchart),
             configuration: configuration
         )
         let payload = try decodePayload(GeminiLongFormPayload.self, from: content)
         guard !payload.title.isEmpty, !payload.content.isEmpty else {
             throw AIAnalysisServiceError.invalidResponse
         }
-        return AIConversationLongFormReportDraft(title: payload.title, content: payload.content, flowchart: payload.flowchart)
+        return AIConversationLongFormReportDraft(
+            title: payload.title,
+            content: payload.content,
+            flowchart: shouldIncludeFlowchart ? payload.flowchart : nil
+        )
     }
 
     private func sendRequest(

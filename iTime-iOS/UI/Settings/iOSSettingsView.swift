@@ -6,41 +6,48 @@ struct iOSSettingsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("AI 服务") {
-                    ForEach(model.availableAIServices) { service in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Toggle(
-                                service.displayName,
-                                isOn: Binding(
-                                    get: { service.isEnabled },
-                                    set: { enabled in
-                                        model.updateAIService(service.updating(isEnabled: enabled))
-                                    }
-                                )
-                            )
+            ZStack {
+                StarrySkyBackground(accentColor: .accentColor, starCount: 160, twinkleBoost: 1.8, meteorCount: 5)
 
-                            if service.isEnabled {
-                                SecureField(
-                                    "API Key",
-                                    text: Binding(
-                                        get: { apiKeys[service.id] ?? "" },
-                                        set: { newValue in
-                                            apiKeys[service.id] = newValue
-                                            model.updateAIAPIKey(newValue, for: service.id)
+                List {
+                    Section("AI 服务") {
+                        ForEach(model.availableAIServices) { service in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Toggle(
+                                    service.displayName,
+                                    isOn: Binding(
+                                        get: { service.isEnabled },
+                                        set: { enabled in
+                                            model.updateAIService(service.updating(isEnabled: enabled))
                                         }
                                     )
                                 )
-                                .textContentType(.password)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
 
-                iOSDeviceSyncView(model: model)
+                                if service.isEnabled {
+                                    SecureField(
+                                        "API Key",
+                                        text: Binding(
+                                            get: { apiKeys[service.id] ?? "" },
+                                            set: { newValue in
+                                                apiKeys[service.id] = newValue
+                                                model.updateAIAPIKey(newValue, for: service.id)
+                                            }
+                                        )
+                                    )
+                                    .textContentType(.password)
+                                    .autocorrectionDisabled()
+                                    .textInputAutocapitalization(.never)
+                                    .font(.footnote.monospaced())
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    iOSDeviceSyncView(model: model)
+                }
+                .scrollContentBackground(.hidden)
+                .listStyle(.insetGrouped)
             }
             .navigationTitle("设置")
             .onAppear { loadAPIKeys() }

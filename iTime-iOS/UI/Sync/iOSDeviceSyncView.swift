@@ -5,11 +5,11 @@ struct iOSDeviceSyncView: View {
 
     var body: some View {
         Section("设备互传") {
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
                 Button("开始发现设备") {
                     Task { await model.startDeviceDiscovery() }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
 
                 Button("停止发现") {
                     Task { await model.stopDeviceDiscovery() }
@@ -25,6 +25,7 @@ struct iOSDeviceSyncView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text(peer.displayName)
+                                .font(.body.weight(.medium))
                             Spacer()
                             Button("立即同步") {
                                 Task {
@@ -35,17 +36,22 @@ struct iOSDeviceSyncView: View {
                             .disabled(isSyncing)
                         }
 
-                        Text(peer.state.displayText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        TagChip(icon: peer.state.iconName, text: peer.state.displayText)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 4)
                 }
             }
 
-            Text(model.lastSyncStatus.displayText)
-                .font(.footnote)
-                .foregroundStyle(model.lastSyncStatus.isFailure ? .red : .secondary)
+            HStack(spacing: 8) {
+                if case .syncing = model.lastSyncStatus {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                Text(model.lastSyncStatus.displayText)
+                    .font(.footnote)
+                    .foregroundStyle(model.lastSyncStatus.color)
+            }
         }
     }
 
@@ -64,6 +70,15 @@ private extension DevicePeer.ConnectionState {
         case .failed(let message): return "异常 · \(message)"
         }
     }
+
+    var iconName: String {
+        switch self {
+        case .discovered: return "dot.radiowaves.left.and.right"
+        case .connecting: return "arrow.triangle.2.circlepath"
+        case .connected: return "checkmark.circle"
+        case .failed: return "exclamationmark.triangle"
+        }
+    }
 }
 
 private extension AppModel.DeviceSyncStatus {
@@ -79,5 +94,16 @@ private extension AppModel.DeviceSyncStatus {
     var isFailure: Bool {
         if case .failed = self { return true }
         return false
+    }
+
+    var color: Color {
+        switch self {
+        case .idle, .syncing:
+            .secondary
+        case .succeeded:
+            .green
+        case .failed:
+            .red
+        }
     }
 }

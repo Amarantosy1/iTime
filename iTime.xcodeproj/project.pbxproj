@@ -45,6 +45,7 @@
 		76E2A7BA4D46C95F28B2D967 /* iOSSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A858C7B4B2BFB6654A80AF6C /* iOSSettingsView.swift */; };
 		7C2C65E23D61B06BF36BB601 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7CEA2882918C8EF4BA99C /* SyncEngine.swift */; };
 		7CFDA4CD9C8143ECC4DB8E62 /* MultipeerTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */; };
+		9D2A4F98B3164A9CB1A85D77 /* iOSMagazineTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6C0B4E8D93F4F278A5E1162 /* iOSMagazineTheme.swift */; };
 		8133E28C8672F769ABC0760D /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB2F40DC5FCDE5B22932AF4 /* SyncCoordinator.swift */; };
 		8228933830EDD6475731FDD6 /* GeminiConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* GeminiConversationService.swift */; };
 		82739ABEF42F5BBD340C5EC4 /* TimeRangePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* TimeRangePreset.swift */; };
@@ -239,6 +240,7 @@
 		A00000000000000000000094 /* ReviewReminderSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderSchedulingTests.swift; sourceTree = "<group>"; };
 		A1E35403181ED52C20BFB5FC /* DeviceSyncSettingsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceSyncSettingsSection.swift; path = Sources/iTime/UI/Settings/DeviceSyncSettingsSection.swift; sourceTree = "<group>"; };
 		A858C7B4B2BFB6654A80AF6C /* iOSSettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSSettingsView.swift; path = "iTime-iOS/UI/Settings/iOSSettingsView.swift"; sourceTree = "<group>"; };
+		A6C0B4E8D93F4F278A5E1162 /* iOSMagazineTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = iOSMagazineTheme.swift; path = "iTime-iOS/UI/Theme/iOSMagazineTheme.swift"; sourceTree = "<group>"; };
 		AAB5476098A635E79969F96F /* AppModelSyncTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppModelSyncTests.swift; path = Tests/iTimeTests/AppModelSyncTests.swift; sourceTree = "<group>"; };
 		B3E3F5A0FE9C1E33FDB83C1B /* MultipeerTransportService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MultipeerTransportService.swift; path = Sources/iTime/Services/Sync/MultipeerTransportService.swift; sourceTree = "<group>"; };
 		B5DE7FDC2F8021BA007C9D96 /* iTime.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iTime.entitlements; sourceTree = "<group>"; };
@@ -591,9 +593,18 @@
 				85BC086692BE16963AC0ADD0 /* Overview */,
 				89156D20183106834CC938E9 /* Conversation */,
 				0E30A198F31F62D1BF4076F9 /* Settings */,
+				F2C9E47A19D24C1C9D5A0B31 /* Theme */,
 				F3D2660F014B36D0067C2938 /* Sync */,
 			);
 			name = UI;
+			sourceTree = "<group>";
+		};
+		F2C9E47A19D24C1C9D5A0B31 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				A6C0B4E8D93F4F278A5E1162 /* iOSMagazineTheme.swift */,
+			);
+			name = Theme;
 			sourceTree = "<group>";
 		};
 		C0122C12A72872698B547CFC /* iOS */ = {
@@ -735,6 +746,7 @@
 			files = (
 				5D0B4CD22B74FA7227AD968C /* iTimeiOSApp.swift in Sources */,
 				06356EFC2BBEC446B31422F8 /* iTimeIOSRootView.swift in Sources */,
+				9D2A4F98B3164A9CB1A85D77 /* iOSMagazineTheme.swift in Sources */,
 				3F6226A72F74DD5F8F98201B /* iOSOverviewView.swift in Sources */,
 				0BDB6C448AD7D5C5B7460AF7 /* iOSConversationView.swift in Sources */,
 				76E2A7BA4D46C95F28B2D967 /* iOSSettingsView.swift in Sources */,

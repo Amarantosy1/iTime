@@ -1,42 +1,52 @@
 import Charts
 import SwiftUI
-import UIKit
 
 struct iOSOverviewView: View {
     @Bindable var model: AppModel
+    @State private var chartAppeared = false
     private let cardSpacing: CGFloat = 16
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: cardSpacing) {
-                    rangeSection
+            ZStack {
+                overviewBackground
 
-                    if model.authorizationState == .authorized {
-                        if let overview = model.overview, !overview.buckets.isEmpty {
-                            metricsSection(overview)
-                            trendSection(overview)
-                            distributionSection(overview)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: cardSpacing) {
+                        rangeSection
+
+                        if model.authorizationState == .authorized {
+                            if let overview = model.overview, !overview.buckets.isEmpty {
+                                metricsSection(overview)
+                                trendSection(overview)
+                                distributionSection(overview)
+                            } else {
+                                MagazineGlassCard {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        sectionEyebrow("暂无数据")
+                                        Text("当前时间范围内没有可统计的日程。")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
                         } else {
-                            card(title: "暂无数据") {
-                                Text("当前时间范围内没有可统计的日程。")
-                                    .foregroundStyle(.secondary)
+                            MagazineGlassCard {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    sectionEyebrow("日历权限")
+                                    Text(authorizationHint)
+                                        .foregroundStyle(.secondary)
+                                    Button("请求权限") {
+                                        Task { await model.requestAccessIfNeeded() }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                }
                             }
-                        }
-                    } else {
-                        card(title: "日历权限") {
-                            Text(authorizationHint)
-                                .foregroundStyle(.secondary)
-                            Button("请求权限") {
-                                Task { await model.requestAccessIfNeeded() }
-                            }
-                            .buttonStyle(.borderedProminent)
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 24)
             }
             .navigationTitle("统计")
             .safeAreaInset(edge: .bottom) {
@@ -48,8 +58,10 @@ struct iOSOverviewView: View {
     }
 
     private var rangeSection: some View {
-        card(title: "统计范围") {
+        MagazineGlassCard {
             VStack(alignment: .leading, spacing: 12) {
+                sectionEyebrow("统计范围")
+
                 Picker(
                     "统计周期",
                     selection: Binding(
@@ -81,8 +93,9 @@ struct iOSOverviewView: View {
                         Button(preset.title) {
                             Task { await model.setCustomDateRange(preset: preset) }
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.borderedProminent)
                         .controlSize(.small)
+                        .tint(.secondary.opacity(0.35))
                     }
                 }
             }
@@ -122,105 +135,170 @@ struct iOSOverviewView: View {
     }
 
     private func metricsSection(_ overview: TimeOverview) -> some View {
-        card(title: "关键指标") {
-            VStack(spacing: 10) {
-                LabeledContent("总时长", value: overview.totalDuration.formattedDuration)
-                LabeledContent("事件数", value: "\(overview.totalEventCount)")
-                LabeledContent("日均时长", value: overview.averageDailyDuration.formattedDuration)
-                LabeledContent("最长单日", value: overview.longestDayDuration.formattedDuration)
-            }
-        }
-    }
+        MagazineGlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionEyebrow("关键指标")
+                LazyVGrid(columns: [.init(.flexible(), spacing: 12), .init(.flexible(), spacing: 12)], spacing: 12) {
+                    ForEach(OverviewMetricKind.allCases, id: \.self) { metric in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Image(systemName: metric.icon)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.secondary)
 
-    private func trendSection(_ overview: TimeOverview) -> some View {
-        card(title: trendTitle(for: overview.stackedBucketResolution)) {
-            let labels = overview.stackedBuckets.map(\.label)
+                            Text(metricValue(metric, overview: overview))
+                                .font(.system(size: 30, weight: .black, design: .rounded))
+                                .contentTransition(.numericText())
 
-            Chart(trendPoints(from: overview)) { point in
-                BarMark(
-                    x: .value("时间", point.bucketLabel),
-                    y: .value("时长", point.hours)
-                )
-                .foregroundStyle(color(from: point.colorHex))
-            }
-            .chartXScale(domain: labels)
-            .chartXAxis {
-                AxisMarks(values: visibleXAxisLabels(from: overview.stackedBuckets)) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel(anchor: .top) {
-                        if let label = value.as(String.self) {
-                            Text(label)
-                                .font(.caption2)
-                                .fixedSize(horizontal: true, vertical: false)
+                            Text(metric.title)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.tertiary)
+                                .textCase(.uppercase)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
-            .chartYAxis {
-                AxisMarks(position: .leading)
-            }
-            .frame(height: 200)
-            .padding(.trailing, 16)
-            .padding(.top, 16)
+        }
+        .animation(.easeInOut(duration: 0.25), value: overview.totalDuration)
+    }
 
-            if let summary = trendSummary(for: overview) {
-                Text(summary)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
+    private func trendSection(_ overview: TimeOverview) -> some View {
+        MagazineGlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionEyebrow(trendTitle(for: overview.stackedBucketResolution))
+
+                let labels = overview.stackedBuckets.map(\.label)
+
+                Chart(trendPoints(from: overview)) { point in
+                    BarMark(
+                        x: .value("时间", point.bucketLabel),
+                        y: .value("时长", chartAppeared ? point.hours : 0)
+                    )
+                    .foregroundStyle(Color(hex: point.colorHex))
+                    .cornerRadius(4)
+                }
+                .chartXScale(domain: labels)
+                .chartXAxis {
+                    AxisMarks(values: visibleXAxisLabels(from: overview.stackedBuckets)) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel(anchor: .top) {
+                            if let label = value.as(String.self) {
+                                Text(label)
+                                    .font(.caption2)
+                                    .fixedSize(horizontal: true, vertical: false)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .frame(height: 210)
+
+                if let summary = trendSummary(for: overview) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        MagazineDivider()
+                        Text(summary)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+        }
+        .onAppear {
+            guard !chartAppeared else { return }
+            withAnimation(.spring(duration: 0.6, bounce: 0.1)) {
+                chartAppeared = true
             }
         }
     }
 
     private func distributionSection(_ overview: TimeOverview) -> some View {
-        card(title: "分类分布") {
-            VStack(spacing: 12) {
+        MagazineGlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionEyebrow("分类分布")
+
                 Chart(overview.buckets) { bucket in
                     SectorMark(
                         angle: .value("时长", bucket.totalDuration),
                         innerRadius: .ratio(0.58),
                         angularInset: 2
                     )
-                    .foregroundStyle(color(from: bucket.colorHex))
+                    .foregroundStyle(Color(hex: bucket.colorHex))
                 }
-                .frame(height: 200)
+                .frame(height: 220)
 
-                VStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(overview.buckets) { bucket in
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(color(from: bucket.colorHex))
-                                .frame(width: 8, height: 8)
-                            Text(bucket.name)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                            Spacer()
-                            Text(bucket.shareText)
-                                .foregroundStyle(.secondary)
-                                .font(.subheadline)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 8) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color(hex: bucket.colorHex))
+                                    .frame(width: 12, height: 12)
+
+                                Text(bucket.name)
+                                    .font(.body)
+                                    .lineLimit(1)
+
+                                Spacer(minLength: 8)
+
+                                Text(bucket.shareText)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+
                             Text(bucket.totalDuration.formattedDuration)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .font(.subheadline)
+                                .padding(.leading, 20)
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(bucket.name)，\(bucket.shareText)，\(bucket.totalDuration.formattedDuration)")
                     }
                 }
             }
         }
     }
 
-    private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-            content()
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+    private var overviewBackground: some View {
+        StarrySkyBackground(
+            accentColor: overviewAccentColor,
+            starCount: 170,
+            twinkleBoost: 1.7,
+            meteorCount: 5
         )
+        .animation(.easeInOut(duration: 0.8), value: model.overview?.buckets.first?.colorHex)
+    }
+
+    private var overviewAccentColor: Color {
+        if let hex = model.overview?.buckets.first?.colorHex {
+            return Color(hex: hex)
+        }
+        return .accentColor
+    }
+
+    private func sectionEyebrow(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.tertiary)
+            .textCase(.uppercase)
+    }
+
+    private func metricValue(_ metric: OverviewMetricKind, overview: TimeOverview) -> String {
+        switch metric {
+        case .totalDuration:
+            overview.totalDuration.formattedDuration
+        case .eventCount:
+            "\(overview.totalEventCount)"
+        case .averageDailyDuration:
+            overview.averageDailyDuration.formattedDuration
+        case .longestDay:
+            overview.longestDayDuration.formattedDuration
+        }
     }
 
     private func trendTitle(for resolution: OverviewStackedBucketResolution) -> String {
@@ -271,27 +349,56 @@ struct iOSOverviewView: View {
 
     private func visibleXAxisLabels(from buckets: [OverviewStackedBucket]) -> [String] {
         let labels = buckets.map(\.label)
+        guard !labels.isEmpty else { return [] }
+
         let maxVisibleLabels = 5
-        let step = max(1, Int(ceil(Double(labels.count - 1) / Double(maxVisibleLabels - 1))))
         guard labels.count > maxVisibleLabels else { return labels }
+
+        let step = max(1, Int(ceil(Double(labels.count) / Double(maxVisibleLabels))))
 
         var visible = stride(from: 0, to: labels.count, by: step).map { labels[$0] }
 
         if let last = labels.last, visible.last != last {
-            visible.removeLast()
+            if !visible.isEmpty {
+                visible.removeLast()
+            }
             visible.append(last)
         }
 
         return visible
     }
+}
 
-    private func color(from hex: String) -> Color {
-        let sanitized = hex.replacingOccurrences(of: "#", with: "")
-        guard let value = Int(sanitized, radix: 16) else { return .accentColor }
-        let red = CGFloat((value >> 16) & 0xFF) / 255
-        let green = CGFloat((value >> 8) & 0xFF) / 255
-        let blue = CGFloat(value & 0xFF) / 255
-        return Color(uiColor: UIColor(red: red, green: green, blue: blue, alpha: 1))
+private enum OverviewMetricKind: CaseIterable {
+    case totalDuration
+    case eventCount
+    case averageDailyDuration
+    case longestDay
+
+    var title: String {
+        switch self {
+        case .totalDuration:
+            "总时长"
+        case .eventCount:
+            "事件数"
+        case .averageDailyDuration:
+            "日均时长"
+        case .longestDay:
+            "最长单日"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .totalDuration:
+            "clock.fill"
+        case .eventCount:
+            "calendar.badge.clock"
+        case .averageDailyDuration:
+            "chart.line.uptrend.xyaxis"
+        case .longestDay:
+            "trophy.fill"
+        }
     }
 }
 
