@@ -14,7 +14,7 @@
 [![Swift](https://img.shields.io/badge/swift-6-orange)](#)
 [![UI](https://img.shields.io/badge/UI-SwiftUI-blue)](#)
 [![Version](https://img.shields.io/badge/version-1.0.1-brightgreen)](#)
-[![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-133%20passing-brightgreen)](#)
 
 `iTime` 只回答一个问题：
 
@@ -120,6 +120,12 @@ Package.swift
 - 同步范围：复盘归档与应用设置（不包含原始日历事件）
 - 同步方式：手动触发（设置页中发现设备并点击同步）
 
+## 系统要求
+
+- macOS 端：`macOS 26+`
+- iOS 端：`iOS 17+`
+- Swift 工具链：`Swift 6.3`
+
 ## 快速开始
 
 ### 用 Xcode 运行（macOS）
@@ -176,7 +182,7 @@ xcodebuild -project iTime.xcodeproj -scheme iTime-iOS -destination 'platform=iOS
 
 当前验证状态：
 
-- `swift test`：**85** 个测试通过
+- `swift test`：**133** 个测试通过
 - `xcodebuild -project iTime.xcodeproj -scheme iTime -destination 'platform=macOS' test`：通过
 
 ## 设计方向
@@ -206,7 +212,7 @@ xcodebuild -project iTime.xcodeproj -scheme iTime-iOS -destination 'platform=iOS
 当前不做：
 
 - 任务管理
-- 多端同步
+- 自动云同步（iCloud / CloudKit）
 - 健康 / 睡眠数据接入
 - 后台自动 AI 分析
 - 外部分析后端
