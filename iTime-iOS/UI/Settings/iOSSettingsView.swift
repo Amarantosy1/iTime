@@ -193,13 +193,7 @@ private struct iOSThemeSettingsDetailView: View {
 
     private var customThemeSection: some View {
         Section("我的自定义主题") {
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 12),
-                    GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: 12)
-                ],
-                spacing: 12
-            ) {
+            ThemeSquareGridLayout(columns: 2, spacing: 12) {
                 Button {
                     presentNewPresetEditor()
                 } label: {
@@ -210,31 +204,14 @@ private struct iOSThemeSettingsDetailView: View {
                 .buttonStyle(.plain)
 
                 ForEach(model.preferences.customThemePresets) { preset in
-                    Button {
-                        applyPreset(preset)
-                    } label: {
-                        SquareThemeTile {
-                            CustomThemePresetCard(
-                                preset: preset,
-                                image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
-                                isSelected: model.preferences.selectedCustomThemePresetID == preset.id
-                            )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button {
-                            presentEditor(for: preset)
-                        } label: {
-                            Label("编辑", systemImage: "slider.horizontal.3")
-                        }
-
-                        Button(role: .destructive) {
-                            deletePreset(preset)
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
-                    }
+                    ThemePresetTile(
+                        preset: preset,
+                        image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
+                        isSelected: model.preferences.selectedCustomThemePresetID == preset.id,
+                        onApply: { applyPreset(preset) },
+                        onEdit: { presentEditor(for: preset) },
+                        onDelete: { deletePreset(preset) }
+                    )
                 }
             }
             .padding(.vertical, 2)
@@ -322,19 +299,89 @@ private struct iOSThemeSettingsDetailView: View {
     }
 }
 
+private struct ThemeSquareGridLayout: Layout {
+    let columns: Int
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let availableWidth = proposal.width ?? 320
+        let safeColumns = max(columns, 1)
+        let squareSide = max((availableWidth - CGFloat(safeColumns - 1) * spacing) / CGFloat(safeColumns), 0)
+        let rowCount = Int(ceil(Double(subviews.count) / Double(safeColumns)))
+        let totalHeight = CGFloat(rowCount) * squareSide + CGFloat(max(rowCount - 1, 0)) * spacing
+        return CGSize(width: availableWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let safeColumns = max(columns, 1)
+        let squareSide = max((bounds.width - CGFloat(safeColumns - 1) * spacing) / CGFloat(safeColumns), 0)
+
+        for index in subviews.indices {
+            let row = index / safeColumns
+            let column = index % safeColumns
+            let x = bounds.minX + CGFloat(column) * (squareSide + spacing)
+            let y = bounds.minY + CGFloat(row) * (squareSide + spacing)
+            subviews[index].place(
+                at: CGPoint(x: x, y: y),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: squareSide, height: squareSide)
+            )
+        }
+    }
+}
+
 private struct SquareThemeTile<Content: View>: View {
+    var isSelected: Bool = false
     @ViewBuilder let content: Content
     private let cornerRadius: CGFloat = 16
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(.clear)
-            .aspectRatio(1, contentMode: .fit)
+            .fill(Color.secondary.opacity(0.1))
             .overlay {
                 content
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(isSelected ? Color.accentColor : Color.white.opacity(0.14), lineWidth: isSelected ? 2 : 1)
+            }
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+}
+
+private struct ThemePresetTile: View {
+    let preset: CustomThemePreset
+    let image: UIImage?
+    let isSelected: Bool
+    let onApply: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        SquareThemeTile(isSelected: isSelected) {
+            CustomThemePresetCard(
+                preset: preset,
+                image: image,
+                isSelected: isSelected
+            )
+        }
+        .onTapGesture {
+            onApply()
+        }
+        .contextMenu {
+            Button {
+                onEdit()
+            } label: {
+                Label("编辑", systemImage: "slider.horizontal.3")
+            }
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("删除", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -394,11 +441,6 @@ private struct CustomThemePresetCard: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .padding(10)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
