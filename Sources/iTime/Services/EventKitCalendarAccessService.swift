@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 public final class EventKitCalendarAccessService: CalendarAccessServing {
-    private let store: EKEventStore
+    private var store: EKEventStore
 
     public init(store: EKEventStore = EKEventStore()) {
         self.store = store
@@ -28,7 +28,27 @@ public final class EventKitCalendarAccessService: CalendarAccessServing {
         do {
             _ = try await store.requestFullAccessToEvents()
         } catch {
-            return authorizationState()
+            return await settleAuthorizationState()
+        }
+
+        let state = await settleAuthorizationState()
+        if state == .authorized {
+            // Recreate the event store after TCC permission transitions to avoid stale reads.
+            store = EKEventStore()
+        }
+        return state
+    }
+
+    private func settleAuthorizationState() async -> CalendarAuthorizationState {
+        let maxAttempts = 5
+        for attempt in 0..<maxAttempts {
+            let state = authorizationState()
+            if state != .notDetermined {
+                return state
+            }
+            if attempt < maxAttempts - 1 {
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
         }
         return authorizationState()
     }

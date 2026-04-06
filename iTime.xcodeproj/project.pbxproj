@@ -122,6 +122,7 @@
 		A4EAF6A9C8B254524EEC0E0B /* AIConversationRoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* AIConversationRoutingService.swift */; };
 		B1621A3EA8108FC2A6F19828 /* DevicePeer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633AE0A267045A8F671DF87D /* DevicePeer.swift */; };
 		B5DE7FDB2F801742007C9D96 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = B5DE7FDA2F801742007C9D96 /* MarkdownUI */; };
+		B5DE7FDD2F801742007C9D96 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = B5DE7FDA2F801742007C9D96 /* MarkdownUI */; };
 		B6BAC00CF7EC31ED6CD79F15 /* SyncMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E299B6B9170F0A744DF4C4 /* SyncMessage.swift */; };
 		C236B155E93C5D72763F67B7 /* SyncPersistenceAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB6EE150D809B7D6366E9F26 /* SyncPersistenceAdapter.swift */; };
 		C7ECAD571CA376954928160F /* OpenAIConversationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* OpenAIConversationService.swift */; };
@@ -251,6 +252,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B5DE7FDD2F801742007C9D96 /* MarkdownUI in Frameworks */,
 				C8A5438801E0BE2C97665712 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

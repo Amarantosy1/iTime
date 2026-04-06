@@ -1,109 +1,171 @@
 import SwiftUI
+import MarkdownUI
 
 struct iOSConversationView: View {
     @Bindable var model: AppModel
-    @State private var reply = ""
-    @State private var showsDiscardConfirmation = false
+    @State private var customModelInput = ""
+    @State private var showsConversationSession = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                rangeSection
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        switch model.aiConversationState {
-                        case .waitingForUser(let session), .responding(let session), .summarizing(let session):
-                            ForEach(session.messages, id: \.id) { item in
-                                messageBubble(item)
-                            }
-                            if case .responding = model.aiConversationState {
-                                ProgressView("AI 正在继续追问…")
-                            } else if case .summarizing = model.aiConversationState {
-                                ProgressView("AI 正在整理总结…")
-                            }
-                        case .completed(let summary):
-                            Text(summary.headline)
-                                .font(.headline)
-                            Text(summary.summary)
-                                .foregroundStyle(.secondary)
-                        case .failed(let message):
-                            Text(message)
-                                .foregroundStyle(.red)
-                        case .unavailable(let availability):
-                            Text(availability.message)
-                                .foregroundStyle(.secondary)
-                        case .idle:
-                            Text("点击右上角“开始新复盘”")
-                                .foregroundStyle(.secondary)
-                        case .asking:
-                            ProgressView("AI 正在准备问题…")
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+            ScrollView {
+                VStack(spacing: 14) {
+                    rangeSection
+                    modelSelectionSection
+                    entrySection
                 }
-
-                if canReply {
-                    HStack(spacing: 8) {
-                        TextField("补充这个日程具体做了什么", text: $reply, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .lineLimit(1...4)
-
-                        Button("发送") {
-                            let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !trimmed.isEmpty else { return }
-                            Task {
-                                let outgoing = trimmed
-                                reply = ""
-                                await model.sendAIConversationReply(outgoing)
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(isSending)
-                    }
-                    .padding(.horizontal)
-
-                    Button("结束复盘") {
-                        Task { await model.finishAIConversation() }
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.bottom, 12)
-                }
+                .padding(.vertical, 10)
             }
             .navigationTitle("AI 复盘")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 10) {
-                        if model.hasActiveAIConversation {
-                            Button("退出不保存") {
-                                showsDiscardConfirmation = true
-                            }
-                            .foregroundStyle(.red)
-                        }
-
-                        NavigationLink(destination: iOSConversationHistoryView(model: model)) {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
+                    NavigationLink(destination: iOSConversationHistoryView(model: model)) {
+                        Image(systemName: "clock.arrow.circlepath")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("开始新复盘") {
-                        Task { await model.startAIConversation() }
+                        startConversationAndOpen()
                     }
                     .disabled(!canStart)
                 }
             }
-            .alert("放弃这轮复盘？", isPresented: $showsDiscardConfirmation) {
-                Button("退出", role: .destructive) {
-                    model.discardCurrentAIConversation()
-                    reply = ""
-                }
-                Button("取消", role: .cancel) {}
-            } message: {
-                Text("退出后不会生成报告，这一轮未完成对话也不会进入历史。")
+            .fullScreenCover(isPresented: $showsConversationSession) {
+                iOSConversationSessionView(model: model)
             }
+            .onAppear {
+                customModelInput = model.selectedConversationModel
+            }
+            .onChange(of: model.selectedConversationModel) { _, newValue in
+                customModelInput = newValue
+            }
+        }
+    }
+
+    private var entrySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("对话入口")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            stateCard(
+                title: entryCardTitle,
+                message: "\(selectedServiceDisplayName) · \(selectedModelDisplayText)",
+                color: .secondary
+            )
+
+            HStack(spacing: 10) {
+                Button(model.hasActiveAIConversation ? "继续对话" : "进入对话") {
+                    if model.hasActiveAIConversation {
+                        showsConversationSession = true
+                    } else {
+                        startConversationAndOpen()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+
+                if model.hasActiveAIConversation {
+                    Button("退出不保存", role: .destructive) {
+                        model.discardCurrentAIConversation()
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private var modelSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("模型选择")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("AI 服务")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Picker(
+                        "AI 服务",
+                        selection: Binding(
+                            get: { selectedServiceIDBinding },
+                            set: { id in
+                                model.selectConversationService(id: id)
+                            }
+                        )
+                    ) {
+                        ForEach(model.availableAIServices) { service in
+                            HStack {
+                                Text(service.displayName)
+                                if !service.isEnabled {
+                                    Text("(未启用)")
+                                }
+                            }
+                            .tag(service.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("模型")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let selectedService {
+                        if selectedService.models.isEmpty {
+                            TextField("输入模型名", text: $customModelInput)
+                                .textFieldStyle(.roundedBorder)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .onSubmit {
+                                    let trimmed = customModelInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    if !trimmed.isEmpty {
+                                        model.selectConversationModel(trimmed)
+                                    }
+                                }
+                        } else {
+                            Picker(
+                                "模型",
+                                selection: Binding(
+                                    get: { model.selectedConversationModel },
+                                    set: { model.selectConversationModel($0) }
+                                )
+                            ) {
+                                ForEach(selectedService.models, id: \.self) { item in
+                                    Text(item)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                        .tag(item)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+                    } else {
+                        Text("暂无服务")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.thinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.secondary.opacity(0.15), lineWidth: 1)
+            )
+            .padding(.horizontal)
         }
     }
 
@@ -199,6 +261,289 @@ struct iOSConversationView: View {
         }
     }
 
+    private var entryCardTitle: String {
+        switch model.aiConversationState {
+        case .idle:
+            return "准备开始"
+        case .completed:
+            return "上次复盘已完成"
+        case .failed:
+            return "上次复盘失败"
+        case .unavailable:
+            return "服务暂不可用"
+        case .asking, .responding, .waitingForUser, .summarizing:
+            return "有一轮复盘进行中"
+        }
+    }
+
+    private var selectedServiceIDBinding: UUID {
+        if let selectedID = model.selectedConversationServiceID {
+            return selectedID
+        }
+        return model.availableAIServices.first?.id ?? AIProviderKind.openAI.builtInServiceID
+    }
+
+    private var selectedService: AIServiceEndpoint? {
+        model.availableAIServices.first(where: { $0.id == selectedServiceIDBinding })
+    }
+
+    private var selectedServiceDisplayName: String {
+        selectedService?.displayName ?? "AI 服务"
+    }
+
+    private var selectedModelDisplayText: String {
+        let modelName = model.selectedConversationModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return modelName.isEmpty ? "未选择模型" : modelName
+    }
+
+    private func startConversationAndOpen() {
+        Task {
+            await model.startAIConversation()
+            await MainActor.run {
+                showsConversationSession = model.hasActiveAIConversation
+            }
+        }
+    }
+
+
+    @ViewBuilder
+    private func completedCard(_ summary: AIConversationSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("复盘完成", systemImage: "checkmark.seal.fill")
+                .font(.headline)
+                .foregroundStyle(.green)
+
+            Text(summary.headline)
+                .font(.headline)
+
+            Text(summary.summary)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.green.opacity(0.08))
+        )
+    }
+
+    @ViewBuilder
+    private func stateCard(title: String, message: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+            Text(message)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.secondary.opacity(0.08))
+        )
+    }
+
+    @ViewBuilder
+    private func messageBubble(_ message: AIConversationMessage) -> some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if message.role == .assistant {
+                messageAvatar(systemImage: "sparkles", tint: .indigo)
+            } else {
+                Spacer(minLength: 28)
+            }
+
+            VStack(alignment: message.role == .assistant ? .leading : .trailing, spacing: 4) {
+                Text(message.role.displayTitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(message.content)
+                    .font(.body)
+                    .foregroundStyle(message.role == .assistant ? Color.primary : Color.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                message.role == .assistant
+                                    ? Color(uiColor: .secondarySystemBackground)
+                                    : Color.accentColor
+                            )
+                    )
+
+                Text(message.createdAt.formatted(date: .omitted, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: message.role == .assistant ? .leading : .trailing)
+
+            if message.role == .user {
+                messageAvatar(systemImage: "person.fill", tint: .teal)
+            } else {
+                Spacer(minLength: 28)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: message.role == .assistant ? .leading : .trailing)
+    }
+
+    private func messageAvatar(systemImage: String, tint: Color) -> some View {
+        Circle()
+            .fill(tint.opacity(0.2))
+            .frame(width: 28, height: 28)
+            .overlay(
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(tint)
+            )
+    }
+}
+
+struct iOSConversationSessionView: View {
+    @Bindable var model: AppModel
+    @State private var reply = ""
+    @State private var showsDiscardConfirmation = false
+    @State private var lastAutoScrolledAssistantMessageID: UUID?
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let chatBottomID = "chat-bottom-anchor"
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            switch model.aiConversationState {
+                            case .waitingForUser(let session), .responding(let session), .summarizing(let session):
+                                conversationStatusRow
+
+                                ForEach(session.messages, id: \.id) { item in
+                                    messageBubble(item)
+                                        .id(item.id)
+                                }
+
+                                if case .responding = model.aiConversationState {
+                                    ProgressView("AI 正在继续追问…")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.top, 4)
+                                } else if case .summarizing = model.aiConversationState {
+                                    ProgressView("AI 正在整理总结…")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.top, 4)
+                                }
+                            case .completed(let summary):
+                                completedCard(summary)
+                            case .failed(let message):
+                                stateCard(title: "请求失败", message: message, color: .red)
+                            case .unavailable(let availability):
+                                stateCard(title: "暂不可用", message: availability.message, color: .secondary)
+                            case .idle:
+                                stateCard(title: "还未开始", message: "请返回上一页点击“开始新复盘”", color: .secondary)
+                            case .asking:
+                                ProgressView("AI 正在准备问题…")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.top, 8)
+                            }
+
+                            Color.clear
+                                .frame(height: 1)
+                                .id(chatBottomID)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onChange(of: lastAssistantMessageID) { _, newID in
+                        guard let newID, newID != lastAutoScrolledAssistantMessageID else { return }
+                        lastAutoScrolledAssistantMessageID = newID
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo(chatBottomID, anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: currentMessageCount) { oldCount, newCount in
+                        guard newCount > oldCount, lastAssistantMessageID == nil else { return }
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(chatBottomID, anchor: .bottom)
+                        }
+                    }
+                }
+
+                if canReply {
+                    HStack(spacing: 8) {
+                        TextField("补充这个日程具体做了什么", text: $reply, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(1...4)
+
+                        Button("发送") {
+                            let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !trimmed.isEmpty else { return }
+                            Task {
+                                let outgoing = trimmed
+                                reply = ""
+                                await model.sendAIConversationReply(outgoing)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isSending)
+                    }
+                    .padding(.horizontal)
+
+                    Button("结束复盘") {
+                        Task { await model.finishAIConversation() }
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.horizontal)
+                    .padding(.bottom, 12)
+                }
+            }
+            .navigationTitle("复盘对话")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("关闭") { dismiss() }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    if model.hasActiveAIConversation {
+                        Button("退出不保存") {
+                            showsDiscardConfirmation = true
+                        }
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+            .alert("放弃这轮复盘？", isPresented: $showsDiscardConfirmation) {
+                Button("退出", role: .destructive) {
+                    model.discardCurrentAIConversation()
+                    reply = ""
+                    dismiss()
+                }
+                Button("取消", role: .cancel) {}
+            } message: {
+                Text("退出后不会生成报告，这一轮未完成对话也不会进入历史。")
+            }
+        }
+    }
+
+    private var conversationStatusRow: some View {
+        HStack(spacing: 8) {
+            Label("\(selectedServiceDisplayName) · \(selectedModelDisplayText)", systemImage: "sparkles")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+
+            Label("共 \(currentMessageCount) 条", systemImage: "text.bubble")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.bottom, 4)
+    }
+
     private var canReply: Bool {
         switch model.aiConversationState {
         case .waitingForUser, .responding:
@@ -215,20 +560,120 @@ struct iOSConversationView: View {
         return false
     }
 
+    private var selectedService: AIServiceEndpoint? {
+        let selectedID = model.selectedConversationServiceID
+        return model.availableAIServices.first(where: { $0.id == selectedID })
+    }
+
+    private var selectedServiceDisplayName: String {
+        selectedService?.displayName ?? "AI 服务"
+    }
+
+    private var selectedModelDisplayText: String {
+        let modelName = model.selectedConversationModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return modelName.isEmpty ? "未选择模型" : modelName
+    }
+
+    private var currentMessageCount: Int {
+        model.currentConversationSession?.messages.count ?? 0
+    }
+
+    private var lastAssistantMessageID: UUID? {
+        model.currentConversationSession?.messages.last(where: { $0.role == .assistant })?.id
+    }
+
+    @ViewBuilder
+    private func completedCard(_ summary: AIConversationSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("复盘完成", systemImage: "checkmark.seal.fill")
+                .font(.headline)
+                .foregroundStyle(.green)
+
+            Text(summary.headline)
+                .font(.headline)
+
+            Text(summary.summary)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.green.opacity(0.08))
+        )
+    }
+
+    @ViewBuilder
+    private func stateCard(title: String, message: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+            Text(message)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.secondary.opacity(0.08))
+        )
+    }
+
     @ViewBuilder
     private func messageBubble(_ message: AIConversationMessage) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(message.role.displayTitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(message.content)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(message.role == .assistant ? Color.secondary.opacity(0.12) : Color.accentColor.opacity(0.12))
-                )
+        HStack(alignment: .bottom, spacing: 8) {
+            if message.role == .assistant {
+                messageAvatar(systemImage: "sparkles", tint: .indigo)
+            } else {
+                Spacer(minLength: 28)
+            }
+
+            VStack(alignment: message.role == .assistant ? .leading : .trailing, spacing: 4) {
+                Text(message.role.displayTitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Text(message.content)
+                    .font(.body)
+                    .foregroundStyle(message.role == .assistant ? Color.primary : Color.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                message.role == .assistant
+                                    ? Color(uiColor: .secondarySystemBackground)
+                                    : Color.accentColor
+                            )
+                    )
+
+                Text(message.createdAt.formatted(date: .omitted, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: message.role == .assistant ? .leading : .trailing)
+
+            if message.role == .user {
+                messageAvatar(systemImage: "person.fill", tint: .teal)
+            } else {
+                Spacer(minLength: 28)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: message.role == .assistant ? .leading : .trailing)
+    }
+
+    private func messageAvatar(systemImage: String, tint: Color) -> some View {
+        Circle()
+            .fill(tint.opacity(0.2))
+            .frame(width: 28, height: 28)
+            .overlay(
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(tint)
+            )
     }
 }
 
@@ -238,22 +683,28 @@ private extension AIConversationMessageRole {
         case .assistant:
             return "AI"
         case .user:
-            return "你"
+            return "我"
         }
     }
 }
 
-
+private enum iOSConversationLongFormCopy {
+    static let sectionTitle = "长文复盘"
+    static let placeholder = "这条历史总结还没有生成长文复盘。"
+    static let generateAction = "生成长文复盘"
+    static let regenerateAction = "重新生成长文"
+    static let generatingText = "AI 正在撰写长文复盘…"
+}
 
 struct iOSConversationHistoryView: View {
     @Bindable var model: AppModel
-    
+
     var body: some View {
         Group {
             if model.aiConversationHistory.isEmpty {
                 Text("还没有历史总结。")
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     ForEach(model.aiConversationHistory, id: \.id) { summary in
@@ -262,7 +713,7 @@ struct iOSConversationHistoryView: View {
                                 Text(summary.headline)
                                     .font(.headline)
                                     .lineLimit(2)
-                                
+
                                 Text(summary.displayPeriodText)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
@@ -277,7 +728,7 @@ struct iOSConversationHistoryView: View {
         .navigationTitle("复盘历史")
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private func deleteItems(at offsets: IndexSet) {
         for index in offsets {
             let summary = model.aiConversationHistory[index]
@@ -289,17 +740,14 @@ struct iOSConversationHistoryView: View {
 struct iOSConversationSummaryDetailView: View {
     @Bindable var model: AppModel
     let summaryID: UUID
-    
+
     @State private var isEditing = false
     @State private var headlineDraft = ""
     @State private var summaryDraft = ""
     @State private var findingsDraft = ""
     @State private var suggestionsDraft = ""
-    @State private var isEditingLongForm = false
-    @State private var longFormTitleDraft = ""
-    @State private var longFormContentDraft = ""
     @State private var pendingDeletion = false
-    
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -316,19 +764,16 @@ struct iOSConversationSummaryDetailView: View {
                                 Text(summary.headline)
                                     .font(.title2.weight(.semibold))
                             }
-                            
+
                             Text("\(summary.serviceDisplayName) · \(summary.displayPeriodText)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
-                        
-                        editorOrText(text: $summaryDraft, readOnlyText: summary.summary, isEditing: isEditing, title: "总结")
-                        
-                        detailSection(title: "主要发现", items: summary.findings, draftText: $findingsDraft, isEditing: isEditing)
-                        
-                        detailSection(title: "改进建议", items: summary.suggestions, draftText: $suggestionsDraft, isEditing: isEditing)
 
-                        longFormSection(summary: summary)
+                        editorOrText(text: $summaryDraft, readOnlyText: summary.summary, isEditing: isEditing, title: "总结")
+                        detailSection(title: "发现", items: summary.findings, draftText: $findingsDraft, isEditing: isEditing)
+                        detailSection(title: "建议", items: summary.suggestions, draftText: $suggestionsDraft, isEditing: isEditing)
+                        longFormSection(summaryID: summary.id)
                     }
                     .padding()
                 }
@@ -361,7 +806,10 @@ struct iOSConversationSummaryDetailView: View {
                         } else {
                             Menu {
                                 Button("编辑", systemImage: "pencil") {
-                                    synchronizeDrafts(from: summary)
+                                    headlineDraft = summary.headline
+                                    summaryDraft = summary.summary
+                                    findingsDraft = summary.findings.joined(separator: "\n")
+                                    suggestionsDraft = summary.suggestions.joined(separator: "\n")
                                     isEditing = true
                                 }
                                 Button("删除", systemImage: "trash", role: .destructive) {
@@ -372,22 +820,14 @@ struct iOSConversationSummaryDetailView: View {
                             }
                         }
                     }
+
                     if isEditing {
                         ToolbarItem(placement: .topBarLeading) {
                             Button("取消") {
-                                synchronizeDrafts(from: summary)
                                 isEditing = false
                             }
                         }
                     }
-                }
-                .onAppear {
-                    synchronizeDrafts(from: summary)
-                }
-                .onChange(of: summary.id) { _, _ in
-                    isEditing = false
-                    isEditingLongForm = false
-                    synchronizeDrafts(from: summary)
                 }
                 .alert("删除这条历史总结？", isPresented: $pendingDeletion) {
                     Button("删除", role: .destructive) {
@@ -404,27 +844,30 @@ struct iOSConversationSummaryDetailView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func editorOrText(text: Binding<String>, readOnlyText: String, isEditing: Bool, title: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.headline)
+            Text(title)
+                .font(.headline)
+
             if isEditing {
                 TextEditor(text: text)
                     .frame(minHeight: 100)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
             } else {
-                Text(LocalizedStringKey(readOnlyText))
+                Text(readOnlyText)
             }
         }
     }
-    
+
     @ViewBuilder
     private func detailSection(title: String, items: [String], draftText: Binding<String>, isEditing: Bool) -> some View {
         if !items.isEmpty || isEditing {
             VStack(alignment: .leading, spacing: 8) {
-                Text(title).font(.headline)
-                
+                Text(title)
+                    .font(.headline)
+
                 if isEditing {
                     TextEditor(text: draftText)
                         .frame(minHeight: 100)
@@ -434,7 +877,7 @@ struct iOSConversationSummaryDetailView: View {
                         ForEach(items, id: \.self) { item in
                             HStack(alignment: .top) {
                                 Text("•")
-                                Text(LocalizedStringKey(item))
+                                Text(item)
                             }
                         }
                     }
@@ -442,98 +885,11 @@ struct iOSConversationSummaryDetailView: View {
             }
         }
     }
-    
+
     private func parseLines(from text: String) -> [String] {
         text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
-    }
-
-    private func synchronizeDrafts(from summary: AIConversationSummary) {
-        headlineDraft = summary.headline
-        summaryDraft = summary.summary
-        findingsDraft = summary.findings.joined(separator: "\n")
-        suggestionsDraft = summary.suggestions.joined(separator: "\n")
-
-        if let report = model.longFormReport(for: summary.id) {
-            longFormTitleDraft = report.title
-            longFormContentDraft = report.content
-        } else {
-            longFormTitleDraft = ""
-            longFormContentDraft = ""
-        }
-    }
-
-    @ViewBuilder
-    private func longFormSection(summary: AIConversationSummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("长文复盘")
-                    .font(.headline)
-                Spacer()
-
-                if let report = model.longFormReport(for: summary.id) {
-                    if isEditingLongForm {
-                        Button("取消") {
-                            synchronizeDrafts(from: summary)
-                            isEditingLongForm = false
-                        }
-
-                        Button("保存长文") {
-                            model.updateLongFormReport(
-                                id: report.id,
-                                title: longFormTitleDraft,
-                                content: longFormContentDraft
-                            )
-                            isEditingLongForm = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                    } else {
-                        Button("编辑长文") {
-                            synchronizeDrafts(from: summary)
-                            isEditingLongForm = true
-                        }
-                    }
-
-                    Button("重新生成长文") {
-                        Task { await model.generateLongFormReport(for: summary.id) }
-                    }
-                } else {
-                    Button("生成长文复盘") {
-                        Task { await model.generateLongFormReport(for: summary.id) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            }
-
-            if let report = model.longFormReport(for: summary.id) {
-                if isEditingLongForm {
-                    TextField("长文标题", text: $longFormTitleDraft)
-                        .textFieldStyle(.roundedBorder)
-
-                    TextEditor(text: $longFormContentDraft)
-                        .frame(minHeight: 220)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
-                } else {
-                    Text(report.title)
-                        .font(.title3.weight(.semibold))
-                    Text(LocalizedStringKey(report.content))
-                }
-            } else {
-                Text("这条历史总结还没有生成长文复盘。")
-                    .foregroundStyle(.secondary)
-            }
-
-            switch model.aiLongFormState {
-            case .generating(let generatingSummaryID) where generatingSummaryID == summary.id:
-                ProgressView("AI 正在撰写长文复盘…")
-            case .failed(let failedSummaryID, let message) where failedSummaryID == summary.id:
-                Text(message)
-                    .foregroundStyle(.red)
-            default:
-                EmptyView()
-            }
-        }
     }
 
     private func shareContent(for summary: AIConversationSummary) -> String {
@@ -568,5 +924,47 @@ struct iOSConversationSummaryDetailView: View {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    @ViewBuilder
+    private func longFormSection(summaryID: UUID) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(iOSConversationLongFormCopy.sectionTitle)
+                    .font(.headline)
+                Spacer()
+
+                if model.longFormReport(for: summaryID) != nil {
+                    Button(iOSConversationLongFormCopy.regenerateAction) {
+                        Task { await model.generateLongFormReport(for: summaryID) }
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Button(iOSConversationLongFormCopy.generateAction) {
+                        Task { await model.generateLongFormReport(for: summaryID) }
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
+            if let report = model.longFormReport(for: summaryID) {
+                Text(report.title)
+                    .font(.subheadline.weight(.semibold))
+                Markdown(report.content)
+            } else {
+                Text(iOSConversationLongFormCopy.placeholder)
+                    .foregroundStyle(.secondary)
+            }
+
+            switch model.aiLongFormState {
+            case .generating(let currentSummaryID) where currentSummaryID == summaryID:
+                ProgressView(iOSConversationLongFormCopy.generatingText)
+            case .failed(let currentSummaryID, let message) where currentSummaryID == summaryID:
+                Text(message)
+                    .foregroundStyle(.red)
+            default:
+                EmptyView()
+            }
+        }
     }
 }

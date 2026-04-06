@@ -756,6 +756,68 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func aiConversationHistoryOrderingIsDeterministicWhenCreatedAtTies() async {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [],
+        events: []
+    )
+    let idTieLow = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    let idTieHigh = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+    let idOldest = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+
+    func makeSummary(id: UUID, createdAt: Date, headline: String) -> AIConversationSummary {
+        AIConversationSummary(
+            id: id,
+            sessionID: UUID(),
+            serviceID: AIProviderKind.openAI.builtInServiceID,
+            serviceDisplayName: "OpenAI",
+            provider: .openAI,
+            model: "gpt-5-mini",
+            range: .today,
+            startDate: .init(timeIntervalSince1970: 0),
+            endDate: .init(timeIntervalSince1970: 86_400),
+            createdAt: createdAt,
+            headline: headline,
+            summary: "",
+            findings: [],
+            suggestions: [],
+            overviewSnapshot: AIOverviewSnapshot(
+                rangeTitle: "今天",
+                totalDurationText: "0小时",
+                totalEventCount: 0,
+                topCalendarNames: []
+            )
+        )
+    }
+
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [],
+            summaries: [
+                makeSummary(id: idOldest, createdAt: .init(timeIntervalSince1970: 100), headline: "最旧"),
+                makeSummary(id: idTieLow, createdAt: .init(timeIntervalSince1970: 200), headline: "并列-低"),
+                makeSummary(id: idTieHigh, createdAt: .init(timeIntervalSince1970: 200), headline: "并列-高"),
+            ],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+
+    let model = AppModel(
+        service: calendarService,
+        preferences: UserPreferences(storage: .inMemory),
+        aiConversationService: RecordingAIConversationService(),
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+
+    #expect(model.aiConversationHistory.map(\.id) == [idTieHigh, idTieLow, idOldest])
+}
+
+@MainActor
 @Test func refreshingOverviewResetsCurrentConversationButKeepsHistory() async {
     let calendarService = ConversationStubCalendarAccessService(
         state: CalendarAuthorizationState.authorized,

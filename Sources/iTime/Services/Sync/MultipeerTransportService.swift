@@ -12,6 +12,7 @@ public final class MultipeerTransportService: NSObject, @unchecked Sendable, Mul
 
     private let serviceType: String
     private let localPeerID: String
+    private let connectionTimeoutNanoseconds: UInt64
 
     #if canImport(MultipeerConnectivity)
     private var mcPeerID: MCPeerID?
@@ -20,9 +21,14 @@ public final class MultipeerTransportService: NSObject, @unchecked Sendable, Mul
     private var advertiser: MCNearbyServiceAdvertiser?
     #endif
 
-    public init(serviceType: String, localPeerID: String = ProcessInfo.processInfo.hostName) {
+    public init(
+        serviceType: String,
+        localPeerID: String = ProcessInfo.processInfo.hostName,
+        connectionTimeoutNanoseconds: UInt64 = 8_000_000_000
+    ) {
         self.serviceType = serviceType
         self.localPeerID = localPeerID
+        self.connectionTimeoutNanoseconds = connectionTimeoutNanoseconds
         super.init()
     }
 
@@ -95,20 +101,39 @@ public final class MultipeerTransportService: NSObject, @unchecked Sendable, Mul
     public func connect(to peerID: String) async throws {
         #if canImport(MultipeerConnectivity)
         setupSessionIfNeeded()
-        if let browser {
-            _ = browser
-            _ = peerID
+        guard let session else {
+            throw SyncTransportError.peerNotFound(peerID)
+        }
+
+        if session.connectedPeers.contains(where: { $0.displayName == peerID }) {
             return
         }
-        #endif
+
+        guard let browser else {
+            throw SyncTransportError.peerNotFound(peerID)
+        }
+        _ = browser
+        try await waitUntilConnected(peerID: peerID)
+        return
+        #else
+        _ = peerID
         throw SyncTransportError.peerNotFound(peerID)
+        #endif
     }
 
     public func send(_ message: SyncMessage, to peerID: String) async throws {
         #if canImport(MultipeerConnectivity)
-        guard let session else { throw SyncTransportError.peerNotFound(peerID) }
+        guard var session else { throw SyncTransportError.peerNotFound(peerID) }
+        if !session.connectedPeers.contains(where: { $0.displayName == peerID }) {
+            try await connect(to: peerID)
+            guard let refreshed = self.session else {
+                throw SyncTransportError.peerNotFound(peerID)
+            }
+            session = refreshed
+        }
+
         guard let target = session.connectedPeers.first(where: { $0.displayName == peerID }) else {
-            throw SyncTransportError.peerNotFound(peerID)
+            throw SyncTransportError.timeout
         }
         let data = try JSONEncoder().encode(message)
         try session.send(data, toPeers: [target], with: .reliable)
@@ -139,6 +164,28 @@ public final class MultipeerTransportService: NSObject, @unchecked Sendable, Mul
         )
         advertiser.delegate = self
         self.advertiser = advertiser
+    }
+
+    private func waitUntilConnected(peerID: String) async throws {
+        let sleepIntervalNanoseconds: UInt64 = 200_000_000
+        let maxAttempts = max(1, Int(connectionTimeoutNanoseconds / sleepIntervalNanoseconds))
+
+        for _ in 0..<maxAttempts {
+            if Task.isCancelled {
+                throw SyncTransportError.timeout
+            }
+
+            if session?.connectedPeers.contains(where: { $0.displayName == peerID }) == true {
+                return
+            }
+
+            try await Task.sleep(nanoseconds: sleepIntervalNanoseconds)
+        }
+
+        if session?.connectedPeers.contains(where: { $0.displayName == peerID }) == true {
+            return
+        }
+        throw SyncTransportError.timeout
     }
     #endif
 }
@@ -178,6 +225,8 @@ extension MultipeerTransportService: MCNearbyServiceBrowserDelegate {
         if let session {
             browser.invitePeer(peerID, to: session, withContext: nil, timeout: 8)
         }
+
+        _ = info
     }
 
     public func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {

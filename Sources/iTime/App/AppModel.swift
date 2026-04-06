@@ -86,7 +86,7 @@ public final class AppModel {
         self.aiAnalysisState = .unavailable(.noData)
         self.aiConversationState = .unavailable(.noData)
         self.aiLongFormState = .idle
-        self.aiConversationHistory = archive.summaries.sorted(by: { $0.createdAt > $1.createdAt })
+        self.aiConversationHistory = Self.sortedConversationSummaries(archive.summaries)
         self.latestAIMemorySnapshot = archive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
         self.aiServiceConnectionStates = [:]
         self.selectedConversationServiceID = preferences.defaultAIServiceID ?? preferences.defaultAIService?.id
@@ -189,9 +189,10 @@ public final class AppModel {
 
         var fetchedCalendars = service.fetchCalendars()
         let selectedIDs = Set(preferences.selectedCalendarIDs)
+        let fetchedCalendarIDs = Set(fetchedCalendars.map(\.id))
         let reviewExcludedIDs = Set(preferences.reviewExcludedCalendarIDs)
 
-        if selectedIDs.isEmpty {
+        if selectedIDs.isEmpty || selectedIDs.isDisjoint(with: fetchedCalendarIDs) {
             fetchedCalendars = fetchedCalendars.map {
                 CalendarSource(
                     id: $0.id,
@@ -216,6 +217,10 @@ public final class AppModel {
         }
 
         let knownCalendarIDs = Set(fetchedCalendars.map(\.id))
+        let normalizedSelectedCalendarIDs = preferences.selectedCalendarIDs.filter { knownCalendarIDs.contains($0) }
+        if normalizedSelectedCalendarIDs.count != preferences.selectedCalendarIDs.count {
+            preferences.replaceSelectedCalendars(with: normalizedSelectedCalendarIDs)
+        }
         let normalizedReviewExcludedIDs = preferences.reviewExcludedCalendarIDs.filter { knownCalendarIDs.contains($0) }
         if normalizedReviewExcludedIDs.count != preferences.reviewExcludedCalendarIDs.count {
             preferences.replaceReviewExcludedCalendars(with: normalizedReviewExcludedIDs)
@@ -870,7 +875,7 @@ public final class AppModel {
             sessions: aiConversationArchive.sessions,
             summaries: aiConversationArchive.summaries
                 .map { $0.id == id ? updatedSummary : $0 }
-                .sorted(by: { $0.createdAt > $1.createdAt }),
+                .sorted(by: Self.isSummaryOrderedBefore),
             memorySnapshots: aiConversationArchive.memorySnapshots,
             longFormReports: aiConversationArchive.longFormReports
         )
@@ -1434,7 +1439,7 @@ public final class AppModel {
     private func reloadConversationArchiveFromStoreIfPossible() {
         guard let archive = try? aiConversationArchiveStore.loadArchive() else { return }
         aiConversationArchive = archive
-        aiConversationHistory = archive.summaries.sorted(by: { $0.createdAt > $1.createdAt })
+        aiConversationHistory = Self.sortedConversationSummaries(archive.summaries)
         latestAIMemorySnapshot = archive.memorySnapshots.max(by: { $0.createdAt < $1.createdAt })
     }
 
@@ -1450,8 +1455,8 @@ public final class AppModel {
         if let summary {
             summaries.removeAll { $0.id == summary.id }
             summaries.append(summary)
-            summaries.sort { $0.createdAt > $1.createdAt }
         }
+        summaries = Self.sortedConversationSummaries(summaries)
 
         let updatedArchive = AIConversationArchive(
             sessions: sessions,
@@ -1470,7 +1475,7 @@ public final class AppModel {
         
         let finalArchive = AIConversationArchive(
             sessions: updatedArchive.sessions,
-            summaries: updatedArchive.summaries,
+            summaries: Self.sortedConversationSummaries(updatedArchive.summaries),
             memorySnapshots: compactedSnapshots,
             longFormReports: updatedArchive.longFormReports
         )
@@ -1487,5 +1492,16 @@ public final class AppModel {
 
     private func invalidateAILongFormOperations() {
         aiLongFormOperationID = UUID()
+    }
+
+    private static func sortedConversationSummaries(_ summaries: [AIConversationSummary]) -> [AIConversationSummary] {
+        summaries.sorted(by: isSummaryOrderedBefore)
+    }
+
+    private static func isSummaryOrderedBefore(_ lhs: AIConversationSummary, _ rhs: AIConversationSummary) -> Bool {
+        if lhs.createdAt != rhs.createdAt {
+            return lhs.createdAt > rhs.createdAt
+        }
+        return lhs.id.uuidString > rhs.id.uuidString
     }
 }

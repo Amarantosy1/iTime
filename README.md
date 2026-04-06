@@ -1,5 +1,13 @@
 # iTime
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./logo.png">
+    <img src="./logo.png" alt="iTime Logo" width="220">
+  </picture>
+</p>
+
 > 一个原生的 macOS 菜单栏时间复盘应用，把系统日历变成你的个人时间仪表盘。
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20iOS-111111)](#)

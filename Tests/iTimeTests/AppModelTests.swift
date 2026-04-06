@@ -144,6 +144,27 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minu
 }
 
 @MainActor
+@Test func refreshSelectsAllCalendarsWhenStoredSelectionDoesNotMatchCurrentCalendars() async {
+    let service = StubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: false),
+            CalendarSource(id: "life", name: "生活", colorHex: "#50E3C2", isSelected: false),
+        ],
+        events: []
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.replaceSelectedCalendars(with: ["ios-only-calendar-id"])
+    let model = AppModel(service: service, preferences: preferences)
+
+    await model.refresh()
+
+    #expect(Set(preferences.selectedCalendarIDs) == ["work", "life"])
+    #expect(model.availableCalendars.allSatisfy { $0.isSelected })
+    #expect(model.availableCalendars.allSatisfy { $0.isIncludedInReview })
+}
+
+@MainActor
 @Test func togglingCalendarSelectionUpdatesStoredSelection() async {
     let service = StubCalendarAccessService(
         state: .authorized,
