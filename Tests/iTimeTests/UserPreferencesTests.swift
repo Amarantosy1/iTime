@@ -152,8 +152,9 @@ import Testing
 
 @Test func customThemePresetLegacyPayloadWithDisplayNameStillDecodes() {
     let suite = "iTime.tests.custom-theme-legacy-display-name"
+    _ = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+
     let defaults = UserDefaults(suiteName: suite) ?? .standard
-    defaults.removePersistentDomain(forName: suite)
 
     let legacyPayload = """
     [
