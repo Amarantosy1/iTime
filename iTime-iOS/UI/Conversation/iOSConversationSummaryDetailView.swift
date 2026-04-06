@@ -34,7 +34,7 @@ struct iOSConversationSummaryDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        editorOrText(text: $summaryDraft, readOnlyText: summary.summary, isEditing: isEditing, title: "总结")
+                        summarySection(text: $summaryDraft, readOnlyText: summary.summary, isEditing: isEditing)
                         
                         detailSection(title: "发现", items: summary.findings, draftText: $findingsDraft, isEditing: isEditing)
                         
@@ -107,7 +107,33 @@ struct iOSConversationSummaryDetailView: View {
                     .frame(minHeight: 100)
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
             } else {
-                Markdown(readOnlyText)
+                styledMarkdown(readOnlyText)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func summarySection(text: Binding<String>, readOnlyText: String, isEditing: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("总结").font(.headline)
+            if isEditing {
+                TextEditor(text: text)
+                    .frame(minHeight: 100)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
+            } else {
+                let sections = splitSummarySections(from: readOnlyText)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("客观总结")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    styledMarkdown(sections.objective, compact: true)
+                    if let subjective = sections.subjective, !subjective.isEmpty {
+                        Text("主观评价")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        styledMarkdown(subjective)
+                    }
+                }
             }
         }
     }
@@ -123,17 +149,110 @@ struct iOSConversationSummaryDetailView: View {
                         .frame(minHeight: 100)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.3)))
                 } else {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(items, id: \.self) { item in
-                            HStack(alignment: .top) {
-                                Text("•")
-                                Markdown(item)
-                            }
-                        }
-                    }
+                    styledMarkdown(items.map { "- \($0)" }.joined(separator: "\n"))
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func styledMarkdown(_ content: String, compact: Bool = false) -> some View {
+        markdownView(content, compact: compact)
+    }
+
+    private func markdownView(_ content: String, compact: Bool = false) -> some View {
+        Markdown(normalizedMarkdown(content))
+            .markdownTextStyle {
+                BackgroundColor(nil)
+                ForegroundColor(compact ? .secondary : .primary)
+                if compact {
+                    FontSize(.em(0.9))
+                }
+            }
+            .markdownTextStyle(\.code) {
+                FontFamilyVariant(.monospaced)
+                FontSize(.em(0.88))
+                BackgroundColor(.blue.opacity(0.16))
+            }
+            .markdownTextStyle(\.strong) {
+                FontWeight(.bold)
+                ForegroundColor(.primary)
+                BackgroundColor(.yellow.opacity(0.4))
+            }
+            .markdownBlockStyle(\.paragraph) { configuration in
+                configuration.label
+                    .relativeLineSpacing(.em(0.25))
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.secondary.opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.secondary.opacity(0.15), lineWidth: 1)
+                    )
+                    .markdownMargin(top: 0, bottom: 10)
+            }
+            .markdownBlockStyle(\.codeBlock) { configuration in
+                ScrollView(.horizontal, showsIndicators: true) {
+                    configuration.label
+                        .relativeLineSpacing(.em(0.2))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
+                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .markdownMargin(top: 4, bottom: 12)
+            }
+    }
+
+    private func splitSummarySections(from rawText: String) -> (objective: String, subjective: String?) {
+        let normalized = normalizedMarkdown(rawText)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Prefer explicit labels if model follows the prompt.
+        if let objectiveRange = normalized.range(of: "客观总结[:：]", options: .regularExpression),
+           let subjectiveRange = normalized.range(of: "主观评价[:：]", options: .regularExpression),
+           objectiveRange.upperBound <= subjectiveRange.lowerBound {
+            let objective = String(normalized[objectiveRange.upperBound..<subjectiveRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let subjective = String(normalized[subjectiveRange.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (objective: objective.isEmpty ? normalized : objective, subjective: subjective.isEmpty ? nil : subjective)
+        }
+
+        // Fallback: first paragraph as objective, second paragraph as subjective.
+        let parts = normalized
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !parts.isEmpty else {
+            return (objective: normalized, subjective: nil)
+        }
+        let objective = parts[0]
+        let subjective = parts.count > 1 ? parts.dropFirst().joined(separator: "\n\n") : nil
+        return (objective: objective, subjective: subjective)
+    }
+
+    private func normalizedMarkdown(_ rawText: String) -> String {
+        let unescaped = rawText
+            .replacingOccurrences(of: "\\\\n", with: "\n")
+            .replacingOccurrences(of: "\\`", with: "`")
+            .replacingOccurrences(of: "\\*", with: "*")
+            .replacingOccurrences(of: "\\_", with: "_")
+
+        // Convert ==highlight== and <mark>highlight</mark> to **highlight**.
+        let equalsConverted = unescaped.replacingOccurrences(
+            of: #"==([^=\n][^=]*?)=="#,
+            with: "**$1**",
+            options: .regularExpression
+        )
+
+        return equalsConverted.replacingOccurrences(
+            of: #"<mark>(.*?)</mark>"#,
+            with: "**$1**",
+            options: [.regularExpression, .caseInsensitive]
+        )
     }
     
     private func parseLines(from text: String) -> [String] {

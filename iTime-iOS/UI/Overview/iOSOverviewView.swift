@@ -5,6 +5,7 @@ struct iOSOverviewView: View {
     @Bindable var model: AppModel
     @State private var chartAppeared = false
     private let cardSpacing: CGFloat = 16
+    private var currentTheme: AppDisplayTheme { model.preferences.interfaceTheme }
 
     var body: some View {
         NavigationStack {
@@ -21,7 +22,7 @@ struct iOSOverviewView: View {
                                 trendSection(overview)
                                 distributionSection(overview)
                             } else {
-                                MagazineGlassCard {
+                                MagazineGlassCard(theme: currentTheme) {
                                     VStack(alignment: .leading, spacing: 10) {
                                         sectionEyebrow("暂无数据")
                                         Text("当前时间范围内没有可统计的日程。")
@@ -30,7 +31,7 @@ struct iOSOverviewView: View {
                                 }
                             }
                         } else {
-                            MagazineGlassCard {
+                            MagazineGlassCard(theme: currentTheme) {
                                 VStack(alignment: .leading, spacing: 10) {
                                     sectionEyebrow("日历权限")
                                     Text(authorizationHint)
@@ -58,7 +59,7 @@ struct iOSOverviewView: View {
     }
 
     private var rangeSection: some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 12) {
                 sectionEyebrow("统计范围")
 
@@ -135,7 +136,7 @@ struct iOSOverviewView: View {
     }
 
     private func metricsSection(_ overview: TimeOverview) -> some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 14) {
                 sectionEyebrow("关键指标")
                 LazyVGrid(columns: [.init(.flexible(), spacing: 12), .init(.flexible(), spacing: 12)], spacing: 12) {
@@ -165,7 +166,7 @@ struct iOSOverviewView: View {
     }
 
     private func trendSection(_ overview: TimeOverview) -> some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 14) {
                 sectionEyebrow(trendTitle(for: overview.stackedBucketResolution))
 
@@ -218,7 +219,7 @@ struct iOSOverviewView: View {
     }
 
     private func distributionSection(_ overview: TimeOverview) -> some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 14) {
                 sectionEyebrow("分类分布")
 
@@ -265,8 +266,13 @@ struct iOSOverviewView: View {
     }
 
     private var overviewBackground: some View {
-        StarrySkyBackground(
+        iOSThemeBackground(
+            theme: currentTheme,
             accentColor: overviewAccentColor,
+            customImageName: model.preferences.customThemeImageName,
+            customScale: model.preferences.customThemeScale,
+            customOffsetX: model.preferences.customThemeOffsetX,
+            customOffsetY: model.preferences.customThemeOffsetY,
             starCount: 170,
             twinkleBoost: 1.7,
             meteorCount: 5

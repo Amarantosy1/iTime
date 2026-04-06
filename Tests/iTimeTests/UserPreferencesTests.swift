@@ -10,6 +10,12 @@ import Testing
     #expect(preferences.reviewExcludedCalendarIDs.isEmpty)
 }
 
+@Test func defaultInterfaceThemeIsFlowing() {
+    let preferences = UserPreferences(storage: .inMemory)
+
+    #expect(preferences.interfaceTheme == .flowing)
+}
+
 @Test func defaultPreferencesSeedCustomDatesAroundToday() {
     let preferences = UserPreferences(storage: .inMemory)
 
@@ -116,4 +122,30 @@ import Testing
     let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
     #expect(second.reviewReminderEnabled == true)
     #expect(second.reviewReminderTime == Date(timeIntervalSince1970: 86_400))
+}
+
+@Test func interfaceThemePersistsAcrossPreferenceInstances() {
+    let suite = "iTime.tests.interface-theme"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    first.interfaceTheme = .pure
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.interfaceTheme == .pure)
+}
+
+@Test func customThemeImageAndCropPersistAcrossPreferenceInstances() {
+    let suite = "iTime.tests.custom-theme-image-crop"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    first.interfaceTheme = .custom
+    first.customThemeImageName = "custom-theme-demo.jpg"
+    first.customThemeScale = 1.8
+    first.customThemeOffsetX = 0.22
+    first.customThemeOffsetY = -0.31
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.interfaceTheme == .custom)
+    #expect(second.customThemeImageName == "custom-theme-demo.jpg")
+    #expect(second.customThemeScale == 1.8)
+    #expect(second.customThemeOffsetX == 0.22)
+    #expect(second.customThemeOffsetY == -0.31)
 }

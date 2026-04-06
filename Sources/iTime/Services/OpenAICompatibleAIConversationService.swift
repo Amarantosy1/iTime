@@ -196,6 +196,12 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - summary：必须分两段话。第一段为“客观总结”：不加评价地总结用户的日程安排和执行完成情况事实；第二段为“主观评价”：像你对朋友说"我觉得你这段时间的时间分配……"，带有你作为老朋友的诊断评估、建议或见解
     - findings：你注意到的关于时间使用规律或问题，结合具体聊天例子，说清楚为什么这值得关注。注意应用最近一段时间的非本次复盘的记录，发现近期的状态/变化。
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
+    - Markdown 约定（非常重要）：
+        1) 所有“时间点/时间段”都用行内代码包裹，如 `09:30`、`09:30-11:00`
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`，例如 `**需求评审**`
+        3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
+        4) 不要使用 HTML 标签（例如 `<mark>`）
+        5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
 
     只返回严格 JSON：
     {"summary":"...","findings":["..."],"suggestions":["..."]}
@@ -204,7 +210,13 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static func longFormSystemPrompt(includeFlowchart: Bool) -> String {
         let basePrompt = """
-        你是用户的一位朋友，帮他/她写一篇流水账复盘，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天。
+        你是用户的一位朋友，帮他/她写一篇流水账复盘，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天，不要虚构内容。
+        - Markdown 约定（非常重要）：
+        1) 所有“时间点/时间段”都用行内代码包裹，如 `09:30`、`09:30-11:00`
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
+        3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
+        4) 不要使用 HTML 标签（例如 `<mark>`）
+        5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
         """
 
         guard includeFlowchart else {

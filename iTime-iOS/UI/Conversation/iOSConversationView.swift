@@ -5,18 +5,29 @@ struct iOSConversationView: View {
     @Bindable var model: AppModel
     @State private var customModelInput = ""
     @State private var showsConversationSession = false
+    private var currentTheme: AppDisplayTheme { model.preferences.interfaceTheme }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                StarrySkyBackground(accentColor: .accentColor, starCount: 170, twinkleBoost: 1.9, meteorCount: 5)
+                iOSThemeBackground(
+                    theme: currentTheme,
+                    accentColor: .accentColor,
+                    customImageName: model.preferences.customThemeImageName,
+                    customScale: model.preferences.customThemeScale,
+                    customOffsetX: model.preferences.customThemeOffsetX,
+                    customOffsetY: model.preferences.customThemeOffsetY,
+                    starCount: 170,
+                    twinkleBoost: 1.9,
+                    meteorCount: 5
+                )
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 8) {
-                            TagChip(icon: "sparkles", text: selectedServiceDisplayName)
-                            TagChip(icon: "cpu", text: selectedModelDisplayText)
-                            TagChip(icon: "calendar", text: model.liveSelectedRange.title)
+                            TagChip(icon: "sparkles", text: selectedServiceDisplayName, theme: currentTheme)
+                            TagChip(icon: "cpu", text: selectedModelDisplayText, theme: currentTheme)
+                            TagChip(icon: "calendar", text: model.liveSelectedRange.title, theme: currentTheme)
                         }
                         .padding(.horizontal)
 
@@ -57,7 +68,7 @@ struct iOSConversationView: View {
     }
 
     private var entrySection: some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 12) {
                 sectionEyebrow("对话入口")
                 stateCard(
@@ -90,7 +101,7 @@ struct iOSConversationView: View {
     }
 
     private var modelSelectionSection: some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 12) {
                 sectionEyebrow("模型选择")
 
@@ -173,7 +184,7 @@ struct iOSConversationView: View {
     }
 
     private var rangeSection: some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 10) {
                 sectionEyebrow("复盘范围")
 
@@ -334,6 +345,7 @@ struct iOSConversationSessionView: View {
     @State private var reply = ""
     @State private var showsDiscardConfirmation = false
     @State private var lastAutoScrolledAssistantMessageID: UUID?
+    private var currentTheme: AppDisplayTheme { model.preferences.interfaceTheme }
 
     @Environment(\.dismiss) private var dismiss
 
@@ -342,7 +354,17 @@ struct iOSConversationSessionView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                StarrySkyBackground(accentColor: .accentColor, starCount: 170, twinkleBoost: 1.9, meteorCount: 5)
+                iOSThemeBackground(
+                    theme: currentTheme,
+                    accentColor: .accentColor,
+                    customImageName: model.preferences.customThemeImageName,
+                    customScale: model.preferences.customThemeScale,
+                    customOffsetX: model.preferences.customThemeOffsetX,
+                    customOffsetY: model.preferences.customThemeOffsetY,
+                    starCount: 170,
+                    twinkleBoost: 1.9,
+                    meteorCount: 5
+                )
 
                 VStack(spacing: 12) {
                     ScrollViewReader { proxy in
@@ -442,8 +464,8 @@ struct iOSConversationSessionView: View {
 
     private var conversationStatusRow: some View {
         HStack(spacing: 8) {
-            TagChip(icon: "sparkles", text: "\(selectedServiceDisplayName) · \(selectedModelDisplayText)")
-            TagChip(icon: "text.bubble", text: "共 \(currentMessageCount) 条")
+            TagChip(icon: "sparkles", text: "\(selectedServiceDisplayName) · \(selectedModelDisplayText)", theme: currentTheme)
+            TagChip(icon: "text.bubble", text: "共 \(currentMessageCount) 条", theme: currentTheme)
             Spacer(minLength: 0)
         }
     }
@@ -564,7 +586,7 @@ struct iOSConversationSessionView: View {
 
     @ViewBuilder
     private func completedCard(_ summary: AIConversationSummary) -> some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 8) {
                 Label("复盘完成", systemImage: "checkmark.seal.fill")
                     .font(.headline)
@@ -582,7 +604,7 @@ struct iOSConversationSessionView: View {
 
     @ViewBuilder
     private func stateCard(title: String, message: String, color: Color) -> some View {
-        MagazineGlassCard {
+        MagazineGlassCard(theme: currentTheme) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -604,10 +626,21 @@ private enum iOSConversationLongFormCopy {
 
 struct iOSConversationHistoryView: View {
     @Bindable var model: AppModel
+    private var currentTheme: AppDisplayTheme { model.preferences.interfaceTheme }
 
     var body: some View {
         ZStack {
-            StarrySkyBackground(accentColor: .accentColor, starCount: 160, twinkleBoost: 1.8, meteorCount: 5)
+            iOSThemeBackground(
+                theme: currentTheme,
+                accentColor: .accentColor,
+                customImageName: model.preferences.customThemeImageName,
+                customScale: model.preferences.customThemeScale,
+                customOffsetX: model.preferences.customThemeOffsetX,
+                customOffsetY: model.preferences.customThemeOffsetY,
+                starCount: 160,
+                twinkleBoost: 1.8,
+                meteorCount: 5
+            )
 
             Group {
                 if model.aiConversationHistory.isEmpty {
@@ -671,12 +704,23 @@ struct iOSConversationSummaryDetailView: View {
     @State private var findingsDraft = ""
     @State private var suggestionsDraft = ""
     @State private var pendingDeletion = false
+    private var currentTheme: AppDisplayTheme { model.preferences.interfaceTheme }
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
-            StarrySkyBackground(accentColor: .accentColor, starCount: 160, twinkleBoost: 1.8, meteorCount: 5)
+            iOSThemeBackground(
+                theme: currentTheme,
+                accentColor: .accentColor,
+                customImageName: model.preferences.customThemeImageName,
+                customScale: model.preferences.customThemeScale,
+                customOffsetX: model.preferences.customThemeOffsetX,
+                customOffsetY: model.preferences.customThemeOffsetY,
+                starCount: 160,
+                twinkleBoost: 1.8,
+                meteorCount: 5
+            )
 
             Group {
                 if let summary = model.aiConversationHistory.first(where: { $0.id == summaryID }) {
@@ -795,10 +839,20 @@ struct iOSConversationSummaryDetailView: View {
                     .frame(minHeight: 140)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.3)))
             } else {
-                Text(summary.summary)
-                    .font(.title3)
-                    .lineSpacing(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                let sections = splitSummarySections(from: summary.summary)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("客观总结")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    styledMarkdown(sections.objective, compact: true)
+
+                    if let subjective = sections.subjective, !subjective.isEmpty {
+                        Text("主观评价")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        styledMarkdown(subjective)
+                    }
+                }
             }
         }
     }
@@ -813,9 +867,7 @@ struct iOSConversationSummaryDetailView: View {
                         .frame(minHeight: 120)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.3)))
                 } else {
-                    ForEach(Array(summary.findings.enumerated()), id: \.offset) { _, item in
-                        QuoteBlock(content: item, accentColor: .accentColor)
-                    }
+                    styledMarkdown(summary.findings.map { "- \($0)" }.joined(separator: "\n"))
                 }
             }
         }
@@ -831,12 +883,107 @@ struct iOSConversationSummaryDetailView: View {
                         .frame(minHeight: 120)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.3)))
                 } else {
-                    ForEach(Array(summary.suggestions.enumerated()), id: \.offset) { index, item in
-                        NumberedCard(number: index + 1, content: item)
-                    }
+                    styledMarkdown(summary.suggestions.map { "- \($0)" }.joined(separator: "\n"))
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func styledMarkdown(_ content: String, compact: Bool = false) -> some View {
+        markdownView(content, compact: compact)
+    }
+
+    private func markdownView(_ content: String, compact: Bool = false) -> some View {
+        Markdown(normalizedMarkdown(content))
+            .markdownTextStyle {
+                BackgroundColor(nil)
+                ForegroundColor(compact ? .secondary : .primary)
+                if compact {
+                    FontSize(.em(0.9))
+                }
+            }
+            .markdownTextStyle(\.code) {
+                FontFamilyVariant(.monospaced)
+                FontSize(.em(0.88))
+                BackgroundColor(.blue.opacity(0.16))
+            }
+            .markdownTextStyle(\.strong) {
+                FontWeight(.bold)
+                ForegroundColor(.primary)
+                BackgroundColor(.yellow.opacity(0.4))
+            }
+            .markdownBlockStyle(\.paragraph) { configuration in
+                configuration.label
+                    .relativeLineSpacing(.em(0.25))
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.secondary.opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.secondary.opacity(0.15), lineWidth: 1)
+                    )
+                    .markdownMargin(top: 0, bottom: 10)
+            }
+            .markdownBlockStyle(\.codeBlock) { configuration in
+                ScrollView(.horizontal, showsIndicators: true) {
+                    configuration.label
+                        .relativeLineSpacing(.em(0.2))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                }
+                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .markdownMargin(top: 4, bottom: 12)
+            }
+    }
+
+    private func splitSummarySections(from rawText: String) -> (objective: String, subjective: String?) {
+        let normalized = normalizedMarkdown(rawText)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let objectiveRange = normalized.range(of: "客观总结[:：]", options: .regularExpression),
+           let subjectiveRange = normalized.range(of: "主观评价[:：]", options: .regularExpression),
+           objectiveRange.upperBound <= subjectiveRange.lowerBound {
+            let objective = String(normalized[objectiveRange.upperBound..<subjectiveRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let subjective = String(normalized[subjectiveRange.upperBound...])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (objective: objective.isEmpty ? normalized : objective, subjective: subjective.isEmpty ? nil : subjective)
+        }
+
+        let parts = normalized
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !parts.isEmpty else {
+            return (objective: normalized, subjective: nil)
+        }
+        let objective = parts[0]
+        let subjective = parts.count > 1 ? parts.dropFirst().joined(separator: "\n\n") : nil
+        return (objective: objective, subjective: subjective)
+    }
+
+    private func normalizedMarkdown(_ rawText: String) -> String {
+        let unescaped = rawText
+            .replacingOccurrences(of: "\\\\n", with: "\n")
+            .replacingOccurrences(of: "\\`", with: "`")
+            .replacingOccurrences(of: "\\*", with: "*")
+            .replacingOccurrences(of: "\\_", with: "_")
+
+        let equalsConverted = unescaped.replacingOccurrences(
+            of: #"==([^=\n][^=]*?)=="#,
+            with: "**$1**",
+            options: .regularExpression
+        )
+
+        return equalsConverted.replacingOccurrences(
+            of: #"<mark>(.*?)</mark>"#,
+            with: "**$1**",
+            options: [.regularExpression, .caseInsensitive]
+        )
     }
 
     private func parseLines(from text: String) -> [String] {
@@ -883,7 +1030,7 @@ struct iOSConversationSummaryDetailView: View {
     private func longFormSection(summaryID: UUID) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if let report = model.longFormReport(for: summaryID) {
-                MagazineGlassCard {
+                MagazineGlassCard(theme: currentTheme) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
@@ -899,7 +1046,7 @@ struct iOSConversationSummaryDetailView: View {
                             .foregroundStyle(.secondary)
                         }
 
-                        Markdown(report.content)
+                        styledMarkdown(report.content)
 
                         if let flowchart = report.flowchart {
                             let calendarColorHexByName = Dictionary(uniqueKeysWithValues: model.availableCalendars.map { ($0.name, $0.colorHex) })
@@ -914,7 +1061,7 @@ struct iOSConversationSummaryDetailView: View {
                     }
                 }
             } else {
-                MagazineGlassCard {
+                MagazineGlassCard(theme: currentTheme) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
                             sectionEyebrow(iOSConversationLongFormCopy.sectionTitle)

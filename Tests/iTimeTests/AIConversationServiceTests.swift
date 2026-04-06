@@ -172,6 +172,9 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("\"headline\"") == false)
     #expect(body.contains("关于时间使用规律或问题"))
     #expect(body.contains("具体建议，说清楚做什么"))
+    #expect(body.contains("行内代码包裹"))
+    #expect(body.contains("Markdown 加粗语法"))
+    #expect(body.contains("fenced code block"))
 
     #expect(draft.headline == OpenAICompatibleAIConversationService.formattedSummaryHeadline(
         startDate: context.startDate,

@@ -36,7 +36,11 @@ struct iOSDeviceSyncView: View {
                             .disabled(isSyncing)
                         }
 
-                        TagChip(icon: peer.state.iconName, text: peer.state.displayText)
+                        TagChip(
+                            icon: peer.state.iconName,
+                            text: peer.state.displayText,
+                            theme: model.preferences.interfaceTheme
+                        )
                     }
                     .padding(.vertical, 4)
                 }

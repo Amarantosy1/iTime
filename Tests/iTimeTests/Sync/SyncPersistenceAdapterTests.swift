@@ -72,6 +72,11 @@ private func makePatchFixture(
         customEndDate: Date(timeIntervalSince1970: 200),
         reviewReminderEnabled: true,
         reviewReminderTime: Date(timeIntervalSince1970: 300),
+        interfaceTheme: .custom,
+        customThemeImageName: "custom-theme-sync.jpg",
+        customThemeScale: 1.6,
+        customThemeOffsetX: -0.2,
+        customThemeOffsetY: 0.28,
         aiServiceEndpoints: preferences.aiServiceEndpoints,
         defaultAIServiceID: baseServiceID
     )
@@ -100,6 +105,11 @@ private func makePatchFixture(
     let after = try await fixture.adapter.makeManifest()
     #expect(after.archiveVersion != 0)
     #expect(fixture.preferences.selectedRange == .week)
+    #expect(fixture.preferences.interfaceTheme == .custom)
+    #expect(fixture.preferences.customThemeImageName == "custom-theme-sync.jpg")
+    #expect(fixture.preferences.customThemeScale == 1.6)
+    #expect(fixture.preferences.customThemeOffsetX == -0.2)
+    #expect(fixture.preferences.customThemeOffsetY == 0.28)
     #expect(fixture.keyStore.values[serviceID] == "sk-remote")
 }
 

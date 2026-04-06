@@ -1,6 +1,35 @@
 import Foundation
 import Observation
 
+public enum AppDisplayTheme: String, Codable, CaseIterable, Identifiable, Sendable {
+    case flowing
+    case pure
+    case custom
+
+    public var id: String {
+        rawValue
+    }
+
+    public var isBuiltIn: Bool {
+        self != .custom
+    }
+
+    public static var builtInCases: [AppDisplayTheme] {
+        [.flowing, .pure]
+    }
+
+    public var title: String {
+        switch self {
+        case .flowing:
+            "流光"
+        case .pure:
+            "纯净"
+        case .custom:
+            "自定义"
+        }
+    }
+}
+
 @Observable
 public final class UserPreferences {
     public enum Storage {
@@ -16,6 +45,11 @@ public final class UserPreferences {
         public let customEndDate: Date
         public let reviewReminderEnabled: Bool
         public let reviewReminderTime: Date
+        public let interfaceTheme: AppDisplayTheme?
+        public let customThemeImageName: String?
+        public let customThemeScale: Double?
+        public let customThemeOffsetX: Double?
+        public let customThemeOffsetY: Double?
         public let aiServiceEndpoints: [AIServiceEndpoint]
         public let defaultAIServiceID: UUID?
 
@@ -27,6 +61,11 @@ public final class UserPreferences {
             customEndDate: Date,
             reviewReminderEnabled: Bool,
             reviewReminderTime: Date,
+            interfaceTheme: AppDisplayTheme? = nil,
+            customThemeImageName: String? = nil,
+            customThemeScale: Double? = nil,
+            customThemeOffsetX: Double? = nil,
+            customThemeOffsetY: Double? = nil,
             aiServiceEndpoints: [AIServiceEndpoint],
             defaultAIServiceID: UUID?
         ) {
@@ -37,6 +76,11 @@ public final class UserPreferences {
             self.customEndDate = customEndDate
             self.reviewReminderEnabled = reviewReminderEnabled
             self.reviewReminderTime = reviewReminderTime
+            self.interfaceTheme = interfaceTheme
+            self.customThemeImageName = customThemeImageName
+            self.customThemeScale = customThemeScale
+            self.customThemeOffsetX = customThemeOffsetX
+            self.customThemeOffsetY = customThemeOffsetY
             self.aiServiceEndpoints = aiServiceEndpoints
             self.defaultAIServiceID = defaultAIServiceID
         }
@@ -50,6 +94,11 @@ public final class UserPreferences {
         static let customEndDate = "customEndDate"
         static let reviewReminderEnabled = "reviewReminderEnabled"
         static let reviewReminderTime = "reviewReminderTime"
+        static let interfaceTheme = "interfaceTheme"
+        static let customThemeImageName = "customThemeImageName"
+        static let customThemeScale = "customThemeScale"
+        static let customThemeOffsetX = "customThemeOffsetX"
+        static let customThemeOffsetY = "customThemeOffsetY"
         static let aiAnalysisEnabled = "aiAnalysisEnabled"
         static let defaultAIProvider = "defaultAIProvider"
         static let aiBaseURL = "aiBaseURL"
@@ -105,6 +154,32 @@ public final class UserPreferences {
 
     public var reviewReminderTime: Date {
         didSet { defaults.set(reviewReminderTime, forKey: Keys.reviewReminderTime) }
+    }
+
+    public var interfaceTheme: AppDisplayTheme {
+        didSet { defaults.set(interfaceTheme.rawValue, forKey: Keys.interfaceTheme) }
+    }
+
+    public var customThemeImageName: String? {
+        didSet { defaults.set(customThemeImageName, forKey: Keys.customThemeImageName) }
+    }
+
+    public var customThemeScale: Double {
+        didSet {
+            defaults.set(Self.clampCustomThemeScale(customThemeScale), forKey: Keys.customThemeScale)
+        }
+    }
+
+    public var customThemeOffsetX: Double {
+        didSet {
+            defaults.set(Self.clampCustomThemeOffset(customThemeOffsetX), forKey: Keys.customThemeOffsetX)
+        }
+    }
+
+    public var customThemeOffsetY: Double {
+        didSet {
+            defaults.set(Self.clampCustomThemeOffset(customThemeOffsetY), forKey: Keys.customThemeOffsetY)
+        }
     }
 
     public var aiAnalysisEnabled: Bool {
@@ -194,6 +269,17 @@ public final class UserPreferences {
         self.reviewReminderEnabled = defaults.object(forKey: Keys.reviewReminderEnabled) as? Bool ?? false
         self.reviewReminderTime = defaults.object(forKey: Keys.reviewReminderTime) as? Date
             ?? Self.defaultReviewReminderTime(calendar: calendar, referenceDate: now)
+        self.interfaceTheme = AppDisplayTheme(rawValue: defaults.string(forKey: Keys.interfaceTheme) ?? "") ?? .flowing
+        self.customThemeImageName = defaults.string(forKey: Keys.customThemeImageName)
+        self.customThemeScale = Self.clampCustomThemeScale(
+            defaults.object(forKey: Keys.customThemeScale) as? Double ?? 1.12
+        )
+        self.customThemeOffsetX = Self.clampCustomThemeOffset(
+            defaults.object(forKey: Keys.customThemeOffsetX) as? Double ?? 0
+        )
+        self.customThemeOffsetY = Self.clampCustomThemeOffset(
+            defaults.object(forKey: Keys.customThemeOffsetY) as? Double ?? 0
+        )
 
         self.aiAnalysisEnabled = defaults.object(forKey: Keys.aiAnalysisEnabled) as? Bool ?? false
         self.defaultAIProvider = AIProviderKind(rawValue: defaults.string(forKey: Keys.defaultAIProvider) ?? "") ?? .openAI
@@ -225,6 +311,14 @@ public final class UserPreferences {
         components.hour = 21
         components.minute = 0
         return calendar.date(from: components) ?? startOfDay.addingTimeInterval(21 * 3_600)
+    }
+
+    private static func clampCustomThemeScale(_ scale: Double) -> Double {
+        min(max(scale, 1.0), 4.0)
+    }
+
+    private static func clampCustomThemeOffset(_ offset: Double) -> Double {
+        min(max(offset, -1.0), 1.0)
     }
 
     public func replaceSelectedCalendars(with ids: [String]) {
@@ -319,6 +413,11 @@ public final class UserPreferences {
             customEndDate: customEndDate,
             reviewReminderEnabled: reviewReminderEnabled,
             reviewReminderTime: reviewReminderTime,
+            interfaceTheme: interfaceTheme,
+            customThemeImageName: customThemeImageName,
+            customThemeScale: customThemeScale,
+            customThemeOffsetX: customThemeOffsetX,
+            customThemeOffsetY: customThemeOffsetY,
             aiServiceEndpoints: aiServiceEndpoints,
             defaultAIServiceID: defaultAIServiceID
         )
@@ -332,6 +431,11 @@ public final class UserPreferences {
         customEndDate = payload.customEndDate
         reviewReminderEnabled = payload.reviewReminderEnabled
         reviewReminderTime = payload.reviewReminderTime
+        interfaceTheme = payload.interfaceTheme ?? .flowing
+        customThemeImageName = payload.customThemeImageName
+        customThemeScale = Self.clampCustomThemeScale(payload.customThemeScale ?? customThemeScale)
+        customThemeOffsetX = Self.clampCustomThemeOffset(payload.customThemeOffsetX ?? customThemeOffsetX)
+        customThemeOffsetY = Self.clampCustomThemeOffset(payload.customThemeOffsetY ?? customThemeOffsetY)
         aiServiceEndpoints = Self.normalizedBuiltInServices(payload.aiServiceEndpoints)
         setDefaultAIServiceID(payload.defaultAIServiceID)
     }
