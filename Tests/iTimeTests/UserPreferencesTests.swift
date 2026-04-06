@@ -150,18 +150,43 @@ import Testing
     #expect(second.customThemeOffsetY == -0.31)
 }
 
+@Test func customThemePresetLegacyPayloadWithDisplayNameStillDecodes() {
+    let suite = "iTime.tests.custom-theme-legacy-display-name"
+    let defaults = UserDefaults(suiteName: suite) ?? .standard
+    defaults.removePersistentDomain(forName: suite)
+
+    let legacyPayload = """
+    [
+      {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "displayName": "旧主题名",
+        "imageName": "legacy-theme.jpg",
+        "scale": 1.4,
+        "offsetX": 0.2,
+        "offsetY": -0.1,
+        "createdAt": 765705600,
+        "updatedAt": 765707400
+      }
+    ]
+    """
+    defaults.set(Data(legacyPayload.utf8), forKey: "customThemePresets")
+
+    let preferences = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(preferences.customThemePresets.count == 1)
+    #expect(preferences.customThemePresets.first?.imageName == "legacy-theme.jpg")
+    #expect(preferences.customThemePresets.first?.scale == 1.4)
+}
+
 @Test func customThemePresetsPersistAcrossPreferenceInstances() {
     let suite = "iTime.tests.custom-theme-presets"
     let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
     _ = first.saveCustomThemePreset(
-        displayName: "晨光",
         imageName: "preset-a.jpg",
         scale: 1.3,
         offsetX: 0.1,
         offsetY: -0.2
     )
     let secondPresetID = first.saveCustomThemePreset(
-        displayName: "夜色",
         imageName: "preset-b.jpg",
         scale: 1.7,
         offsetX: -0.25,
@@ -180,14 +205,12 @@ import Testing
 @Test func applyingCustomThemePresetUpdatesActiveCropFields() {
     let preferences = UserPreferences(storage: .inMemory)
     let firstPresetID = preferences.saveCustomThemePreset(
-        displayName: "主题 A",
         imageName: "theme-a.jpg",
         scale: 1.2,
         offsetX: 0.2,
         offsetY: -0.1
     )
     _ = preferences.saveCustomThemePreset(
-        displayName: "主题 B",
         imageName: "theme-b.jpg",
         scale: 1.8,
         offsetX: -0.3,

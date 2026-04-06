@@ -69,7 +69,6 @@ private func makePatchFixture(
     let remotePresets = [
         CustomThemePreset(
             id: presetAID,
-            displayName: "同步主题 A",
             imageName: "custom-theme-sync-a.jpg",
             scale: 1.4,
             offsetX: -0.1,
@@ -79,7 +78,6 @@ private func makePatchFixture(
         ),
         CustomThemePreset(
             id: presetBID,
-            displayName: "同步主题 B",
             imageName: "custom-theme-sync.jpg",
             scale: 1.6,
             offsetX: -0.2,
