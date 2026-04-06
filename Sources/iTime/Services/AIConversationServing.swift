@@ -50,9 +50,11 @@ public struct AIConversationSummaryDraft: Equatable, Sendable {
 public struct AIConversationLongFormReportDraft: Equatable, Sendable {
     public let title: String
     public let content: String
+    public let flowchart: AIConversationFlowchart?
 
-    public init(title: String, content: String) {
+    public init(title: String, content: String, flowchart: AIConversationFlowchart? = nil) {
         self.title = title
         self.content = content
+        self.flowchart = flowchart
     }
 }

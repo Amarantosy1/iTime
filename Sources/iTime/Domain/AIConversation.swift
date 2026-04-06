@@ -372,6 +372,40 @@ public struct AIMemorySnapshot: Equatable, Codable, Sendable {
     }
 }
 
+public struct AIConversationFlowchart: Equatable, Codable, Sendable {
+    public let nodes: [FlowchartNode]
+    public let edges: [FlowchartEdge]
+
+    public init(nodes: [FlowchartNode], edges: [FlowchartEdge]) {
+        self.nodes = nodes
+        self.edges = edges
+    }
+}
+
+public struct FlowchartNode: Equatable, Codable, Sendable {
+    public let id: String
+    public let timeRange: String
+    public let title: String
+    public let calendarName: String?
+
+    public init(id: String, timeRange: String, title: String, calendarName: String? = nil) {
+        self.id = id
+        self.timeRange = timeRange
+        self.title = title
+        self.calendarName = calendarName
+    }
+}
+
+public struct FlowchartEdge: Equatable, Codable, Sendable {
+    public let from: String
+    public let to: String
+
+    public init(from: String, to: String) {
+        self.from = from
+        self.to = to
+    }
+}
+
 public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identifiable {
     public let id: UUID
     public let sessionID: UUID
@@ -380,6 +414,7 @@ public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identi
     public let updatedAt: Date
     public let title: String
     public let content: String
+    public let flowchart: AIConversationFlowchart?
 
     public init(
         id: UUID,
@@ -388,7 +423,8 @@ public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identi
         createdAt: Date,
         updatedAt: Date,
         title: String,
-        content: String
+        content: String,
+        flowchart: AIConversationFlowchart? = nil
     ) {
         self.id = id
         self.sessionID = sessionID
@@ -397,6 +433,42 @@ public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identi
         self.updatedAt = updatedAt
         self.title = title
         self.content = content
+        self.flowchart = flowchart
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case sessionID
+        case summaryID
+        case createdAt
+        case updatedAt
+        case title
+        case content
+        case flowchart
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        sessionID = try container.decode(UUID.self, forKey: .sessionID)
+        summaryID = try container.decode(UUID.self, forKey: .summaryID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        title = try container.decode(String.self, forKey: .title)
+        content = try container.decode(String.self, forKey: .content)
+        flowchart = try container.decodeIfPresent(AIConversationFlowchart.self, forKey: .flowchart)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(sessionID, forKey: .sessionID)
+        try container.encode(summaryID, forKey: .summaryID)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(title, forKey: .title)
+        try container.encode(content, forKey: .content)
+        try container.encodeIfPresent(flowchart, forKey: .flowchart)
     }
 
     public func updating(title: String, content: String, updatedAt: Date) -> AIConversationLongFormReport {
@@ -408,6 +480,7 @@ public struct AIConversationLongFormReport: Equatable, Codable, Sendable, Identi
             updatedAt: updatedAt,
             title: title,
             content: content,
+            flowchart: flowchart
         )
     }
 }

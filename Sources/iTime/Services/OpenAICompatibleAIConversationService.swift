@@ -79,7 +79,8 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         }
         return AIConversationLongFormReportDraft(
             title: payload.title,
-            content: payload.content
+            content: payload.content,
+            flowchart: payload.flowchart
         )
     }
 
@@ -202,6 +203,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static let longFormSystemPrompt = """
     你是用户的一位朋友，帮他/她写一篇流水账复盘，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天。
+    同时输出一份当天的节点式流程图。把时间相近、性质相同的事件合并为节点，允许并行分支。每个节点有唯一 id（如 "n1"）、时间段（timeRange，格式 "HH:mm-HH:mm"）、标题（title）、主要日历名（calendarName，若无则为 null）。edges 描述节点间的流转关系，每条 edge 有 from 和 to（均为 node id）。
     """
 
     static let compactMemorySystemPrompt = """
@@ -285,7 +287,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         \(historyLines(for: session.messages))
         基于这些对话和统计，帮我写一篇真实的复盘——不是汇报，是反思。
         不要逐条转写聊天，抽象整理出真正值得思考的东西，每个章节有具体依据。
-        只输出 JSON：{"title":"...","content":"..."}
+        只输出 JSON：{"title":"...","content":"...","flowchart":{"nodes":[{"id":"n1","timeRange":"09:00-10:00","title":"示例节点","calendarName":"工作"}],"edges":[{"from":"n1","to":"n2"}]}}
         """
     }
 
@@ -389,4 +391,5 @@ private struct SummaryPayload: Decodable {
 private struct LongFormPayload: Decodable {
     let title: String
     let content: String
+    let flowchart: AIConversationFlowchart?
 }

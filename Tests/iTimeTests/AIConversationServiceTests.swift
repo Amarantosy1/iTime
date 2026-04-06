@@ -373,6 +373,91 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(draft.content == "这是一篇文章。")
 }
 
+@Test func openAICompatibleLongFormReportIncludesFlowchartWhenPresentInResponse() async throws {
+        let responseJSON = """
+        {
+            "choices": [{
+                "message": {
+                    "content": "{\\\"title\\\":\\\"当日复盘\\\",\\\"content\\\":\\\"流水账正文。\\\",\\\"flowchart\\\":{\\\"nodes\\\":[{\\\"id\\\":\\\"n1\\\",\\\"timeRange\\\":\\\"09:00-09:30\\\",\\\"title\\\":\\\"早会\\\",\\\"calendarName\\\":\\\"工作\\\"},{\\\"id\\\":\\\"n2\\\",\\\"timeRange\\\":\\\"09:30-11:00\\\",\\\"title\\\":\\\"写代码\\\",\\\"calendarName\\\":null}],\\\"edges\\\":[{\\\"from\\\":\\\"n1\\\",\\\"to\\\":\\\"n2\\\"}]}}"
+                }
+            }]
+        }
+        """
+        let sender = ConversationRecordingAIHTTPSender(responseData: Data(responseJSON.utf8))
+        let service = OpenAICompatibleAIConversationService(httpSender: sender)
+        let session = AIConversationSession(
+                id: UUID(), serviceID: nil, serviceDisplayName: "OpenAI", provider: .openAI,
+                model: "gpt-5-mini", range: .today,
+                startDate: Date(timeIntervalSince1970: 0),
+                endDate: Date(timeIntervalSince1970: 86_400),
+                startedAt: Date(timeIntervalSince1970: 0), completedAt: nil,
+                status: .completed,
+                overviewSnapshot: AIOverviewSnapshot(rangeTitle: "今天", totalDurationText: "3h", totalEventCount: 2, topCalendarNames: ["工作"]),
+                messages: []
+        )
+        let summary = AIConversationSummary(
+                id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "OpenAI",
+                provider: .openAI, model: "gpt-5-mini", range: .today,
+                startDate: session.startDate, endDate: session.endDate,
+                createdAt: session.endDate, headline: "标题",
+                summary: "摘要", findings: [], suggestions: [],
+                overviewSnapshot: session.overviewSnapshot
+        )
+        let draft = try await service.generateLongFormReport(
+                session: session, summary: summary,
+                configuration: ResolvedAIProviderConfiguration(
+                        provider: .openAI, baseURL: "https://example.com/v1",
+                        model: "gpt-5-mini", apiKey: "key", isEnabled: true
+                )
+        )
+        #expect(draft.flowchart?.nodes.count == 2)
+        #expect(draft.flowchart?.nodes.first?.id == "n1")
+        #expect(draft.flowchart?.nodes.first?.title == "早会")
+        #expect(draft.flowchart?.edges.count == 1)
+        #expect(draft.flowchart?.edges.first?.from == "n1")
+        #expect(draft.flowchart?.edges.first?.to == "n2")
+}
+
+@Test func openAICompatibleLongFormReportFlowchartIsNilWhenAbsentFromResponse() async throws {
+        let responseJSON = """
+        {
+            "choices": [{
+                "message": {
+                    "content": "{\\\"title\\\":\\\"当日复盘\\\",\\\"content\\\":\\\"流水账正文。\\\"}"
+                }
+            }]
+        }
+        """
+        let sender = ConversationRecordingAIHTTPSender(responseData: Data(responseJSON.utf8))
+        let service = OpenAICompatibleAIConversationService(httpSender: sender)
+        let session = AIConversationSession(
+                id: UUID(), serviceID: nil, serviceDisplayName: "OpenAI", provider: .openAI,
+                model: "gpt-5-mini", range: .today,
+                startDate: Date(timeIntervalSince1970: 0),
+                endDate: Date(timeIntervalSince1970: 86_400),
+                startedAt: Date(timeIntervalSince1970: 0), completedAt: nil,
+                status: .completed,
+                overviewSnapshot: AIOverviewSnapshot(rangeTitle: "今天", totalDurationText: "3h", totalEventCount: 2, topCalendarNames: ["工作"]),
+                messages: []
+        )
+        let summary = AIConversationSummary(
+                id: UUID(), sessionID: session.id, serviceID: nil, serviceDisplayName: "OpenAI",
+                provider: .openAI, model: "gpt-5-mini", range: .today,
+                startDate: session.startDate, endDate: session.endDate,
+                createdAt: session.endDate, headline: "标题",
+                summary: "摘要", findings: [], suggestions: [],
+                overviewSnapshot: session.overviewSnapshot
+        )
+        let draft = try await service.generateLongFormReport(
+                session: session, summary: summary,
+                configuration: ResolvedAIProviderConfiguration(
+                        provider: .openAI, baseURL: "https://example.com/v1",
+                        model: "gpt-5-mini", apiKey: "key", isEnabled: true
+                )
+        )
+        #expect(draft.flowchart == nil)
+}
+
 @Test func geminiConversationServiceIncludesJsonMimeTypeInRequest() async throws {
     let sender = ConversationRecordingAIHTTPSender(
         responseData: Data(

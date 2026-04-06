@@ -1,3 +1,5 @@
+import UniformTypeIdentifiers
+
 import SwiftUI
 import MarkdownUI
 
@@ -11,8 +13,13 @@ enum AIConversationHistoryCopy {
 
 struct AIConversationHistoryView: View {
     @Bindable var model: AppModel
-    @State private var selectedSummaryID: UUID?
-    @State private var pendingDeletionSummaryID: UUID?
+    @State private var selectedSummaryIDs: Set<UUID> = []
+    @State private var pendingDeletionSummaryIDs: Set<UUID> = []
+    @State private var isExporting: Bool = false
+
+    private var exportContentType: UTType {
+        UTType(filenameExtension: "md") ?? .plainText
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -21,34 +28,55 @@ struct AIConversationHistoryView: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
-                List(selection: $selectedSummaryID) {
-                    ForEach(TimeRangePreset.allCases, id: \.self) { range in
-                        let summaries = model.aiConversationHistory.filter { $0.dynamicRangeCategory == range }
-                        if !summaries.isEmpty {
-                            Section(header: Text(range.historyCategoryTitle)) {
-                                ForEach(summaries, id: \.id) { summary in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(summary.headline)
-                                            .font(.headline)
-                                            .lineLimit(2)
-
-                                        Text(summary.displayPeriodText)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding(.vertical, 4)
-                                    .tag(summary.id)
-                                }
-                            }
-                        }
+                List(selection: $selectedSummaryIDs) {
+                    ForEach(model.aiConversationHistory, id: \.id) { summary in
+                        HistorySummaryRow(summary: summary)
+                            .tag(summary.id as UUID)
                     }
                 }
                 .onAppear {
-                    selectedSummaryID = selectedSummaryID ?? model.aiConversationHistory.first?.id
+                    if selectedSummaryIDs.isEmpty, let firstID = model.aiConversationHistory.first?.id {
+                        selectedSummaryIDs = [firstID]
+                    }
                 }
             }
         } detail: {
-            if let summary = selectedSummary {
+            if selectedSummaryIDs.count > 1 {
+                VStack(spacing: 20) {
+                    Image(systemName: "square.stack.3d.up")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    
+                    Text("已选择 \(selectedSummaryIDs.count) 项记录")
+                        .font(.title2)
+                    
+                    HStack(spacing: 16) {
+                        Button {
+                            isExporting = true
+                        } label: {
+                            Label("导出所选 (.md)", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .fileExporter(
+                            isPresented: $isExporting,
+                            document: HistoryMarkdownExportDocument(content: exportMarkdown(for: selectedSummaryIDs)),
+                            contentType: exportContentType,
+                            defaultFilename: "iTime-复盘导出"
+                        ) { result in
+                            // Handle export result if needed
+                        }
+                        
+                        Button(role: .destructive) {
+                            pendingDeletionSummaryIDs = selectedSummaryIDs
+                        } label: {
+                            Label("删除所选", systemImage: "trash")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let summary = selectedSummary {
                 AIConversationSummaryDetailView(
                     model: model,
                     summary: summary,
@@ -61,11 +89,26 @@ struct AIConversationHistoryView: View {
                             suggestions: suggestions
                         )
                     },
-                    onDelete: { pendingDeletionSummaryID = summary.id }
+                    onDelete: { pendingDeletionSummaryIDs = [summary.id] }
                 )
             } else {
                 Text(AIConversationHistoryCopy.emptyText)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup {
+                if !model.aiConversationHistory.isEmpty {
+                    Button {
+                        if selectedSummaryIDs.count == model.aiConversationHistory.count {
+                            selectedSummaryIDs.removeAll()
+                        } else {
+                            selectedSummaryIDs = Set(model.aiConversationHistory.map(\.id))
+                        }
+                    } label: {
+                        Text(selectedSummaryIDs.count == model.aiConversationHistory.count ? "取消全选" : "全选")
+                    }
+                }
             }
         }
         .navigationTitle(AIAnalysisCopy.historyAction)
@@ -73,21 +116,20 @@ struct AIConversationHistoryView: View {
         .alert(
             AIConversationHistoryCopy.deleteConfirmationTitle,
             isPresented: Binding(
-                get: { pendingDeletionSummaryID != nil },
+                get: { !pendingDeletionSummaryIDs.isEmpty },
                 set: { isPresented in
                     if !isPresented {
-                        pendingDeletionSummaryID = nil
+                        pendingDeletionSummaryIDs.removeAll()
                     }
                 }
             )
         ) {
             Button("删除", role: .destructive) {
-                guard let summaryID = pendingDeletionSummaryID else { return }
-                deleteSummary(id: summaryID)
-                pendingDeletionSummaryID = nil
+                deleteSummaries(ids: pendingDeletionSummaryIDs)
+                pendingDeletionSummaryIDs.removeAll()
             }
             Button("取消", role: .cancel) {
-                pendingDeletionSummaryID = nil
+                pendingDeletionSummaryIDs.removeAll()
             }
         } message: {
             Text(AIConversationHistoryCopy.deleteConfirmationMessage)
@@ -95,15 +137,100 @@ struct AIConversationHistoryView: View {
     }
 
     private var selectedSummary: AIConversationSummary? {
-        if let selectedSummaryID {
-            return model.aiConversationHistory.first(where: { $0.id == selectedSummaryID })
+        if selectedSummaryIDs.count == 1, let id = selectedSummaryIDs.first {
+            return model.aiConversationHistory.first(where: { $0.id == id })
         }
-        return model.aiConversationHistory.first
+        return nil
     }
 
-    private func deleteSummary(id: UUID) {
-        model.deleteAIConversationSummary(id: id)
-        selectedSummaryID = model.aiConversationHistory.first?.id
+    private func deleteSummaries(ids: Set<UUID>) {
+        model.deleteAIConversationSummaries(ids: ids)
+        if selectedSummaryIDs.count <= ids.count {
+            selectedSummaryIDs = [model.aiConversationHistory.first?.id].compactMap { $0 }.reduce(into: Set<UUID>()) { $0.insert($1) }
+        } else {
+            selectedSummaryIDs.subtract(ids)
+        }
+    }
+
+    private func exportMarkdown(for ids: Set<UUID>) -> String {
+        model.aiConversationHistory
+            .filter { ids.contains($0.id) }
+            .sorted { $0.endDate > $1.endDate }
+            .map { summary in
+                var lines = ["# \(summary.headline)", ""]
+                lines.append("> \(summary.displayPeriodText) · \(summary.serviceDisplayName)")
+                lines.append("")
+                lines.append("## 核心总结")
+                lines.append(summary.summary)
+                lines.append("")
+
+                if !summary.findings.isEmpty {
+                    lines.append("## 主要发现")
+                    for finding in summary.findings {
+                        lines.append("- \(finding)")
+                    }
+                    lines.append("")
+                }
+
+                if !summary.suggestions.isEmpty {
+                    lines.append("## 改进建议")
+                    for suggestion in summary.suggestions {
+                        lines.append("- \(suggestion)")
+                    }
+                    lines.append("")
+                }
+
+                if let report = model.longFormReport(for: summary.id) {
+                    lines.append("## 流水账：\(report.title)")
+                    lines.append(report.content)
+                    lines.append("")
+                }
+
+                return lines.joined(separator: "\n")
+            }
+            .joined(separator: "\n\n---\n\n")
+    }
+}
+
+private struct HistorySummaryRow: View {
+    let summary: AIConversationSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(summary.headline)
+                .font(.headline)
+                .lineLimit(2)
+
+            Text(summary.displayPeriodText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct HistoryMarkdownExportDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [UTType(filenameExtension: "md") ?? .plainText] }
+    static var writableContentTypes: [UTType] { [UTType(filenameExtension: "md") ?? .plainText] }
+
+    var content: String
+
+    init(content: String) {
+        self.content = content
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        if let data = configuration.file.regularFileContents,
+           let string = String(data: data, encoding: .utf8) {
+            content = string
+        } else {
+            content = ""
+        }
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let data = content.data(using: .utf8) ?? Data()
+        return FileWrapper(regularFileWithContents: data)
     }
 }
 
@@ -332,6 +459,17 @@ private struct AIConversationSummaryDetailView: View {
                         .font(.headline)
 
                     styledMarkdown(report.content)
+
+                    if let flowchart = report.flowchart {
+                        let calendarColorHexByName = Dictionary(uniqueKeysWithValues: model.availableCalendars.map { ($0.name, $0.colorHex) })
+
+                        Text("当日流程图")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.top, 8)
+
+                        FlowchartView(flowchart: flowchart, calendarColorHexByName: calendarColorHexByName)
+                            .frame(minHeight: 200)
+                    }
                 }
             } else {
                 Text(AIConversationHistoryCopy.longFormPlaceholder)

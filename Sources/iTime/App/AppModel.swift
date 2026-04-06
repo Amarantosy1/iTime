@@ -832,7 +832,11 @@ public final class AppModel {
     }
 
     public func deleteAIConversationSummary(id: UUID) {
-        let removedSummaries = aiConversationArchive.summaries.filter { $0.id == id }
+        deleteAIConversationSummaries(ids: [id])
+    }
+
+    public func deleteAIConversationSummaries(ids: Set<UUID>) {
+        let removedSummaries = aiConversationArchive.summaries.filter { ids.contains($0.id) }
         guard !removedSummaries.isEmpty else { return }
 
         let removedSummaryIDs = Set(removedSummaries.map(\.id))
@@ -1061,7 +1065,8 @@ public final class AppModel {
                 createdAt: createdAt,
                 updatedAt: nowDate,
                 title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
-                content: draft.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                content: draft.content.trimmingCharacters(in: .whitespacesAndNewlines),
+                flowchart: draft.flowchart
             )
 
             let existingReports = aiConversationArchive.longFormReports.filter { $0.summaryID != summaryID }

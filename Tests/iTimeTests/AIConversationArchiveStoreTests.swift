@@ -108,3 +108,51 @@ import Testing
 
     #expect(loadedArchive == archive)
 }
+
+@Test func longFormReportDecodesWithoutFlowchartForBackwardCompatibility() throws {
+    let json = """
+    {
+      "id": "11111111-0000-0000-0000-000000000000",
+      "sessionID": "22222222-0000-0000-0000-000000000000",
+      "summaryID": "33333333-0000-0000-0000-000000000000",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "title": "旧报告",
+      "content": "旧内容"
+    }
+    """
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .secondsSince1970
+    let report = try decoder.decode(AIConversationLongFormReport.self, from: Data(json.utf8))
+    #expect(report.title == "旧报告")
+    #expect(report.flowchart == nil)
+}
+
+@Test func longFormReportEncodesAndDecodesFlowchart() throws {
+    let flowchart = AIConversationFlowchart(
+        nodes: [
+            FlowchartNode(id: "n1", timeRange: "09:00-09:30", title: "早会", calendarName: "工作"),
+            FlowchartNode(id: "n2", timeRange: "09:30-11:00", title: "写代码", calendarName: nil),
+        ],
+        edges: [FlowchartEdge(from: "n1", to: "n2")]
+    )
+    let original = AIConversationLongFormReport(
+        id: UUID(),
+        sessionID: UUID(),
+        summaryID: UUID(),
+        createdAt: .init(timeIntervalSince1970: 0),
+        updatedAt: .init(timeIntervalSince1970: 0),
+        title: "标题",
+        content: "内容",
+        flowchart: flowchart
+    )
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .secondsSince1970
+    let data = try encoder.encode(original)
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .secondsSince1970
+    let decoded = try decoder.decode(AIConversationLongFormReport.self, from: data)
+    #expect(decoded.flowchart == flowchart)
+    #expect(decoded.flowchart?.nodes.count == 2)
+    #expect(decoded.flowchart?.edges.count == 1)
+}

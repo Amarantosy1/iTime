@@ -1070,7 +1070,13 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     let conversationService = RecordingAIConversationService(
         longFormDraft: AIConversationLongFormReportDraft(
             title: "本周复盘流水账",
-            content: "这是一篇基于原始对话生成的流水账复盘。"
+            content: "这是一篇基于原始对话生成的流水账复盘。",
+            flowchart: AIConversationFlowchart(
+                nodes: [
+                    FlowchartNode(id: "n1", timeRange: "09:00-10:00", title: "需求评审", calendarName: "工作"),
+                ],
+                edges: []
+            )
         )
     )
     let sessionID = UUID(uuidString: "11111111-aaaa-bbbb-cccc-111111111111")!
@@ -1151,6 +1157,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     let report = try #require(model.longFormReport(for: summaryID))
     #expect(report.title == "本周复盘流水账")
     #expect(report.content == "这是一篇基于原始对话生成的流水账复盘。")
+    #expect(report.flowchart?.nodes.count == 1)
+    #expect(report.flowchart?.nodes.first?.id == "n1")
     #expect(conversationService.generatedLongFormSessions.first?.id == sessionID)
     #expect(conversationService.generatedLongFormSummaries.first?.id == summaryID)
     #expect(conversationService.generatedLongFormConfigurations.first?.provider == .openAI)

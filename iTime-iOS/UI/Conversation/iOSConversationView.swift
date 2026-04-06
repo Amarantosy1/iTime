@@ -960,6 +960,17 @@ struct iOSConversationSummaryDetailView: View {
                 Text(report.title)
                     .font(.subheadline.weight(.semibold))
                 Markdown(report.content)
+
+                if let flowchart = report.flowchart {
+                    let calendarColorHexByName = Dictionary(uniqueKeysWithValues: model.availableCalendars.map { ($0.name, $0.colorHex) })
+
+                    Text("当日流程图")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.top, 4)
+
+                    FlowchartView(flowchart: flowchart, calendarColorHexByName: calendarColorHexByName)
+                        .frame(minHeight: 180)
+                }
             } else {
                 Text(iOSConversationLongFormCopy.placeholder)
                     .foregroundStyle(.secondary)

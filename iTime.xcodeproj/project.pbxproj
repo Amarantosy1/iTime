@@ -113,6 +113,7 @@
 		A00000000000000000000142 /* AIConversationMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005B /* AIConversationMessagesView.swift */; };
 		A00000000000000000000143 /* AIConversationComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005C /* AIConversationComposerView.swift */; };
 		A00000000000000000000144 /* AIConversationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005D /* AIConversationHistoryView.swift */; };
+		A00000000000000000000149 /* FlowchartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000095 /* FlowchartView.swift */; };
 		A00000000000000000000145 /* AIConversationRoutingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */; };
 		A00000000000000000000146 /* AIServiceEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000005F /* AIServiceEndpoint.swift */; };
 		A00000000000000000000147 /* ReviewReminderScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000093 /* ReviewReminderScheduling.swift */; };
@@ -137,6 +138,7 @@
 		F4DD1791B62CC12AD12C657B /* AIAnalysisServing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000043 /* AIAnalysisServing.swift */; };
 		F605A4C5BCF13979468D89E9 /* TimeBucketSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* TimeBucketSummary.swift */; };
 		F8CECC89274EE81BC878BB18 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* AIProvider.swift */; };
+		F9A1B2C3D4E5F60718293A4B /* FlowchartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000095 /* FlowchartView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -232,6 +234,7 @@
 		A0000000000000000000005D /* AIConversationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationHistoryView.swift; sourceTree = "<group>"; };
 		A0000000000000000000005E /* AIConversationRoutingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIConversationRoutingServiceTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000005F /* AIServiceEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIServiceEndpoint.swift; sourceTree = "<group>"; };
+		A00000000000000000000095 /* FlowchartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowchartView.swift; sourceTree = "<group>"; };
 		A00000000000000000000093 /* ReviewReminderScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderScheduling.swift; sourceTree = "<group>"; };
 		A00000000000000000000094 /* ReviewReminderSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewReminderSchedulingTests.swift; sourceTree = "<group>"; };
 		A1E35403181ED52C20BFB5FC /* DeviceSyncSettingsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceSyncSettingsSection.swift; path = Sources/iTime/UI/Settings/DeviceSyncSettingsSection.swift; sourceTree = "<group>"; };
@@ -533,6 +536,7 @@
 			isa = PBXGroup;
 			children = (
 				A0000000000000000000005C /* AIConversationComposerView.swift */,
+				A00000000000000000000095 /* FlowchartView.swift */,
 				A0000000000000000000005D /* AIConversationHistoryView.swift */,
 				A0000000000000000000005B /* AIConversationMessagesView.swift */,
 				A0000000000000000000005A /* AIConversationWindowView.swift */,
@@ -740,6 +744,7 @@
 				5AC1AE0A1F8E8C56BA68BBB4 /* TimeOverview.swift in Sources */,
 				E4BF12FDB229243EAF18D85E /* DailyDurationSummary.swift in Sources */,
 				9233860F53FADEEE007528C1 /* AIConversation.swift in Sources */,
+				F9A1B2C3D4E5F60718293A4B /* FlowchartView.swift in Sources */,
 				D4D9948FE1FE2478BC830D35 /* AIAnalysis.swift in Sources */,
 				04A6DACA748BE0964F7F67CE /* CalendarEventRecord.swift in Sources */,
 				299D3D003A8B9D4B42BC05F5 /* AIServiceEndpoint.swift in Sources */,
@@ -786,6 +791,7 @@
 				A0000000000000000000012A /* AIAPIKeyStoring.swift in Sources */,
 				A00000000000000000000128 /* AIAnalysisServing.swift in Sources */,
 				A00000000000000000000132 /* AIConversation.swift in Sources */,
+				A00000000000000000000149 /* FlowchartView.swift in Sources */,
 				A00000000000000000000144 /* AIConversationHistoryView.swift in Sources */,
 				A00000000000000000000142 /* AIConversationMessagesView.swift in Sources */,
 				A0000000000000000000013C /* AIConversationRoutingService.swift in Sources */,

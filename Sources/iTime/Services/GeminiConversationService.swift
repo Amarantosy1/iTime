@@ -89,7 +89,7 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
         guard !payload.title.isEmpty, !payload.content.isEmpty else {
             throw AIAnalysisServiceError.invalidResponse
         }
-        return AIConversationLongFormReportDraft(title: payload.title, content: payload.content)
+        return AIConversationLongFormReportDraft(title: payload.title, content: payload.content, flowchart: payload.flowchart)
     }
 
     private func sendRequest(
@@ -212,4 +212,5 @@ private struct GeminiSummaryPayload: Decodable {
 private struct GeminiLongFormPayload: Decodable {
     let title: String
     let content: String
+    let flowchart: AIConversationFlowchart?
 }
