@@ -197,7 +197,7 @@ private struct iOSThemeSettingsDetailView: View {
                 Button {
                     presentNewPresetEditor()
                 } label: {
-                    SquareThemeTile {
+                    ThemePresetContainer {
                         AddCustomThemeCard()
                     }
                 }
@@ -237,7 +237,6 @@ private struct iOSThemeSettingsDetailView: View {
     private func presentNewPresetEditor() {
         editorTarget = CustomThemeEditorTarget(
             presetID: nil,
-            displayName: defaultThemeName,
             originalImageName: nil,
             imageName: nil,
             scale: 1.12,
@@ -249,7 +248,6 @@ private struct iOSThemeSettingsDetailView: View {
     private func presentEditor(for preset: CustomThemePreset) {
         editorTarget = CustomThemeEditorTarget(
             presetID: preset.id,
-            displayName: preset.displayName,
             originalImageName: preset.imageName,
             imageName: preset.imageName,
             scale: preset.scale,
@@ -280,7 +278,6 @@ private struct iOSThemeSettingsDetailView: View {
 
         _ = model.preferences.saveCustomThemePreset(
             id: result.presetID,
-            displayName: result.displayName,
             imageName: result.imageName,
             scale: result.scale,
             offsetX: result.offsetX,
@@ -292,10 +289,6 @@ private struct iOSThemeSettingsDetailView: View {
            !model.preferences.customThemePresets.contains(where: { $0.imageName == previousImageName }) {
             CustomThemeBackgroundImageStore.removeImage(named: previousImageName)
         }
-    }
-
-    private var defaultThemeName: String {
-        "我的主题 \(model.preferences.customThemePresets.count + 1)"
     }
 }
 
@@ -330,7 +323,7 @@ private struct ThemeSquareGridLayout: Layout {
     }
 }
 
-private struct SquareThemeTile<Content: View>: View {
+private struct ThemePresetContainer<Content: View>: View {
     var isSelected: Bool = false
     @ViewBuilder let content: Content
     private let cornerRadius: CGFloat = 16
@@ -346,6 +339,7 @@ private struct SquareThemeTile<Content: View>: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(isSelected ? Color.accentColor : Color.white.opacity(0.14), lineWidth: isSelected ? 2 : 1)
             }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
@@ -359,11 +353,9 @@ private struct ThemePresetTile: View {
     let onDelete: () -> Void
 
     var body: some View {
-        SquareThemeTile(isSelected: isSelected) {
+        ThemePresetContainer(isSelected: isSelected) {
             CustomThemePresetCard(
-                preset: preset,
-                image: image,
-                isSelected: isSelected
+                image: image
             )
         }
         .onTapGesture {
@@ -408,12 +400,10 @@ private struct AddCustomThemeCard: View {
 }
 
 private struct CustomThemePresetCard: View {
-    let preset: CustomThemePreset
     let image: UIImage?
-    let isSelected: Bool
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.secondary.opacity(0.12))
 
@@ -429,18 +419,6 @@ private struct CustomThemePresetCard: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.55)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            Text(preset.displayName)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .padding(10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -449,7 +427,6 @@ private struct CustomThemePresetCard: View {
 private struct CustomThemeEditorTarget: Identifiable {
     let id = UUID()
     let presetID: UUID?
-    let displayName: String
     let originalImageName: String?
     let imageName: String?
     let scale: Double
@@ -459,7 +436,6 @@ private struct CustomThemeEditorTarget: Identifiable {
 
 private struct CustomThemeEditorResult {
     let presetID: UUID?
-    let displayName: String
     let imageName: String
     let scale: Double
     let offsetX: Double
@@ -597,7 +573,6 @@ private struct CustomThemeFullscreenEditorView: View {
         onSave(
             CustomThemeEditorResult(
                 presetID: target.presetID,
-                displayName: target.displayName,
                 imageName: draftImageName,
                 scale: cropScale,
                 offsetX: cropOffsetX,
