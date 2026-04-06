@@ -149,3 +149,57 @@ import Testing
     #expect(second.customThemeOffsetX == 0.22)
     #expect(second.customThemeOffsetY == -0.31)
 }
+
+@Test func customThemePresetsPersistAcrossPreferenceInstances() {
+    let suite = "iTime.tests.custom-theme-presets"
+    let first = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    _ = first.saveCustomThemePreset(
+        displayName: "晨光",
+        imageName: "preset-a.jpg",
+        scale: 1.3,
+        offsetX: 0.1,
+        offsetY: -0.2
+    )
+    let secondPresetID = first.saveCustomThemePreset(
+        displayName: "夜色",
+        imageName: "preset-b.jpg",
+        scale: 1.7,
+        offsetX: -0.25,
+        offsetY: 0.3
+    )
+
+    let second = UserPreferences(storage: .inMemory, suiteNameOverride: suite)
+    #expect(second.customThemePresets.count == 2)
+    #expect(second.selectedCustomThemePresetID == secondPresetID)
+    #expect(second.customThemeImageName == "preset-b.jpg")
+    #expect(second.customThemeScale == 1.7)
+    #expect(second.customThemeOffsetX == -0.25)
+    #expect(second.customThemeOffsetY == 0.3)
+}
+
+@Test func applyingCustomThemePresetUpdatesActiveCropFields() {
+    let preferences = UserPreferences(storage: .inMemory)
+    let firstPresetID = preferences.saveCustomThemePreset(
+        displayName: "主题 A",
+        imageName: "theme-a.jpg",
+        scale: 1.2,
+        offsetX: 0.2,
+        offsetY: -0.1
+    )
+    _ = preferences.saveCustomThemePreset(
+        displayName: "主题 B",
+        imageName: "theme-b.jpg",
+        scale: 1.8,
+        offsetX: -0.3,
+        offsetY: 0.4
+    )
+
+    preferences.applyCustomThemePreset(id: firstPresetID)
+
+    #expect(preferences.selectedCustomThemePresetID == firstPresetID)
+    #expect(preferences.interfaceTheme == .custom)
+    #expect(preferences.customThemeImageName == "theme-a.jpg")
+    #expect(preferences.customThemeScale == 1.2)
+    #expect(preferences.customThemeOffsetX == 0.2)
+    #expect(preferences.customThemeOffsetY == -0.1)
+}

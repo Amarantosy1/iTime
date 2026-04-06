@@ -65,13 +65,13 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     public func generateLongFormReport(
         session: AIConversationSession,
-        summary: AIConversationSummary,
+        summary _: AIConversationSummary,
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationLongFormReportDraft {
         let shouldIncludeFlowchart = Self.shouldIncludeLongFormFlowchart(for: session)
         let content = try await sendRequest(
             systemPrompt: Self.longFormSystemPrompt(includeFlowchart: shouldIncludeFlowchart),
-            userPrompt: Self.longFormUserPrompt(for: session, summary: summary, includeFlowchart: shouldIncludeFlowchart),
+            userPrompt: Self.longFormUserPrompt(for: session, includeFlowchart: shouldIncludeFlowchart),
             configuration: configuration
         )
         let payload = try decodePayload(LongFormPayload.self, from: content)
@@ -198,7 +198,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
     - Markdown 约定（非常重要）：
         1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用markdown高亮语法
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
         3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
         4) 不要使用 HTML 标签（例如 `<mark>`）
         5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
@@ -210,10 +210,11 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static func longFormSystemPrompt(includeFlowchart: Bool) -> String {
         let basePrompt = """
-        你是用户的一位朋友，帮他/她写一篇流水账复盘，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天，不要虚构内容。
+        你是时间复盘记录助手。你的首要目标是事实准确，必须严格遵守输入数据（具体日程、时间、时长、事件名）并结合对话补充背景。
+        只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
         - Markdown 约定（非常重要）：
         1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用 高亮语法
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
         3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
         4) 不要使用 HTML 标签（例如 `<mark>`）
         5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
@@ -225,7 +226,9 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
         return """
         \(basePrompt)
-        同时输出一份当天的节点式流程图。把时间相近、性质相同的事件合并为节点，允许并行分支。每个节点有唯一 id（如 "n1"）、时间段（timeRange，格式 "HH:mm-HH:mm"）、标题（title）、主要日历名（calendarName，若无则为 null）。edges 描述节点间的流转关系，每条 edge 有 from 和 to（均为 node id）。
+        同时输出一份当天的节点式流程图。流程图必须基于“具体日程”原始数据逐条构建节点，禁止合并、拆分、改写事件时间或时长。
+        每个节点有唯一 id（如 "n1"）、时间段（timeRange，格式 "HH:mm-HH:mm"）、标题（title）、主要日历名（calendarName，若无则为 null）。
+        edges 只允许表达真实时间先后关系，from/to 必须引用已存在节点 id。
         """
     }
 
@@ -299,7 +302,6 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static func longFormUserPrompt(
         for session: AIConversationSession,
-        summary: AIConversationSummary,
         includeFlowchart: Bool
     ) -> String {
         let outputSchema: String
@@ -326,13 +328,12 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         主要日历：\(session.overviewSnapshot.topCalendarNames.joined(separator: "、"))
         具体日程：
         \(eventLines(for: session.events))
-        当前短总结标题（仅作索引，不可作为主输入）：\(summary.headline)
         对话记录：
         \(historyLines(for: session.messages))
         必须同时依据具体日程数据和对话记录生成复盘内容。
         若对话内容与具体日程冲突，以具体日程数据为准，不得臆造不存在的事件或时长。
-        基于这些对话和统计，帮我写一篇真实的复盘——不是汇报，是反思。
-        不要逐条转写聊天，抽象整理出真正值得思考的东西，每个章节有具体依据。
+        对话里无法被具体日程佐证的信息，只能标记为“对话补充信息”，不得写成已发生的事实日程。
+        只做事实化记录，不做反思、不做升华、不做主观推断。
         只输出 JSON：\(outputSchema)
         """
     }
@@ -392,9 +393,17 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static func eventLines(for events: [AIEventContext]) -> String {
         guard !events.isEmpty else { return "- 无事件" }
-        return events.map {
-            "- [\($0.calendarName)] \($0.title)，时长 \($0.durationText)"
+        return events.map { event in
+            "- [\(event.calendarName)] 时间 \(eventTimeRangeText(for: event))，事件 \(event.title)，时长 \(event.durationText)"
         }.joined(separator: "\n")
+    }
+
+    private static func eventTimeRangeText(for event: AIEventContext) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .autoupdatingCurrent
+        formatter.dateFormat = "HH:mm"
+        return "\(formatter.string(from: event.startDate))-\(formatter.string(from: event.endDate))"
     }
 
     static func historyLines(for history: [AIConversationMessage]) -> String {

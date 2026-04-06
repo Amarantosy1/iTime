@@ -64,6 +64,31 @@ private func makePatchFixture(
     preferences: UserPreferences,
     baseServiceID: UUID
 ) throws -> SyncPatch {
+    let presetAID = UUID()
+    let presetBID = UUID()
+    let remotePresets = [
+        CustomThemePreset(
+            id: presetAID,
+            displayName: "同步主题 A",
+            imageName: "custom-theme-sync-a.jpg",
+            scale: 1.4,
+            offsetX: -0.1,
+            offsetY: 0.15,
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            updatedAt: Date(timeIntervalSince1970: 1_700_000_060)
+        ),
+        CustomThemePreset(
+            id: presetBID,
+            displayName: "同步主题 B",
+            imageName: "custom-theme-sync.jpg",
+            scale: 1.6,
+            offsetX: -0.2,
+            offsetY: 0.28,
+            createdAt: Date(timeIntervalSince1970: 1_700_000_100),
+            updatedAt: Date(timeIntervalSince1970: 1_700_000_200)
+        )
+    ]
+
     let remotePayload = UserPreferences.SyncablePreferencesPayload(
         selectedRange: .week,
         selectedCalendarIDs: ["work"],
@@ -77,6 +102,8 @@ private func makePatchFixture(
         customThemeScale: 1.6,
         customThemeOffsetX: -0.2,
         customThemeOffsetY: 0.28,
+        customThemePresets: remotePresets,
+        selectedCustomThemePresetID: presetBID,
         aiServiceEndpoints: preferences.aiServiceEndpoints,
         defaultAIServiceID: baseServiceID
     )
@@ -110,6 +137,8 @@ private func makePatchFixture(
     #expect(fixture.preferences.customThemeScale == 1.6)
     #expect(fixture.preferences.customThemeOffsetX == -0.2)
     #expect(fixture.preferences.customThemeOffsetY == 0.28)
+    #expect(fixture.preferences.customThemePresets.count == 2)
+    #expect(fixture.preferences.selectedCustomThemePresetID != nil)
     #expect(fixture.keyStore.values[serviceID] == "sk-remote")
 }
 

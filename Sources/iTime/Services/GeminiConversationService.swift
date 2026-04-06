@@ -77,14 +77,13 @@ public struct GeminiConversationService: AIConversationServing, Sendable {
 
     public func generateLongFormReport(
         session: AIConversationSession,
-        summary: AIConversationSummary,
+        summary _: AIConversationSummary,
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationLongFormReportDraft {
         let shouldIncludeFlowchart = OpenAICompatibleAIConversationService.shouldIncludeLongFormFlowchart(for: session)
         let content = try await sendRequest(
             userPrompt: OpenAICompatibleAIConversationService.longFormUserPrompt(
                 for: session,
-                summary: summary,
                 includeFlowchart: shouldIncludeFlowchart
             ),
             systemPrompt: OpenAICompatibleAIConversationService.longFormSystemPrompt(includeFlowchart: shouldIncludeFlowchart),
