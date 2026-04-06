@@ -54,3 +54,23 @@ import Testing
     let merged = SyncEngine.merge(local: [local], remote: [remote])
     #expect(merged.first?.isDeleted == true)
 }
+
+@Test func syncEnginePrefersTombstoneEvenIfOtherSideHasNewerUpdate() {
+    let local = SyncRecord<String>(
+        recordID: "session-2",
+        value: "alive-but-newer",
+        updatedAt: .init(timeIntervalSince1970: 50), // newer edit
+        deletedAt: nil,
+        version: 5
+    )
+    let remote = SyncRecord<String>(
+        recordID: "session-2",
+        value: nil,
+        updatedAt: .init(timeIntervalSince1970: 40), // older deletion
+        deletedAt: .init(timeIntervalSince1970: 40),
+        version: 4
+    )
+    let merged = SyncEngine.merge(local: [local], remote: [remote])
+    #expect(merged.first?.isDeleted == true)
+    #expect(merged.first?.version == 4) // Picks the remote one which is deleted
+}
