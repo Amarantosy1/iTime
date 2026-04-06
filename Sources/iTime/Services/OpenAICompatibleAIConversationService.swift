@@ -198,7 +198,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
     - Markdown 约定（非常重要）：
         1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 高亮
         3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
         4) 不要使用 HTML 标签（例如 `<mark>`）
         5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
@@ -214,7 +214,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
         - Markdown 约定（非常重要）：
         1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
+        2) 所有“具体事件名/任务名”都必须使用 Markdown高亮
         3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
         4) 不要使用 HTML 标签（例如 `<mark>`）
         5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
