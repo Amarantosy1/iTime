@@ -336,6 +336,8 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     #expect(body.contains("具体日程："))
     #expect(body.contains("时间"))
     #expect(body.contains("时长 1小时"))
+    #expect(body.contains("今天从 `开始时间` 开始，到 `结束时间` 结束"))
+    #expect(body.contains("`HH:mm-HH:mm`：**事件名**"))
     #expect(body.contains("必须同时依据具体日程数据和对话记录"))
     #expect(body.contains("若对话内容与具体日程冲突，以具体日程数据为准"))
     #expect(body.contains("只做事实化记录，不做反思、不做升华、不做主观推断"))

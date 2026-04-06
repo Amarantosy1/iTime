@@ -198,7 +198,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     - suggestions：针对时间分配和任务安排给出的具体建议，说清楚做什么、为什么值得做
     - Markdown 约定（非常重要）：
         1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用 Markdown 高亮
+        2) 所有“具体事件名/任务名”都必须使用 Markdown 加粗语法 `**事件名**`
         3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
         4) 不要使用 HTML 标签（例如 `<mark>`）
         5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
@@ -212,12 +212,21 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         let basePrompt = """
         你是时间复盘记录助手。你的首要目标是事实准确，必须严格遵守输入数据（具体日程、时间、时长、事件名）并结合对话补充背景。
         只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
-        - Markdown 约定（非常重要）：
-        1) 所有“时间点/时间段”都用行内代码包裹
-        2) 所有“具体事件名/任务名”都必须使用 Markdown高亮
-        3) 若需要给出时间线或步骤，允许使用 fenced code block（```text ... ```）
-        4) 不要使用 HTML 标签（例如 `<mark>`）
-        5) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
+
+                content 字段必须固定为如下 Markdown 模板（严格执行）：
+                1) 先写 1 段“总览段”，格式固定为：
+                     今天从 `开始时间` 开始，到 `结束时间` 结束，共进行了 `事件数` 个事件，总计 `总时长`。主要涉及 `领域1`、`领域2`、`领域3`。
+                2) 然后按时间顺序逐条写“事件段”，每个事件恰好 1 段，必须分段，格式固定为：
+                     `HH:mm-HH:mm`：**事件名**，事件经过或结果（1 句事实描述）。
+                3) 事件段数量必须与“具体日程”条目数量完全一致，禁止合并、拆分、跳过或重排。
+                4) 若对话提供了补充信息，只能写在对应事件句尾，并使用“（对话补充：...）”标记。
+                5) 全文禁止使用标题、列表符号（-、*、1.）、小结段或额外结尾。
+
+                Markdown 约定（非常重要）：
+                1) 所有时间点/时间段都必须使用行内代码语法 `...`
+                2) 所有具体事件名/任务名都必须使用加粗语法 **...**
+                3) 不要使用 HTML 标签（例如 `<mark>`）
+                4) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
         """
 
         guard includeFlowchart else {
@@ -330,6 +339,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         \(eventLines(for: session.events))
         对话记录：
         \(historyLines(for: session.messages))
+        content 必须严格使用固定模板：第 1 段总览 + 按时间顺序逐条事件段（每个事件 1 段，段数与具体日程一致）。
         必须同时依据具体日程数据和对话记录生成复盘内容。
         若对话内容与具体日程冲突，以具体日程数据为准，不得臆造不存在的事件或时长。
         对话里无法被具体日程佐证的信息，只能标记为“对话补充信息”，不得写成已发生的事实日程。

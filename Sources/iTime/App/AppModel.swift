@@ -951,7 +951,113 @@ public final class AppModel {
             return
         }
 
-        await performLongFormGeneration(session: session, summary: summary, configuration: configuration)
+        let sessionForGeneration = rehydrateHistoricalSessionEventsIfNeeded(session)
+        await performLongFormGeneration(session: sessionForGeneration, summary: summary, configuration: configuration)
+    }
+
+    private func rehydrateHistoricalSessionEventsIfNeeded(_ session: AIConversationSession) -> AIConversationSession {
+        guard session.events.isEmpty else {
+            return session
+        }
+
+        let eventContexts = historicalEventContexts(for: session)
+        guard !eventContexts.isEmpty else {
+            return session
+        }
+
+        let updatedSession = sessionByReplacingEvents(session, events: eventContexts)
+        persistRehydratedSession(updatedSession)
+        return updatedSession
+    }
+
+    private func historicalEventContexts(for session: AIConversationSession) -> [AIEventContext] {
+        let fetchedCalendars = service.fetchCalendars()
+        let allCalendarIDs = fetchedCalendars.map(\.id)
+        guard !allCalendarIDs.isEmpty else { return [] }
+
+        let selectedIDs = Set(preferences.selectedCalendarIDs)
+        let reviewExcludedIDs = Set(preferences.reviewExcludedCalendarIDs)
+
+        let selectedCalendarIDs = selectedIDs.isEmpty
+            ? allCalendarIDs
+            : allCalendarIDs.filter { selectedIDs.contains($0) }
+        let effectiveSelectedCalendarIDs = selectedCalendarIDs.isEmpty ? allCalendarIDs : selectedCalendarIDs
+
+        let reviewEnabledCalendarIDs = effectiveSelectedCalendarIDs.filter { !reviewExcludedIDs.contains($0) }
+        let fetchCalendarIDs = reviewEnabledCalendarIDs.isEmpty ? effectiveSelectedCalendarIDs : reviewEnabledCalendarIDs
+
+        let interval = DateInterval(start: session.startDate, end: session.endDate)
+        let events = service.fetchEvents(in: interval, selectedCalendarIDs: fetchCalendarIDs)
+        let calendarLookup = Dictionary(uniqueKeysWithValues: fetchedCalendars.map { ($0.id, $0) })
+
+        return events
+            .filter { !$0.isAllDay }
+            .sorted { lhs, rhs in
+                if lhs.startDate == rhs.startDate {
+                    return lhs.id < rhs.id
+                }
+                return lhs.startDate < rhs.startDate
+            }
+            .map { event in
+                AIEventContext(
+                    id: event.id,
+                    title: event.title,
+                    calendarID: event.calendarID,
+                    calendarName: calendarLookup[event.calendarID]?.name ?? "未分类日历",
+                    startDate: event.startDate,
+                    endDate: event.endDate,
+                    durationText: aiConversationDurationText(for: event.endDate.timeIntervalSince(event.startDate))
+                )
+            }
+    }
+
+    private func aiConversationDurationText(for duration: TimeInterval) -> String {
+        let totalMinutes = max(Int(duration) / 60, 0)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+
+        if hours == 0 {
+            return "\(minutes)分钟"
+        }
+
+        if minutes == 0 {
+            return "\(hours)小时"
+        }
+
+        return "\(hours)小时\(minutes)分钟"
+    }
+
+    private func sessionByReplacingEvents(_ session: AIConversationSession, events: [AIEventContext]) -> AIConversationSession {
+        AIConversationSession(
+            id: session.id,
+            serviceID: session.serviceID,
+            serviceDisplayName: session.serviceDisplayName,
+            provider: session.provider,
+            model: session.model,
+            range: session.range,
+            startDate: session.startDate,
+            endDate: session.endDate,
+            startedAt: session.startedAt,
+            completedAt: session.completedAt,
+            status: session.status,
+            overviewSnapshot: session.overviewSnapshot,
+            events: events,
+            messages: session.messages
+        )
+    }
+
+    private func persistRehydratedSession(_ updatedSession: AIConversationSession) {
+        let updatedSessions = aiConversationArchive.sessions.map { session in
+            session.id == updatedSession.id ? updatedSession : session
+        }
+        let updatedArchive = AIConversationArchive(
+            sessions: updatedSessions,
+            summaries: aiConversationArchive.summaries,
+            memorySnapshots: aiConversationArchive.memorySnapshots,
+            longFormReports: aiConversationArchive.longFormReports,
+            deletedItemIDs: aiConversationArchive.deletedItemIDs
+        )
+        try? persistConversationArchive(updatedArchive)
     }
 
     private func performMemoryUpdate(

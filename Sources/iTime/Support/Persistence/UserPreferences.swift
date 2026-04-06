@@ -620,6 +620,30 @@ public final class UserPreferences {
         interfaceTheme = .custom
     }
 
+    @discardableResult
+    public func removeCustomThemePreset(id: UUID) -> CustomThemePreset? {
+        guard let index = customThemePresets.firstIndex(where: { $0.id == id }) else { return nil }
+
+        let removedPreset = customThemePresets.remove(at: index)
+
+        if selectedCustomThemePresetID == id {
+            if let nextPreset = customThemePresets.first {
+                applyCustomThemePreset(id: nextPreset.id)
+            } else {
+                selectedCustomThemePresetID = nil
+                customThemeImageName = nil
+                customThemeScale = 1.12
+                customThemeOffsetX = 0
+                customThemeOffsetY = 0
+                if interfaceTheme == .custom {
+                    interfaceTheme = .pure
+                }
+            }
+        }
+
+        return removedPreset
+    }
+
     private static func decodeAIServiceEndpoints(from defaults: UserDefaults) -> [AIServiceEndpoint] {
         guard
             let data = defaults.data(forKey: Keys.aiServiceEndpoints) ?? defaults.data(forKey: Keys.aiProviderMounts),

@@ -1165,6 +1165,112 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
 }
 
 @MainActor
+@Test func generatingLongFormReportRehydratesHistoricalSessionEventsWhenSessionSnapshotMissing() async throws {
+    let calendarService = ConversationStubCalendarAccessService(
+        state: .authorized,
+        calendars: [
+            CalendarSource(id: "work", name: "工作", colorHex: "#4A90E2", isSelected: true),
+        ],
+        events: [
+            CalendarEventRecord(
+                id: "in-range",
+                title: "历史需求评审",
+                calendarID: "work",
+                startDate: .init(timeIntervalSince1970: 0),
+                endDate: .init(timeIntervalSince1970: 3_600),
+                isAllDay: false
+            ),
+        ]
+    )
+    let conversationService = RecordingAIConversationService(
+        longFormDraft: AIConversationLongFormReportDraft(
+            title: "历史流水账",
+            content: "基于历史数据生成。"
+        )
+    )
+    let sessionID = UUID(uuidString: "66666666-aaaa-bbbb-cccc-666666666666")!
+    let summaryID = UUID(uuidString: "77777777-aaaa-bbbb-cccc-777777777777")!
+    let historicalSessionWithoutEvents = AIConversationSession(
+        id: sessionID,
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .today,
+        startDate: .init(timeIntervalSince1970: 0),
+        endDate: .init(timeIntervalSince1970: 86_400),
+        startedAt: .init(timeIntervalSince1970: 0),
+        completedAt: .init(timeIntervalSince1970: 7_200),
+        status: .completed,
+        overviewSnapshot: AIOverviewSnapshot(
+            rangeTitle: "今天",
+            totalDurationText: "1小时",
+            totalEventCount: 1,
+            topCalendarNames: ["工作"]
+        ),
+        events: [],
+        messages: [
+            AIConversationMessage(
+                id: UUID(),
+                role: .assistant,
+                content: "这次评审主要讨论了什么？",
+                createdAt: .init(timeIntervalSince1970: 100)
+            ),
+            AIConversationMessage(
+                id: UUID(),
+                role: .user,
+                content: "主要确认了下周排期。",
+                createdAt: .init(timeIntervalSince1970: 200)
+            ),
+        ]
+    )
+    let summary = AIConversationSummary(
+        id: summaryID,
+        sessionID: sessionID,
+        serviceID: AIProviderKind.openAI.builtInServiceID,
+        serviceDisplayName: "OpenAI",
+        provider: .openAI,
+        model: "gpt-5-mini",
+        range: .today,
+        startDate: .init(timeIntervalSince1970: 0),
+        endDate: .init(timeIntervalSince1970: 86_400),
+        createdAt: .init(timeIntervalSince1970: 7_200),
+        headline: "历史总结",
+        summary: "历史短总结",
+        findings: [],
+        suggestions: [],
+        overviewSnapshot: historicalSessionWithoutEvents.overviewSnapshot
+    )
+    let archiveStore = InMemoryAIConversationArchiveStore(
+        archive: AIConversationArchive(
+            sessions: [historicalSessionWithoutEvents],
+            summaries: [summary],
+            memorySnapshots: [],
+            longFormReports: []
+        )
+    )
+    let preferences = UserPreferences(storage: .inMemory)
+    preferences.setAIProviderEnabled(true, for: .openAI)
+    preferences.setAIProviderBaseURL("https://example.com/v1", for: .openAI)
+    preferences.setAIProviderModel("gpt-5-mini", for: .openAI)
+    let model = AppModel(
+        service: calendarService,
+        preferences: preferences,
+        aiConversationService: conversationService,
+        aiKeyStore: ConversationInMemoryAIKeyStore(value: "secret-key"),
+        aiConversationArchiveStore: archiveStore
+    )
+
+    await model.refresh()
+    await model.generateLongFormReport(for: summaryID)
+
+    let generatedSession = try #require(conversationService.generatedLongFormSessions.first)
+    #expect(generatedSession.events.count == 1)
+    #expect(generatedSession.events.first?.title == "历史需求评审")
+    #expect(generatedSession.events.first?.durationText == "1小时")
+}
+
+@MainActor
 @Test func updatingLongFormReportPersistsEditedContent() async throws {
     let calendarService = ConversationStubCalendarAccessService(
         state: .authorized,

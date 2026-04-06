@@ -203,25 +203,38 @@ private struct iOSThemeSettingsDetailView: View {
                 Button {
                     presentNewPresetEditor()
                 } label: {
-                    AddCustomThemeCard()
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
+                    SquareThemeTile {
+                        AddCustomThemeCard()
+                    }
                 }
                 .buttonStyle(.plain)
 
                 ForEach(model.preferences.customThemePresets) { preset in
                     Button {
-                        presentEditor(for: preset)
+                        applyPreset(preset)
                     } label: {
-                        CustomThemePresetCard(
-                            preset: preset,
-                            image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
-                            isSelected: model.preferences.selectedCustomThemePresetID == preset.id
-                        )
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(1, contentMode: .fit)
+                        SquareThemeTile {
+                            CustomThemePresetCard(
+                                preset: preset,
+                                image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
+                                isSelected: model.preferences.selectedCustomThemePresetID == preset.id
+                            )
+                        }
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            presentEditor(for: preset)
+                        } label: {
+                            Label("编辑", systemImage: "slider.horizontal.3")
+                        }
+
+                        Button(role: .destructive) {
+                            deletePreset(preset)
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    }
                 }
             }
             .padding(.vertical, 2)
@@ -268,6 +281,17 @@ private struct iOSThemeSettingsDetailView: View {
         )
     }
 
+    private func applyPreset(_ preset: CustomThemePreset) {
+        model.preferences.applyCustomThemePreset(id: preset.id)
+    }
+
+    private func deletePreset(_ preset: CustomThemePreset) {
+        guard let removedPreset = model.preferences.removeCustomThemePreset(id: preset.id) else { return }
+        if !model.preferences.customThemePresets.contains(where: { $0.imageName == removedPreset.imageName }) {
+            CustomThemeBackgroundImageStore.removeImage(named: removedPreset.imageName)
+        }
+    }
+
     private func saveEditorResult(_ result: CustomThemeEditorResult) {
         let previousImageName: String?
         if let presetID = result.presetID,
@@ -298,6 +322,22 @@ private struct iOSThemeSettingsDetailView: View {
     }
 }
 
+private struct SquareThemeTile<Content: View>: View {
+    @ViewBuilder let content: Content
+    private let cornerRadius: CGFloat = 16
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(.clear)
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                content
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+}
+
 private struct AddCustomThemeCard: View {
     var body: some View {
         ZStack {
@@ -316,7 +356,7 @@ private struct AddCustomThemeCard: View {
             }
             .foregroundStyle(.secondary)
         }
-        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -360,7 +400,7 @@ private struct CustomThemePresetCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
         }
-        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
