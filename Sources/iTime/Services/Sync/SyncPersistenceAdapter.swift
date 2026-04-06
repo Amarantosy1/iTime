@@ -85,22 +85,37 @@ public final class SyncPersistenceAdapter: @unchecked Sendable {
     }
 
     private func mergeArchives(local: AIConversationArchive, remote: AIConversationArchive) -> AIConversationArchive {
-        AIConversationArchive(
-            sessions: mergeByID(local.sessions, remote.sessions, keyPath: \.id),
-            summaries: mergeByID(local.summaries, remote.summaries, keyPath: \.id),
-            memorySnapshots: mergeByID(local.memorySnapshots, remote.memorySnapshots, keyPath: \.id),
-            longFormReports: mergeByID(local.longFormReports, remote.longFormReports, keyPath: \.id)
+        let deletedItemIDs = local.deletedItemIDs.union(remote.deletedItemIDs)
+
+        return AIConversationArchive(
+            sessions: mergeItems(local.sessions, remote.sessions, keyPath: \.id, timestampPath: \.effectiveUpdatedAt, deletedIDs: deletedItemIDs),
+            summaries: mergeItems(local.summaries, remote.summaries, keyPath: \.id, timestampPath: \.effectiveUpdatedAt, deletedIDs: deletedItemIDs),
+            memorySnapshots: mergeItems(local.memorySnapshots, remote.memorySnapshots, keyPath: \.id, timestampPath: \.effectiveUpdatedAt, deletedIDs: deletedItemIDs),
+            longFormReports: mergeItems(local.longFormReports, remote.longFormReports, keyPath: \.id, timestampPath: \.updatedAt, deletedIDs: deletedItemIDs),
+            deletedItemIDs: deletedItemIDs
         )
     }
 
-    private func mergeByID<T: Equatable, Key: Hashable>(
+    private func mergeItems<T: Equatable, Key: Hashable, Time: Comparable>(
         _ local: [T],
         _ remote: [T],
-        keyPath: KeyPath<T, Key>
+        keyPath: KeyPath<T, Key>,
+        timestampPath: KeyPath<T, Time>,
+        deletedIDs: Set<Key>
     ) -> [T] {
         var merged = Dictionary(uniqueKeysWithValues: local.map { ($0[keyPath: keyPath], $0) })
         for item in remote {
-            merged[item[keyPath: keyPath]] = item
+            let itemID = item[keyPath: keyPath]
+            if let existing = merged[itemID] {
+                if item[keyPath: timestampPath] > existing[keyPath: timestampPath] {
+                    merged[itemID] = item
+                }
+            } else {
+                merged[itemID] = item
+            }
+        }
+        for id in deletedIDs {
+            merged.removeValue(forKey: id)
         }
         return Array(merged.values)
     }

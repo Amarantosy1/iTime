@@ -21,11 +21,11 @@ enum AIConversationWindowCopy {
     static let discardConfirmationMessage = "退出后不会生成报告，这一轮未完成对话也不会进入历史。"
     static let editSummaryAction = "编辑总结"
     static let saveEditsAction = "保存修改"
-    static let longFormTitle = "长文复盘"
-    static let generateLongFormAction = "生成长文复盘"
-    static let regenerateLongFormAction = "重新生成长文"
-    static let longFormGeneratingText = "AI 正在撰写长文复盘…"
-    static let longFormSaveAction = "保存长文"
+    static let longFormTitle = "流水账复盘"
+    static let generateLongFormAction = "生成流水账复盘"
+    static let regenerateLongFormAction = "重新生成流水账"
+    static let longFormGeneratingText = "AI 正在撰写流水账复盘…"
+    static let longFormSaveAction = "保存流水账"
 }
 
 struct AIConversationWindowView: View {

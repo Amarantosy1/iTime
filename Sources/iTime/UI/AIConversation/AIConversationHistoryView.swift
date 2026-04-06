@@ -6,7 +6,7 @@ enum AIConversationHistoryCopy {
     static let deleteAction = "删除总结"
     static let deleteConfirmationTitle = "删除这条历史总结？"
     static let deleteConfirmationMessage = "删除后会同时移除关联会话记录和依赖它的 memory。"
-    static let longFormPlaceholder = "这条历史总结还没有生成长文复盘。"
+    static let longFormPlaceholder = "这条历史总结还没有生成流水账复盘。"
 }
 
 struct AIConversationHistoryView: View {
@@ -22,18 +22,25 @@ struct AIConversationHistoryView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 List(selection: $selectedSummaryID) {
-                    ForEach(model.aiConversationHistory, id: \.id) { summary in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(summary.headline)
-                                .font(.headline)
-                                .lineLimit(2)
+                    ForEach(TimeRangePreset.allCases, id: \.self) { range in
+                        let summaries = model.aiConversationHistory.filter { $0.dynamicRangeCategory == range }
+                        if !summaries.isEmpty {
+                            Section(header: Text(range.historyCategoryTitle)) {
+                                ForEach(summaries, id: \.id) { summary in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(summary.headline)
+                                            .font(.headline)
+                                            .lineLimit(2)
 
-                            Text(summary.displayPeriodText)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                        Text(summary.displayPeriodText)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.vertical, 4)
+                                    .tag(summary.id)
+                                }
+                            }
                         }
-                        .padding(.vertical, 4)
-                        .tag(summary.id)
                     }
                 }
                 .onAppear {
@@ -313,7 +320,7 @@ private struct AIConversationSummaryDetailView: View {
 
             if let report = model.longFormReport(for: summary.id) {
                 if isEditingLongForm {
-                    TextField("长文标题", text: $longFormTitleDraft)
+                    TextField("流水账标题", text: $longFormTitleDraft)
                         .textFieldStyle(.roundedBorder)
 
                     TextEditor(text: $longFormContentDraft)

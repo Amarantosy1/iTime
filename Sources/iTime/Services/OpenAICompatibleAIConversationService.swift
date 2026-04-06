@@ -201,7 +201,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     """
 
     static let longFormSystemPrompt = """
-    你是用户的一位朋友，帮他/她写一篇复盘长文流水账，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天。
+    你是用户的一位朋友，帮他/她写一篇流水账复盘，使用平实的语言，不要渲染感情，不要升华，不要堆砌辞藻，不要洞察内心，只需要用平实的语言记录好这一天。
     """
 
     static let compactMemorySystemPrompt = """

@@ -84,8 +84,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
             suggestions: ["给深度工作预留固定时段"]
         ),
         longFormDraft: AIConversationLongFormReportDraft = AIConversationLongFormReportDraft(
-            title: "本周长文复盘",
-            content: "这是一篇基于原始对话生成的长文复盘。"
+            title: "本周流水账复盘",
+            content: "这是一篇基于原始对话生成的流水账复盘。"
         )
     ) {
         self.nextQuestion = nextQuestion
@@ -944,8 +944,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
                     summaryID: summaryID,
                     createdAt: .init(timeIntervalSince1970: 8_100),
                     updatedAt: .init(timeIntervalSince1970: 8_100),
-                    title: "今天复盘长文",
-                    content: "这是一篇长文复盘。"
+                    title: "今天复盘流水账",
+                    content: "这是一篇流水账复盘。"
                 ),
             ]
         )
@@ -1069,8 +1069,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
     let conversationService = RecordingAIConversationService(
         longFormDraft: AIConversationLongFormReportDraft(
-            title: "本周复盘长文",
-            content: "这是一篇基于原始对话生成的长文复盘。"
+            title: "本周复盘流水账",
+            content: "这是一篇基于原始对话生成的流水账复盘。"
         )
     )
     let sessionID = UUID(uuidString: "11111111-aaaa-bbbb-cccc-111111111111")!
@@ -1120,7 +1120,7 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
         endDate: .init(timeIntervalSince1970: 86_400),
         createdAt: .init(timeIntervalSince1970: 7_200),
         headline: "本周工作会议偏多",
-        summary: "短总结不是长文主输入。",
+        summary: "短总结不是流水账主输入。",
         findings: ["会议偏多"],
         suggestions: ["预留整块时间"],
         overviewSnapshot: session.overviewSnapshot
@@ -1149,8 +1149,8 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     await model.generateLongFormReport(for: summaryID)
 
     let report = try #require(model.longFormReport(for: summaryID))
-    #expect(report.title == "本周复盘长文")
-    #expect(report.content == "这是一篇基于原始对话生成的长文复盘。")
+    #expect(report.title == "本周复盘流水账")
+    #expect(report.content == "这是一篇基于原始对话生成的流水账复盘。")
     #expect(conversationService.generatedLongFormSessions.first?.id == sessionID)
     #expect(conversationService.generatedLongFormSummaries.first?.id == summaryID)
     #expect(conversationService.generatedLongFormConfigurations.first?.provider == .openAI)
@@ -1195,11 +1195,11 @@ private final class RecordingAIConversationService: @unchecked Sendable, AIConve
     )
 
     await model.refresh()
-    model.updateLongFormReport(id: reportID, title: "新标题", content: "新的长文内容")
+    model.updateLongFormReport(id: reportID, title: "新标题", content: "新的流水账内容")
 
     let report = try #require(model.longFormReport(for: summaryID))
     #expect(report.title == "新标题")
-    #expect(report.content == "新的长文内容")
+    #expect(report.content == "新的流水账内容")
 }
 
 @MainActor

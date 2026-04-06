@@ -122,7 +122,7 @@ private func makePatchFixture(
                 summaryID: summaryID,
                 createdAt: createdAt,
                 updatedAt: createdAt,
-                title: "初版长文",
+                title: "初版流水账",
                 content: "第一版内容"
             )
         ]
@@ -141,7 +141,7 @@ private func makePatchFixture(
                 summaryID: summaryID,
                 createdAt: createdAt,
                 updatedAt: createdAt.addingTimeInterval(60),
-                title: "初版长文",
+                title: "初版流水账",
                 content: "第一版内容（已修订）"
             )
         ]

@@ -689,11 +689,11 @@ private extension AIConversationMessageRole {
 }
 
 private enum iOSConversationLongFormCopy {
-    static let sectionTitle = "长文复盘"
-    static let placeholder = "这条历史总结还没有生成长文复盘。"
-    static let generateAction = "生成长文复盘"
-    static let regenerateAction = "重新生成长文"
-    static let generatingText = "AI 正在撰写长文复盘…"
+    static let sectionTitle = "流水账复盘"
+    static let placeholder = "这条历史总结还没有生成流水账复盘。"
+    static let generateAction = "生成流水账复盘"
+    static let regenerateAction = "重新生成流水账"
+    static let generatingText = "AI 正在撰写流水账复盘…"
 }
 
 struct iOSConversationHistoryView: View {
@@ -707,21 +707,30 @@ struct iOSConversationHistoryView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(model.aiConversationHistory, id: \.id) { summary in
-                        NavigationLink(destination: iOSConversationSummaryDetailView(model: model, summaryID: summary.id)) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(summary.headline)
-                                    .font(.headline)
-                                    .lineLimit(2)
+                    ForEach(TimeRangePreset.allCases, id: \.self) { range in
+                        let summaries = model.aiConversationHistory.filter { $0.dynamicRangeCategory == range }
+                        if !summaries.isEmpty {
+                            Section(header: Text(range.historyCategoryTitle)) {
+                                ForEach(summaries, id: \.id) { summary in
+                                    NavigationLink(destination: iOSConversationSummaryDetailView(model: model, summaryID: summary.id)) {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(summary.headline)
+                                                .font(.headline)
+                                                .lineLimit(2)
 
-                                Text(summary.displayPeriodText)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                            Text(summary.displayPeriodText)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                                .onDelete { offsets in
+                                    deleteItems(in: summaries, at: offsets)
+                                }
                             }
-                            .padding(.vertical, 4)
                         }
                     }
-                    .onDelete(perform: deleteItems)
                 }
             }
         }
@@ -729,9 +738,9 @@ struct iOSConversationHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func deleteItems(at offsets: IndexSet) {
+    private func deleteItems(in summaries: [AIConversationSummary], at offsets: IndexSet) {
         for index in offsets {
-            let summary = model.aiConversationHistory[index]
+            let summary = summaries[index]
             model.deleteAIConversationSummary(id: summary.id)
         }
     }
@@ -917,7 +926,7 @@ struct iOSConversationSummaryDetailView: View {
 
         if let report = model.longFormReport(for: summary.id) {
             lines.append("")
-            lines.append("长文复盘")
+            lines.append("流水账复盘")
             lines.append(report.title)
             lines.append("")
             lines.append(report.content)

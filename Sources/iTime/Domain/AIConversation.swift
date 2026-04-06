@@ -5,24 +5,28 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
         sessions: [],
         summaries: [],
         memorySnapshots: [],
-        longFormReports: []
+        longFormReports: [],
+        deletedItemIDs: []
     )
 
     public let sessions: [AIConversationSession]
     public let summaries: [AIConversationSummary]
     public let memorySnapshots: [AIMemorySnapshot]
     public let longFormReports: [AIConversationLongFormReport]
+    public let deletedItemIDs: Set<UUID>
 
     public init(
         sessions: [AIConversationSession],
         summaries: [AIConversationSummary],
         memorySnapshots: [AIMemorySnapshot],
-        longFormReports: [AIConversationLongFormReport]
+        longFormReports: [AIConversationLongFormReport],
+        deletedItemIDs: Set<UUID> = []
     ) {
         self.sessions = sessions
         self.summaries = summaries
         self.memorySnapshots = memorySnapshots
         self.longFormReports = longFormReports
+        self.deletedItemIDs = deletedItemIDs
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -30,6 +34,7 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
         case summaries
         case memorySnapshots
         case longFormReports
+        case deletedItemIDs
     }
 
     public init(from decoder: Decoder) throws {
@@ -38,6 +43,7 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
         summaries = try container.decodeIfPresent([AIConversationSummary].self, forKey: .summaries) ?? []
         memorySnapshots = try container.decodeIfPresent([AIMemorySnapshot].self, forKey: .memorySnapshots) ?? []
         longFormReports = try container.decodeIfPresent([AIConversationLongFormReport].self, forKey: .longFormReports) ?? []
+        deletedItemIDs = try container.decodeIfPresent(Set<UUID>.self, forKey: .deletedItemIDs) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -46,6 +52,7 @@ public struct AIConversationArchive: Equatable, Codable, Sendable {
         try container.encode(summaries, forKey: .summaries)
         try container.encode(memorySnapshots, forKey: .memorySnapshots)
         try container.encode(longFormReports, forKey: .longFormReports)
+        try container.encode(deletedItemIDs, forKey: .deletedItemIDs)
     }
 }
 
@@ -300,6 +307,26 @@ public struct AIConversationSummary: Equatable, Codable, Sendable {
         )
     }
 
+    public var dynamicRangeCategory: TimeRangePreset {
+        if range != .custom { return range }
+        let calendar = Calendar.autoupdatingCurrent
+
+        if AIConversationPeriodFormatter.isSingleDay(startDate: startDate, endDate: endDate, calendar: calendar) {
+            return .today
+        }
+
+        if AIConversationPeriodFormatter.isWholeWeek(startDate: startDate, endDate: endDate, calendar: calendar) {
+            return .week
+        }
+
+        let components = calendar.dateComponents([.month, .day], from: calendar.startOfDay(for: startDate), to: calendar.startOfDay(for: endDate))
+        if (components.month == 1 && components.day == 0) || AIConversationPeriodFormatter.isWholeMonth(startDate: startDate, endDate: endDate, calendar: calendar) {
+            return .month
+        }
+
+        return .custom
+    }
+
     public func updating(
         headline: String,
         summary: String,
@@ -472,13 +499,19 @@ public enum AIConversationPeriodFormatter {
         return "\(startText) - \(endText)"
     }
 
-    private static func isSingleDay(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
+    public static func isSingleDay(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
         guard endDate > startDate else { return true }
         let inclusiveEndDate = endDate.addingTimeInterval(-1)
         return calendar.isDate(startDate, inSameDayAs: inclusiveEndDate)
     }
 
-    private static func isWholeMonth(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
+    public static func isWholeWeek(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
+        guard endDate > startDate else { return false }
+        let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: startDate), to: calendar.startOfDay(for: endDate))
+        return components.day == 7
+    }
+
+    public static func isWholeMonth(startDate: Date, endDate: Date, calendar: Calendar) -> Bool {
         guard
             let monthInterval = calendar.dateInterval(of: .month, for: startDate)
         else {
@@ -601,5 +634,21 @@ public extension TimeOverview {
         }
 
         return "\(hours)小时\(minutes)分钟"
+    }
+}
+
+public extension AIConversationSession {
+    var effectiveUpdatedAt: Date {
+        completedAt ?? messages.last?.createdAt ?? startedAt
+    }
+}
+public extension AIConversationSummary {
+    var effectiveUpdatedAt: Date {
+        createdAt
+    }
+}
+public extension AIMemorySnapshot {
+    var effectiveUpdatedAt: Date {
+        createdAt
     }
 }

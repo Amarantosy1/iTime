@@ -837,13 +837,25 @@ public final class AppModel {
 
         let removedSummaryIDs = Set(removedSummaries.map(\.id))
         let removedSessionIDs = Set(removedSummaries.map(\.sessionID))
+        
+        var newDeletedItemIDs = aiConversationArchive.deletedItemIDs
+        newDeletedItemIDs.formUnion(removedSummaryIDs)
+        newDeletedItemIDs.formUnion(removedSessionIDs)
+
+        // Also add removed snapshots/reports IDs
+        let removedSnapshotIDs = Set(aiConversationArchive.memorySnapshots.filter { !removedSummaryIDs.isDisjoint(with: $0.sourceSummaryIDs) }.map(\.id))
+        let removedReportIDs = Set(aiConversationArchive.longFormReports.filter { removedSummaryIDs.contains($0.summaryID) }.map(\.id))
+        newDeletedItemIDs.formUnion(removedSnapshotIDs)
+        newDeletedItemIDs.formUnion(removedReportIDs)
+
         let updatedArchive = AIConversationArchive(
             sessions: aiConversationArchive.sessions.filter { !removedSessionIDs.contains($0.id) },
             summaries: aiConversationArchive.summaries.filter { !removedSummaryIDs.contains($0.id) },
             memorySnapshots: aiConversationArchive.memorySnapshots.filter { snapshot in
                 removedSummaryIDs.isDisjoint(with: snapshot.sourceSummaryIDs)
             },
-            longFormReports: aiConversationArchive.longFormReports.filter { !removedSummaryIDs.contains($0.summaryID) }
+            longFormReports: aiConversationArchive.longFormReports.filter { !removedSummaryIDs.contains($0.summaryID) },
+            deletedItemIDs: newDeletedItemIDs
         )
 
         try? persistConversationArchive(updatedArchive)
@@ -877,7 +889,8 @@ public final class AppModel {
                 .map { $0.id == id ? updatedSummary : $0 }
                 .sorted(by: Self.isSummaryOrderedBefore),
             memorySnapshots: aiConversationArchive.memorySnapshots,
-            longFormReports: aiConversationArchive.longFormReports
+            longFormReports: aiConversationArchive.longFormReports,
+            deletedItemIDs: aiConversationArchive.deletedItemIDs
         )
 
         try? persistConversationArchive(updatedArchive)
@@ -897,11 +910,15 @@ public final class AppModel {
         }
 
         if let removableSessionID {
+            var newDeletedItemIDs = aiConversationArchive.deletedItemIDs
+            newDeletedItemIDs.insert(removableSessionID)
+            
             let updatedArchive = AIConversationArchive(
                 sessions: aiConversationArchive.sessions.filter { $0.id != removableSessionID },
                 summaries: aiConversationArchive.summaries,
                 memorySnapshots: aiConversationArchive.memorySnapshots,
-                longFormReports: aiConversationArchive.longFormReports
+                longFormReports: aiConversationArchive.longFormReports,
+                deletedItemIDs: newDeletedItemIDs
             )
             try? persistConversationArchive(updatedArchive)
         }
@@ -1011,7 +1028,8 @@ public final class AppModel {
             sessions: aiConversationArchive.sessions,
             summaries: aiConversationArchive.summaries,
             memorySnapshots: snapshots,
-            longFormReports: aiConversationArchive.longFormReports
+            longFormReports: aiConversationArchive.longFormReports,
+            deletedItemIDs: aiConversationArchive.deletedItemIDs
         )
         try? persistConversationArchive(updatedArchive)
     }
@@ -1046,19 +1064,24 @@ public final class AppModel {
                 content: draft.content.trimmingCharacters(in: .whitespacesAndNewlines)
             )
 
+            let existingReports = aiConversationArchive.longFormReports.filter { $0.summaryID != summaryID }
+            let removedReportIDs = Set(aiConversationArchive.longFormReports.filter { $0.summaryID == summaryID }.map(\.id))
+            var newDeletedItemIDs = aiConversationArchive.deletedItemIDs
+            newDeletedItemIDs.formUnion(removedReportIDs)
+
             let updatedArchive = AIConversationArchive(
                 sessions: aiConversationArchive.sessions,
                 summaries: aiConversationArchive.summaries,
                 memorySnapshots: aiConversationArchive.memorySnapshots,
-                longFormReports: aiConversationArchive.longFormReports
-                    .filter { $0.summaryID != summaryID } + [report]
+                longFormReports: existingReports + [report],
+                deletedItemIDs: newDeletedItemIDs
             )
             try persistConversationArchive(updatedArchive)
             aiLongFormState = .loaded(report)
         } catch let error as AIAnalysisServiceError {
             aiLongFormState = .failed(summaryID: summaryID, message: error.userMessage)
         } catch {
-            aiLongFormState = .failed(summaryID: summaryID, message: "长文复盘生成失败，请稍后重试。")
+            aiLongFormState = .failed(summaryID: summaryID, message: "流水账复盘生成失败，请稍后重试。")
         }
     }
 
@@ -1075,7 +1098,8 @@ public final class AppModel {
             sessions: aiConversationArchive.sessions,
             summaries: aiConversationArchive.summaries,
             memorySnapshots: aiConversationArchive.memorySnapshots,
-            longFormReports: aiConversationArchive.longFormReports.map { $0.id == id ? updatedReport : $0 }
+            longFormReports: aiConversationArchive.longFormReports.map { $0.id == id ? updatedReport : $0 },
+            deletedItemIDs: aiConversationArchive.deletedItemIDs
         )
 
         try? persistConversationArchive(updatedArchive)
@@ -1458,11 +1482,19 @@ public final class AppModel {
         }
         summaries = Self.sortedConversationSummaries(summaries)
 
+        let removedSessionIDs = Set(aiConversationArchive.sessions.map(\.id)).subtracting(sessions.map(\.id))
+        let removedSummaryIDs = Set(aiConversationArchive.summaries.map(\.id)).subtracting(summaries.map(\.id))
+        
+        var newDeletedItemIDs = aiConversationArchive.deletedItemIDs
+        newDeletedItemIDs.formUnion(removedSessionIDs)
+        newDeletedItemIDs.formUnion(removedSummaryIDs)
+
         let updatedArchive = AIConversationArchive(
             sessions: sessions,
             summaries: summaries,
             memorySnapshots: aiConversationArchive.memorySnapshots,
-            longFormReports: aiConversationArchive.longFormReports
+            longFormReports: aiConversationArchive.longFormReports,
+            deletedItemIDs: newDeletedItemIDs
         )
         try persistConversationArchive(updatedArchive)
     }
@@ -1472,12 +1504,16 @@ public final class AppModel {
         // Keep only top 3 snapshots to provide baseline history but prevent accumulating too much memory
         // which would cause context window overflow and forgetfulness.
         let compactedSnapshots = Array(updatedArchive.memorySnapshots.sorted(by: { $0.createdAt > $1.createdAt }).prefix(3))
+        let removedSnapshotIDs = Set(updatedArchive.memorySnapshots.map(\.id)).subtracting(compactedSnapshots.map(\.id))
+        var newDeletedItemIDs = updatedArchive.deletedItemIDs
+        newDeletedItemIDs.formUnion(removedSnapshotIDs)
         
         let finalArchive = AIConversationArchive(
             sessions: updatedArchive.sessions,
             summaries: Self.sortedConversationSummaries(updatedArchive.summaries),
             memorySnapshots: compactedSnapshots,
-            longFormReports: updatedArchive.longFormReports
+            longFormReports: updatedArchive.longFormReports,
+            deletedItemIDs: newDeletedItemIDs
         )
 
         try aiConversationArchiveStore.saveArchive(finalArchive)

@@ -97,8 +97,8 @@ import Testing
                 summaryID: summaryID,
                 createdAt: endDate.addingTimeInterval(900),
                 updatedAt: endDate.addingTimeInterval(900),
-                title: "本周时间复盘长文",
-                content: "这是一篇基于原始对话生成的长文复盘。"
+                title: "本周时间复盘流水账",
+                content: "这是一篇基于原始对话生成的流水账复盘。"
             ),
         ]
     )

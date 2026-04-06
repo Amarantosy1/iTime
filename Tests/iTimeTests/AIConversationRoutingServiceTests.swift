@@ -46,8 +46,8 @@ private final class RecordingProviderConversationService: @unchecked Sendable, A
     ) async throws -> AIConversationLongFormReportDraft {
         lastConfiguration = configuration
         return AIConversationLongFormReportDraft(
-            title: "长文标题",
-            content: "长文内容"
+            title: "流水账标题",
+            content: "流水账内容"
         )
     }
 

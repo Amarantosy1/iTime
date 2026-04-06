@@ -240,7 +240,7 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
               "choices": [
                 {
                   "message": {
-                    "content": "{\\"title\\":\\"本周复盘：沟通任务挤压深度工作\\",\\"content\\":\\"这是一篇正式长文复盘。\\"}"
+                    "content": "{\\"title\\":\\"本周复盘：沟通任务挤压深度工作\\",\\"content\\":\\"这是一篇正式流水账复盘。\\"}"
                   }
                 }
               ]
@@ -294,7 +294,7 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
         endDate: session.endDate,
         createdAt: session.endDate,
         headline: "本周工作会议偏多",
-        summary: "这段文字不该成为长文的主输入。",
+        summary: "这段文字不该成为流水账的主输入。",
         findings: ["会议密度偏高"],
         suggestions: ["预留深度工作时间"],
         overviewSnapshot: session.overviewSnapshot
@@ -317,12 +317,12 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let body = try #require(String(data: bodyData, encoding: .utf8))
     #expect(body.contains("周二下午的需求评审主要产出了什么？"))
     #expect(body.contains("主要在对齐需求变更和下周排期。"))
-    #expect(body.contains("这段文字不该成为长文的主输入。") == false)
-    #expect(body.contains("复盘长文流水账"))
+    #expect(body.contains("这段文字不该成为流水账的主输入。") == false)
+    #expect(body.contains("流水账复盘"))
     #expect(body.contains("不要渲染感情"))
     #expect(body.contains("\"type\":\"json_object\"") || body.contains("\"type\" : \"json_object\""))
     #expect(draft.title == "本周复盘：沟通任务挤压深度工作")
-    #expect(draft.content == "这是一篇正式长文复盘。")
+    #expect(draft.content == "这是一篇正式流水账复盘。")
 }
 
 @Test func openAICompatibleConversationServiceStripsMarkdownFencedJSONResponse() async throws {
