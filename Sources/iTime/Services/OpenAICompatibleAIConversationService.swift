@@ -68,10 +68,15 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         summary _: AIConversationSummary,
         configuration: ResolvedAIProviderConfiguration
     ) async throws -> AIConversationLongFormReportDraft {
+        let reportMode = Self.longFormReportMode(for: session)
         let shouldIncludeFlowchart = Self.shouldIncludeLongFormFlowchart(for: session)
         let content = try await sendRequest(
-            systemPrompt: Self.longFormSystemPrompt(includeFlowchart: shouldIncludeFlowchart),
-            userPrompt: Self.longFormUserPrompt(for: session, includeFlowchart: shouldIncludeFlowchart),
+            systemPrompt: Self.longFormSystemPrompt(mode: reportMode, includeFlowchart: shouldIncludeFlowchart),
+            userPrompt: Self.longFormUserPrompt(
+                for: session,
+                mode: reportMode,
+                includeFlowchart: shouldIncludeFlowchart
+            ),
             configuration: configuration
         )
         let payload = try decodePayload(LongFormPayload.self, from: content)
@@ -208,28 +213,59 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
     findings 和 suggestions 各 1 到 3 条。
     """
 
-    static func longFormSystemPrompt(includeFlowchart: Bool) -> String {
-        let basePrompt = """
-        你是时间复盘记录助手。你的首要目标是事实准确，必须严格遵守输入数据（具体日程、时间、时长、事件名）并结合对话补充背景。
-        只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
+    enum LongFormReportMode {
+        case singleDay
+        case multiDay
+    }
 
-                content 字段必须固定为如下 Markdown 模板（严格执行）：
-                1) 先写 1 段“总览段”，格式固定为：
-                     今天从 `开始时间` 开始，到 `结束时间` 结束，共进行了 `事件数` 个事件，总计 `总时长`。主要涉及 `领域1`、`领域2`、`领域3`。
-                2) 然后按时间顺序逐条写“事件段”，每个事件恰好 1 段，必须分段，格式固定为：
-                     `HH:mm-HH:mm`：**事件名**，事件经过或结果（1 句事实描述）（如果没有就留空，不要输出“事情经过或结果”）。
-                3) 事件段数量必须与“具体日程”条目数量完全一致，禁止合并、拆分、跳过或重排，如果有几项内容是相同的，则在该内容的最后一项填事件经过/结果，其他留白。
-                4) 若对话提供了补充信息，只能写在对应事件句尾，并使用“（对话补充：...）”标记。
-                5) 全文禁止使用标题、列表符号（-、*、1.）、小结段或额外结尾。
-                6）每个事件必须分段！！
-                7）不要输出“一句事实描述”，不要输出“对话补充”，不要输出括号！！！
+    static func longFormSystemPrompt(mode: LongFormReportMode, includeFlowchart: Bool) -> String {
+        let basePrompt: String
+        switch mode {
+        case .singleDay:
+            basePrompt = """
+            你是时间复盘记录助手。你的首要目标是事实准确，必须严格遵守输入数据（具体日程、时间、时长、事件名）并结合对话补充背景。
+            只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
 
-                Markdown 约定（非常重要）：
-                1) 所有时间点/时间段都必须使用行内代码语法 `...`
-                2) 所有具体事件名/任务名都必须使用加粗语法 **...**
-                3) 不要使用 HTML 标签（例如 `<mark>`）
-                4) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
-        """
+                    content 字段必须固定为如下 Markdown 模板（严格执行）：
+                    1) 先写 1 段“总览段”，格式固定为：
+                         今天从 `开始时间` 开始，到 `结束时间` 结束，共进行了 `事件数` 个事件，总计 `总时长`。主要涉及 `领域1`、`领域2`、`领域3`。
+                    2) 然后按时间顺序逐条写“事件段”，每个事件恰好 1 段，必须分段，格式固定为：
+                         `HH:mm-HH:mm`：**事件名**，事件经过或结果（1 句事实描述）（如果没有就留空，不要输出“事情经过或结果”）。
+                    3) 事件段数量必须与“具体日程”条目数量完全一致，禁止合并、拆分、跳过或重排，如果有几项内容是相同的，则在该内容的最后一项填事件经过/结果，其他留白。
+                    4) 若对话提供了补充信息，只能写在对应事件句尾，并使用“（对话补充：...）”标记。
+                    5) 全文禁止使用标题、列表符号（-、*、1.）、小结段或额外结尾。
+                    6）每个事件必须分段！！
+                    7）不要输出“一句事实描述”，不要输出“对话补充”，不要输出括号！！！
+
+                    Markdown 约定（非常重要）：
+                    1) 所有时间点/时间段都必须使用行内代码语法 `...`
+                    2) 所有具体事件名/任务名都必须使用加粗语法 **...**
+                    3) 不要使用 HTML 标签（例如 `<mark>`）
+                    4) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
+            """
+        case .multiDay:
+            basePrompt = """
+            你是时间复盘记录助手。你的首要目标是事实准确，必须严格遵守输入数据（具体日程、时间、时长、事件名）并结合对话补充背景。
+            只做事实化记录，不做反思、不做升华、不做主观推断，不要虚构内容。
+
+                    content 字段必须固定为如下 Markdown 模板（严格执行）：
+                    1) 先写 1 段“周期总览段”，格式固定为：
+                         这段时间从 `起始日期` 到 `结束日期`，共进行了 `事件数` 个事件，总计 `总时长`。主要涉及 `领域1`、`领域2`、`领域3`。
+                    2) 然后按时间顺序逐条写“事件段”，每个事件恰好 1 段，必须分段，格式固定为：
+                         `M月d日 HH:mm-HH:mm`：**事件名**，事件经过或结果（1 句事实描述）（如果没有就留空，不要输出“事情经过或结果”）。
+                    3) 事件段数量必须与“具体日程”条目数量完全一致，禁止合并、拆分、跳过或重排；同名内容若重复出现，只在最后一条写经过/结果，其他留白。
+                    4) 若对话提供了补充信息，只能写在对应事件句尾，并使用“（对话补充：...）”标记。
+                    5) 全文禁止使用标题、列表符号（-、*、1.）、小结段或额外结尾。
+                    6）每个事件必须分段！！
+                    7）不要输出“一句事实描述”，不要输出“对话补充”，不要输出括号！！！
+
+                    Markdown 约定（非常重要）：
+                    1) 所有时间点/时间段都必须使用行内代码语法 `...`
+                    2) 所有具体事件名/任务名都必须使用加粗语法 **...**
+                    3) 不要使用 HTML 标签（例如 `<mark>`）
+                    4) 不要写“高亮”这两个字来描述样式，必须直接输出 Markdown 语法
+            """
+        }
 
         guard includeFlowchart else {
             return basePrompt
@@ -313,6 +349,7 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
 
     static func longFormUserPrompt(
         for session: AIConversationSession,
+        mode: LongFormReportMode,
         includeFlowchart: Bool
     ) -> String {
         let outputSchema: String
@@ -333,6 +370,14 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
             outputSchema = "{\"title\":\"...\",\"content\":\"...\"}"
         }
 
+        let modeSpecificRequirement: String
+        switch mode {
+        case .singleDay:
+            modeSpecificRequirement = "content 必须严格使用固定模板：第 1 段总览 + 按时间顺序逐条事件段（每个事件 1 段，段数与具体日程一致）。"
+        case .multiDay:
+            modeSpecificRequirement = "content 必须严格使用固定模板：第 1 段周期总览 + 按时间顺序逐条事件段（每个事件 1 段，段数与具体日程一致，事件时间格式必须为 `M月d日 HH:mm-HH:mm`）。"
+        }
+
         return """
         复盘范围：\(session.displayPeriodText)
         统计摘要：\(session.overviewSnapshot.totalDurationText)，共 \(session.overviewSnapshot.totalEventCount) 个事件。
@@ -341,13 +386,28 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         \(eventLines(for: session.events))
         对话记录：
         \(historyLines(for: session.messages))
-        content 必须严格使用固定模板：第 1 段总览 + 按时间顺序逐条事件段（每个事件 1 段，段数与具体日程一致）。
+        \(modeSpecificRequirement)
         必须同时依据具体日程数据和对话记录生成复盘内容。
         若对话内容与具体日程冲突，以具体日程数据为准，不得臆造不存在的事件或时长。
         对话里无法被具体日程佐证的信息，只能标记为“对话补充信息”，不得写成已发生的事实日程。
         只做事实化记录，不做反思、不做升华、不做主观推断。
         只输出 JSON：\(outputSchema)
         """
+    }
+
+    static func longFormReportMode(
+        for session: AIConversationSession,
+        calendar: Calendar = .autoupdatingCurrent
+    ) -> LongFormReportMode {
+        if session.range == .today {
+            return .singleDay
+        }
+
+        return AIConversationPeriodFormatter.isSingleDay(
+            startDate: session.startDate,
+            endDate: session.endDate,
+            calendar: calendar
+        ) ? .singleDay : .multiDay
     }
 
     static func shouldIncludeLongFormFlowchart(

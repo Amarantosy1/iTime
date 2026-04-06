@@ -138,20 +138,43 @@ private struct iOSThemeSettingsDetailView: View {
     @State private var editorTarget: CustomThemeEditorTarget?
 
     var body: some View {
-        List {
-            Section("主题类型") {
-                Picker("主题类型", selection: $selectedTab) {
-                    ForEach(ThemeSettingsTab.allCases) { tab in
-                        Text(tab.title).tag(tab)
-                    }
+        VStack(spacing: 0) {
+            Picker("主题类型", selection: $selectedTab) {
+                ForEach(ThemeSettingsTab.allCases) { tab in
+                    Text(tab.title).tag(tab)
                 }
-                .pickerStyle(.segmented)
             }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             if selectedTab == .builtIn {
-                builtInThemeSection
+                List {
+                    builtInThemeSection
+                }
+                .listStyle(.insetGrouped)
             } else {
-                customThemeSection
+                ScrollView {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible()), GridItem(.flexible())],
+                        spacing: 12
+                    ) {
+                        AddThemeTile {
+                            presentNewPresetEditor()
+                        }
+                        ForEach(model.preferences.customThemePresets) { preset in
+                            CustomThemePresetTile(
+                                preset: preset,
+                                image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
+                                isSelected: model.preferences.selectedCustomThemePresetID == preset.id,
+                                onApply: { applyPreset(preset) },
+                                onEdit: { presentEditor(for: preset) },
+                                onDelete: { deletePreset(preset) }
+                            )
+                        }
+                    }
+                    .padding(16)
+                }
             }
         }
         .navigationTitle("主题")
@@ -191,34 +214,6 @@ private struct iOSThemeSettingsDetailView: View {
         }
     }
 
-    private var customThemeSection: some View {
-        Section("我的自定义主题") {
-            ThemeSquareGridLayout(columns: 2, spacing: 12) {
-                Button {
-                    presentNewPresetEditor()
-                } label: {
-                    SquareThemeTile {
-                        AddCustomThemeCard()
-                    }
-                }
-                .buttonStyle(.plain)
-
-                ForEach(model.preferences.customThemePresets) { preset in
-                    ThemePresetTile(
-                        preset: preset,
-                        image: CustomThemeBackgroundImageStore.loadImage(named: preset.imageName),
-                        isSelected: model.preferences.selectedCustomThemePresetID == preset.id,
-                        onApply: { applyPreset(preset) },
-                        onEdit: { presentEditor(for: preset) },
-                        onDelete: { deletePreset(preset) }
-                    )
-                }
-            }
-            .padding(.vertical, 2)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        }
-    }
-
     private var builtInThemeDescription: String {
         switch model.preferences.interfaceTheme {
         case .flowing:
@@ -237,7 +232,6 @@ private struct iOSThemeSettingsDetailView: View {
     private func presentNewPresetEditor() {
         editorTarget = CustomThemeEditorTarget(
             presetID: nil,
-            displayName: defaultThemeName,
             originalImageName: nil,
             imageName: nil,
             scale: 1.12,
@@ -249,7 +243,6 @@ private struct iOSThemeSettingsDetailView: View {
     private func presentEditor(for preset: CustomThemePreset) {
         editorTarget = CustomThemeEditorTarget(
             presetID: preset.id,
-            displayName: preset.displayName,
             originalImageName: preset.imageName,
             imageName: preset.imageName,
             scale: preset.scale,
@@ -280,7 +273,6 @@ private struct iOSThemeSettingsDetailView: View {
 
         _ = model.preferences.saveCustomThemePreset(
             id: result.presetID,
-            displayName: result.displayName,
             imageName: result.imageName,
             scale: result.scale,
             offsetX: result.offsetX,
@@ -293,64 +285,39 @@ private struct iOSThemeSettingsDetailView: View {
             CustomThemeBackgroundImageStore.removeImage(named: previousImageName)
         }
     }
-
-    private var defaultThemeName: String {
-        "我的主题 \(model.preferences.customThemePresets.count + 1)"
-    }
 }
 
-private struct ThemeSquareGridLayout: Layout {
-    let columns: Int
-    let spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let availableWidth = proposal.width ?? 320
-        let safeColumns = max(columns, 1)
-        let squareSide = max((availableWidth - CGFloat(safeColumns - 1) * spacing) / CGFloat(safeColumns), 0)
-        let rowCount = Int(ceil(Double(subviews.count) / Double(safeColumns)))
-        let totalHeight = CGFloat(rowCount) * squareSide + CGFloat(max(rowCount - 1, 0)) * spacing
-        return CGSize(width: availableWidth, height: totalHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let safeColumns = max(columns, 1)
-        let squareSide = max((bounds.width - CGFloat(safeColumns - 1) * spacing) / CGFloat(safeColumns), 0)
-
-        for index in subviews.indices {
-            let row = index / safeColumns
-            let column = index % safeColumns
-            let x = bounds.minX + CGFloat(column) * (squareSide + spacing)
-            let y = bounds.minY + CGFloat(row) * (squareSide + spacing)
-            subviews[index].place(
-                at: CGPoint(x: x, y: y),
-                anchor: .topLeading,
-                proposal: ProposedViewSize(width: squareSide, height: squareSide)
-            )
-        }
-    }
-}
-
-private struct SquareThemeTile<Content: View>: View {
-    var isSelected: Bool = false
-    @ViewBuilder let content: Content
-    private let cornerRadius: CGFloat = 16
+private struct AddThemeTile: View {
+    let onTap: () -> Void
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.secondary.opacity(0.1))
-            .overlay {
-                content
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        Button(action: onTap) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.secondary.opacity(0.12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(
+                                Color.secondary.opacity(0.28),
+                                style: StrokeStyle(lineWidth: 1, dash: [5])
+                            )
+                    }
+                VStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold))
+                    Text("新增主题")
+                        .font(.subheadline.weight(.medium))
+                }
+                .foregroundStyle(.secondary)
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(isSelected ? Color.accentColor : Color.white.opacity(0.14), lineWidth: isSelected ? 2 : 1)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 
-private struct ThemePresetTile: View {
+private struct CustomThemePresetTile: View {
     let preset: CustomThemePreset
     let image: UIImage?
     let isSelected: Bool
@@ -359,97 +326,58 @@ private struct ThemePresetTile: View {
     let onDelete: () -> Void
 
     var body: some View {
-        SquareThemeTile(isSelected: isSelected) {
-            CustomThemePresetCard(
-                preset: preset,
-                image: image,
-                isSelected: isSelected
-            )
-        }
-        .onTapGesture {
-            onApply()
-        }
-        .contextMenu {
-            Button {
-                onEdit()
-            } label: {
-                Label("编辑", systemImage: "slider.horizontal.3")
-            }
-
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Label("删除", systemImage: "trash")
-            }
-        }
-    }
-}
-
-private struct AddCustomThemeCard: View {
-    var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.secondary.opacity(0.12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.secondary.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [5]))
-                }
-
-            VStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .semibold))
-                Text("新增主题")
-                    .font(.subheadline.weight(.medium))
-            }
-            .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-private struct CustomThemePresetCard: View {
-    let preset: CustomThemePreset
-    let image: UIImage?
-    let isSelected: Bool
-
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.secondary.opacity(0.12))
-
+            Color.secondary.opacity(0.12)
             if let image {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
             } else {
                 Image(systemName: "photo")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
             LinearGradient(
-                colors: [.clear, .black.opacity(0.55)],
+                colors: [.clear, .black.opacity(0.3)],
                 startPoint: .top,
                 endPoint: .bottom
             )
-
-            Text(preset.displayName)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .padding(10)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.accentColor, lineWidth: 2)
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture { onApply() }
+        .contextMenu(menuItems: {
+            Button { onEdit() } label: {
+                Label("编辑", systemImage: "slider.horizontal.3")
+            }
+            Button(role: .destructive) { onDelete() } label: {
+                Label("删除", systemImage: "trash")
+            }
+        }, preview: {
+            ZStack {
+                Color.secondary.opacity(0.12)
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
+            }
+            .frame(width: 160, height: 160)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        })
     }
 }
 
 private struct CustomThemeEditorTarget: Identifiable {
     let id = UUID()
     let presetID: UUID?
-    let displayName: String
     let originalImageName: String?
     let imageName: String?
     let scale: Double
@@ -459,7 +387,6 @@ private struct CustomThemeEditorTarget: Identifiable {
 
 private struct CustomThemeEditorResult {
     let presetID: UUID?
-    let displayName: String
     let imageName: String
     let scale: Double
     let offsetX: Double
@@ -597,7 +524,6 @@ private struct CustomThemeFullscreenEditorView: View {
         onSave(
             CustomThemeEditorResult(
                 presetID: target.presetID,
-                displayName: target.displayName,
                 imageName: draftImageName,
                 scale: cropScale,
                 offsetX: cropOffsetX,

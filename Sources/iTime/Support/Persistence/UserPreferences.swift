@@ -32,7 +32,6 @@ public enum AppDisplayTheme: String, Codable, CaseIterable, Identifiable, Sendab
 
 public struct CustomThemePreset: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
-    public var displayName: String
     public var imageName: String
     public var scale: Double
     public var offsetX: Double
@@ -42,7 +41,6 @@ public struct CustomThemePreset: Codable, Equatable, Identifiable, Sendable {
 
     public init(
         id: UUID,
-        displayName: String,
         imageName: String,
         scale: Double,
         offsetX: Double,
@@ -51,13 +49,46 @@ public struct CustomThemePreset: Codable, Equatable, Identifiable, Sendable {
         updatedAt: Date
     ) {
         self.id = id
-        self.displayName = displayName
         self.imageName = imageName
         self.scale = scale
         self.offsetX = offsetX
         self.offsetY = offsetY
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case imageName
+        case scale
+        case offsetX
+        case offsetY
+        case createdAt
+        case updatedAt
+        case displayName
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        imageName = try container.decode(String.self, forKey: .imageName)
+        scale = try container.decode(Double.self, forKey: .scale)
+        offsetX = try container.decode(Double.self, forKey: .offsetX)
+        offsetY = try container.decode(Double.self, forKey: .offsetY)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        _ = try container.decodeIfPresent(String.self, forKey: .displayName)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(imageName, forKey: .imageName)
+        try container.encode(scale, forKey: .scale)
+        try container.encode(offsetX, forKey: .offsetX)
+        try container.encode(offsetY, forKey: .offsetY)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -339,7 +370,6 @@ public final class UserPreferences {
             initialCustomThemePresets = [
                 CustomThemePreset(
                     id: UUID(),
-                    displayName: "我的主题",
                     imageName: legacyImageName,
                     scale: storedCustomThemeScale,
                     offsetX: storedCustomThemeOffsetX,
@@ -556,15 +586,12 @@ public final class UserPreferences {
     @discardableResult
     public func saveCustomThemePreset(
         id: UUID? = nil,
-        displayName: String,
         imageName: String,
         scale: Double,
         offsetX: Double,
         offsetY: Double
     ) -> UUID {
         let now = Date()
-        let normalizedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedDisplayName = normalizedDisplayName.isEmpty ? "我的主题" : normalizedDisplayName
         let clampedScale = Self.clampCustomThemeScale(scale)
         let clampedOffsetX = Self.clampCustomThemeOffset(offsetX)
         let clampedOffsetY = Self.clampCustomThemeOffset(offsetY)
@@ -574,7 +601,6 @@ public final class UserPreferences {
             let createdAt = customThemePresets[index].createdAt
             customThemePresets[index] = CustomThemePreset(
                 id: id,
-                displayName: resolvedDisplayName,
                 imageName: imageName,
                 scale: clampedScale,
                 offsetX: clampedOffsetX,
@@ -588,7 +614,6 @@ public final class UserPreferences {
             customThemePresets.append(
                 CustomThemePreset(
                     id: newID,
-                    displayName: resolvedDisplayName,
                     imageName: imageName,
                     scale: clampedScale,
                     offsetX: clampedOffsetX,
