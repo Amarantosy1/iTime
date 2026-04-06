@@ -398,6 +398,7 @@ public final class AppModel {
                 completedAt: nil,
                 status: .inProgress,
                 overviewSnapshot: context.overviewSnapshot,
+                events: context.events,
                 messages: [assistantMessage]
             )
             try saveConversationArchive(upserting: session)
@@ -442,6 +443,7 @@ public final class AppModel {
             completedAt: nil,
             status: .inProgress,
             overviewSnapshot: session.overviewSnapshot,
+            events: session.events,
             messages: historyWithReply
         )
         aiConversationState = .responding(respondingSession)
@@ -467,6 +469,7 @@ public final class AppModel {
                 completedAt: nil,
                 status: .inProgress,
                 overviewSnapshot: session.overviewSnapshot,
+                events: session.events,
                 messages: historyWithReply + [assistantMessage]
             )
             try saveConversationArchive(upserting: updatedSession)
@@ -514,6 +517,7 @@ public final class AppModel {
                 completedAt: completedAt,
                 status: .completed,
                 overviewSnapshot: session.overviewSnapshot,
+                events: session.events,
                 messages: session.messages
             )
             let summary = AIConversationSummary(

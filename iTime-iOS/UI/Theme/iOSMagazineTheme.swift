@@ -169,18 +169,20 @@ private struct CustomImageThemeBackground: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let clampedScale = min(max(scale, 1.0), 4.0)
-            let clampedOffsetX = min(max(offsetX, -1.0), 1.0)
-            let clampedOffsetY = min(max(offsetY, -1.0), 1.0)
-
-            let x = clampedOffsetX * proxy.size.width * 0.35
-            let y = clampedOffsetY * proxy.size.height * 0.35
+            let clampedScale = CustomThemeCropMath.clampedScale(scale)
+            let translation = CustomThemeCropMath.translation(
+                containerSize: proxy.size,
+                imageSize: image.size,
+                scale: clampedScale,
+                offsetX: offsetX,
+                offsetY: offsetY
+            )
 
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
                 .scaleEffect(clampedScale)
-                .offset(x: x, y: y)
+                .offset(x: translation.width, y: translation.height)
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()
                 .overlay {
@@ -192,6 +194,66 @@ private struct CustomImageThemeBackground: View {
                 }
         }
         .ignoresSafeArea()
+    }
+}
+
+enum CustomThemeCropMath {
+    static func clampedScale(_ value: Double) -> Double {
+        min(max(value, 1.0), 4.0)
+    }
+
+    static func clampedOffset(_ value: Double) -> Double {
+        min(max(value, -1.0), 1.0)
+    }
+
+    static func translation(
+        containerSize: CGSize,
+        imageSize: CGSize,
+        scale: Double,
+        offsetX: Double,
+        offsetY: Double
+    ) -> CGSize {
+        let clampedScale = clampedScale(scale)
+        let maxTranslation = maxTranslation(
+            containerSize: containerSize,
+            imageSize: imageSize,
+            scale: clampedScale
+        )
+
+        return CGSize(
+            width: maxTranslation.width * clampedOffset(offsetX),
+            height: maxTranslation.height * clampedOffset(offsetY)
+        )
+    }
+
+    static func maxTranslation(
+        containerSize: CGSize,
+        imageSize: CGSize,
+        scale: Double
+    ) -> CGSize {
+        guard containerSize.width > 0, containerSize.height > 0, imageSize.width > 0, imageSize.height > 0 else {
+            return .zero
+        }
+
+        let containerAspect = containerSize.width / containerSize.height
+        let imageAspect = imageSize.width / imageSize.height
+
+        let baseSize: CGSize
+        if imageAspect > containerAspect {
+            let height = containerSize.height
+            baseSize = CGSize(width: height * imageAspect, height: height)
+        } else {
+            let width = containerSize.width
+            baseSize = CGSize(width: width, height: width / imageAspect)
+        }
+
+        let zoomedWidth = baseSize.width * scale
+        let zoomedHeight = baseSize.height * scale
+
+        return CGSize(
+            width: max(0, (zoomedWidth - containerSize.width) / 2),
+            height: max(0, (zoomedHeight - containerSize.height) / 2)
+        )
     }
 }
 

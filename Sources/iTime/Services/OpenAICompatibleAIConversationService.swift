@@ -324,9 +324,13 @@ public struct OpenAICompatibleAIConversationService: AIConversationServing, Send
         复盘范围：\(session.displayPeriodText)
         统计摘要：\(session.overviewSnapshot.totalDurationText)，共 \(session.overviewSnapshot.totalEventCount) 个事件。
         主要日历：\(session.overviewSnapshot.topCalendarNames.joined(separator: "、"))
+        具体日程：
+        \(eventLines(for: session.events))
         当前短总结标题（仅作索引，不可作为主输入）：\(summary.headline)
         对话记录：
         \(historyLines(for: session.messages))
+        必须同时依据具体日程数据和对话记录生成复盘内容。
+        若对话内容与具体日程冲突，以具体日程数据为准，不得臆造不存在的事件或时长。
         基于这些对话和统计，帮我写一篇真实的复盘——不是汇报，是反思。
         不要逐条转写聊天，抽象整理出真正值得思考的东西，每个章节有具体依据。
         只输出 JSON：\(outputSchema)

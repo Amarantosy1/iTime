@@ -917,14 +917,13 @@ struct iOSConversationSummaryDetailView: View {
                 configuration.label
                     .relativeLineSpacing(.em(0.25))
                     .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.secondary.opacity(0.08))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.secondary.opacity(0.15), lineWidth: 1)
-                    )
+                    .background {
+                        markdownBlockCardBackground(cornerRadius: 14)
+                    }
+                    .overlay {
+                        markdownBlockCardBorder(cornerRadius: 14)
+                    }
+                    .shadow(color: currentTheme == .flowing ? .black.opacity(0.08) : .clear, radius: 8, x: 0, y: 4)
                     .markdownMargin(top: 0, bottom: 10)
             }
             .markdownBlockStyle(\.codeBlock) { configuration in
@@ -934,9 +933,44 @@ struct iOSConversationSummaryDetailView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                 }
-                .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background {
+                    markdownBlockCardBackground(cornerRadius: 10)
+                }
+                .overlay {
+                    markdownBlockCardBorder(cornerRadius: 10)
+                }
+                .shadow(color: currentTheme == .flowing ? .black.opacity(0.08) : .clear, radius: 8, x: 0, y: 4)
                 .markdownMargin(top: 4, bottom: 12)
             }
+    }
+
+    @ViewBuilder
+    private func markdownBlockCardBackground(cornerRadius: CGFloat) -> some View {
+        if currentTheme == .pure {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        } else {
+            if #available(iOS 26, *) {
+                let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                shape
+                    .fill(.clear)
+                    .glassEffect(.regular, in: shape)
+            } else {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func markdownBlockCardBorder(cornerRadius: CGFloat) -> some View {
+        if currentTheme == .pure {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        } else {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(.white.opacity(0.14), lineWidth: 0.5)
+        }
     }
 
     private func splitSummarySections(from rawText: String) -> (objective: String, subjective: String?) {

@@ -211,32 +211,26 @@ private struct iOSThemeSettingsDetailView: View {
             }
 
             if let previewImage {
-                CustomThemeCropPreview(
+                CustomThemeGestureCropper(
                     image: previewImage,
-                    scale: cropScale,
-                    offsetX: cropOffsetX,
-                    offsetY: cropOffsetY
+                    scale: $cropScale,
+                    offsetX: $cropOffsetX,
+                    offsetY: $cropOffsetY
                 )
 
-                VStack(alignment: .leading, spacing: 10) {
-                    LabeledContent("缩放") {
-                        Text(String(format: "%.2fx", cropScale))
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $cropScale, in: 1.0...4.0)
+                Text("手势裁切：单指拖动位置，双指缩放；双击预览可重置。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
 
-                    LabeledContent("水平偏移") {
-                        Text(String(format: "%.2f", cropOffsetX))
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $cropOffsetX, in: -1.0...1.0)
-
-                    LabeledContent("垂直偏移") {
-                        Text(String(format: "%.2f", cropOffsetY))
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $cropOffsetY, in: -1.0...1.0)
+                HStack(spacing: 12) {
+                    Label(String(format: "缩放 %.2fx", cropScale), systemImage: "plus.magnifyingglass")
+                        .font(.footnote)
+                    Label(String(format: "X %.2f", cropOffsetX), systemImage: "arrow.left.and.right")
+                        .font(.footnote)
+                    Label(String(format: "Y %.2f", cropOffsetY), systemImage: "arrow.up.and.down")
+                        .font(.footnote)
                 }
+                .foregroundStyle(.secondary)
 
                 HStack(spacing: 10) {
                     Button("应用自定义主题") {
@@ -259,6 +253,10 @@ private struct iOSThemeSettingsDetailView: View {
 
                 if model.preferences.interfaceTheme != .custom {
                     Text("已保存图片与裁切，点击“应用自定义主题”后生效。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("已实时保存当前裁切。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -359,36 +357,134 @@ private enum ThemeSettingsTab: String, CaseIterable, Identifiable {
     }
 }
 
-private struct CustomThemeCropPreview: View {
+private struct CustomThemeGestureCropper: View {
     let image: UIImage
-    let scale: Double
-    let offsetX: Double
-    let offsetY: Double
+    @Binding var scale: Double
+    @Binding var offsetX: Double
+    @Binding var offsetY: Double
+
+    @GestureState private var dragTranslation: CGSize = .zero
+    @GestureState private var pinchScale: CGFloat = 1
 
     var body: some View {
         GeometryReader { proxy in
-            let clampedScale = min(max(scale, 1.0), 4.0)
-            let clampedOffsetX = min(max(offsetX, -1.0), 1.0)
-            let clampedOffsetY = min(max(offsetY, -1.0), 1.0)
-            let x = clampedOffsetX * proxy.size.width * 0.35
-            let y = clampedOffsetY * proxy.size.height * 0.35
+            let transientScale = CustomThemeCropMath.clampedScale(scale * Double(pinchScale))
+            let maxTranslation = CustomThemeCropMath.maxTranslation(
+                containerSize: proxy.size,
+                imageSize: image.size,
+                scale: transientScale
+            )
+            let transientOffsetX = resolvedOffsetX(
+                dragWidth: dragTranslation.width,
+                maxTranslationWidth: maxTranslation.width
+            )
+            let transientOffsetY = resolvedOffsetY(
+                dragHeight: dragTranslation.height,
+                maxTranslationHeight: maxTranslation.height
+            )
+            let translation = CustomThemeCropMath.translation(
+                containerSize: proxy.size,
+                imageSize: image.size,
+                scale: transientScale,
+                offsetX: transientOffsetX,
+                offsetY: transientOffsetY
+            )
 
             ZStack {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .scaleEffect(clampedScale)
-                    .offset(x: x, y: y)
+                    .scaleEffect(transientScale)
+                    .offset(x: translation.width, y: translation.height)
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
+
+                Color.black.opacity(0.08)
+
+                CropRuleOfThirdsGrid()
 
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(.white.opacity(0.6), lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .highPriorityGesture(cropGesture(in: proxy.size))
+            .onTapGesture(count: 2) {
+                scale = 1.12
+                offsetX = 0
+                offsetY = 0
+            }
         }
-        .frame(height: 220)
+        .frame(height: 240)
         .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+    }
+
+    private func cropGesture(in containerSize: CGSize) -> some Gesture {
+        let drag = DragGesture(minimumDistance: 0)
+            .updating($dragTranslation) { value, state, _ in
+                state = value.translation
+            }
+            .onEnded { value in
+                let maxTranslation = CustomThemeCropMath.maxTranslation(
+                    containerSize: containerSize,
+                    imageSize: image.size,
+                    scale: scale
+                )
+
+                if maxTranslation.width > 0 {
+                    let deltaX = Double(value.translation.width / maxTranslation.width)
+                    offsetX = CustomThemeCropMath.clampedOffset(offsetX + deltaX)
+                }
+
+                if maxTranslation.height > 0 {
+                    let deltaY = Double(value.translation.height / maxTranslation.height)
+                    offsetY = CustomThemeCropMath.clampedOffset(offsetY + deltaY)
+                }
+            }
+
+        let pinch = MagnificationGesture()
+            .updating($pinchScale) { value, state, _ in
+                state = value
+            }
+            .onEnded { value in
+                scale = CustomThemeCropMath.clampedScale(scale * value)
+            }
+
+        return drag.simultaneously(with: pinch)
+    }
+
+    private func resolvedOffsetX(dragWidth: CGFloat, maxTranslationWidth: CGFloat) -> Double {
+        guard maxTranslationWidth > 0 else { return 0 }
+        let delta = Double(dragWidth / maxTranslationWidth)
+        return CustomThemeCropMath.clampedOffset(offsetX + delta)
+    }
+
+    private func resolvedOffsetY(dragHeight: CGFloat, maxTranslationHeight: CGFloat) -> Double {
+        guard maxTranslationHeight > 0 else { return 0 }
+        let delta = Double(dragHeight / maxTranslationHeight)
+        return CustomThemeCropMath.clampedOffset(offsetY + delta)
+    }
+}
+
+private struct CropRuleOfThirdsGrid: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let w = proxy.size.width
+            let h = proxy.size.height
+
+            Path { path in
+                path.move(to: CGPoint(x: w / 3, y: 0))
+                path.addLine(to: CGPoint(x: w / 3, y: h))
+                path.move(to: CGPoint(x: 2 * w / 3, y: 0))
+                path.addLine(to: CGPoint(x: 2 * w / 3, y: h))
+
+                path.move(to: CGPoint(x: 0, y: h / 3))
+                path.addLine(to: CGPoint(x: w, y: h / 3))
+                path.move(to: CGPoint(x: 0, y: 2 * h / 3))
+                path.addLine(to: CGPoint(x: w, y: 2 * h / 3))
+            }
+            .stroke(.white.opacity(0.35), lineWidth: 0.8)
+        }
+        .allowsHitTesting(false)
     }
 }
 

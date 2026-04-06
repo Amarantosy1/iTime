@@ -270,6 +270,17 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
             totalEventCount: 6,
             topCalendarNames: ["工作", "学习"]
         ),
+        events: [
+            AIEventContext(
+                id: "ev-1",
+                title: "季度预算复盘",
+                calendarID: "work",
+                calendarName: "工作",
+                startDate: Date(timeIntervalSince1970: 1_700_006_000),
+                endDate: Date(timeIntervalSince1970: 1_700_009_600),
+                durationText: "1小时"
+            ),
+        ],
         messages: [
             AIConversationMessage(
                 id: UUID(),
@@ -320,7 +331,11 @@ private final class ConversationRecordingAIHTTPSender: @unchecked Sendable, AIAn
     let body = try #require(String(data: bodyData, encoding: .utf8))
     #expect(body.contains("周二下午的需求评审主要产出了什么？"))
     #expect(body.contains("主要在对齐需求变更和下周排期。"))
+    #expect(body.contains("季度预算复盘"))
     #expect(body.contains("这段文字不该成为流水账的主输入。") == false)
+    #expect(body.contains("具体日程："))
+    #expect(body.contains("必须同时依据具体日程数据和对话记录"))
+    #expect(body.contains("若对话内容与具体日程冲突，以具体日程数据为准"))
     #expect(body.contains("流水账复盘"))
     #expect(body.contains("不要渲染感情"))
     #expect(body.contains("节点式流程图") == false)

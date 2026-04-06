@@ -69,6 +69,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
     public let completedAt: Date?
     public let status: AIConversationStatus
     public let overviewSnapshot: AIOverviewSnapshot
+    public let events: [AIEventContext]
     public let messages: [AIConversationMessage]
 
     public init(
@@ -84,6 +85,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         completedAt: Date?,
         status: AIConversationStatus,
         overviewSnapshot: AIOverviewSnapshot,
+        events: [AIEventContext] = [],
         messages: [AIConversationMessage]
     ) {
         self.id = id
@@ -98,6 +100,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         self.completedAt = completedAt
         self.status = status
         self.overviewSnapshot = overviewSnapshot
+        self.events = events
         self.messages = messages
     }
 
@@ -116,6 +119,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         case completedAt
         case status
         case overviewSnapshot
+        case events
         case messages
     }
 
@@ -136,6 +140,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         status = try container.decode(AIConversationStatus.self, forKey: .status)
         overviewSnapshot = try container.decode(AIOverviewSnapshot.self, forKey: .overviewSnapshot)
+        events = try container.decodeIfPresent([AIEventContext].self, forKey: .events) ?? []
         messages = try container.decode([AIConversationMessage].self, forKey: .messages)
     }
 
@@ -153,6 +158,7 @@ public struct AIConversationSession: Equatable, Codable, Sendable {
         try container.encodeIfPresent(completedAt, forKey: .completedAt)
         try container.encode(status, forKey: .status)
         try container.encode(overviewSnapshot, forKey: .overviewSnapshot)
+        try container.encode(events, forKey: .events)
         try container.encode(messages, forKey: .messages)
     }
 }
@@ -621,7 +627,7 @@ public extension AIConversationSession {
     }
 }
 
-public struct AIEventContext: Equatable, Sendable {
+public struct AIEventContext: Equatable, Codable, Sendable {
     public let id: String
     public let title: String
     public let calendarID: String
